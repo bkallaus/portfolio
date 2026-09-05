@@ -15,5 +15,11 @@ export default defineConfig({
   },
   build: {
     outDir: 'build',
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, 'index.html'),
+        duel: path.resolve(__dirname, 'duel/play/index.html'),
+      },
+    },
   },
 });

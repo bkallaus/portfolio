@@ -243,12 +243,99 @@
     ctx.closePath();
   }
 
-  function drawBuildings() {
-    const sorted = [...buildings].sort((a, b) => (a.gx + a.gy + a.w + a.h) - (b.gx + b.gy + b.w + b.h));
-    for (const b of sorted) drawBuilding(b);
+  // ---- Rails + tram (foreground street, runs along gx at fixed gy) ----
+  const TRAM = { gy: 12.4, gxMin: -1.5, gxMax: 16.5, gx: 2.0, dir: 1, speed: 0.030 };
+
+  function railLine(gxA, gyA, gxB, gyB, color, width) {
+    const a = isoToScreen(gxA, gyA), b = isoToScreen(gxB, gyB);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.stroke();
   }
 
-  function frame() {
+  function drawRails() {
+    // Foreground street corridor along gy=TRAM.gy — asphalt strip, two rails + ties.
+    const gy = TRAM.gy;
+    // asphalt band
+    poly([
+      isoToScreen(TRAM.gxMin, gy - 0.5), isoToScreen(TRAM.gxMax, gy - 0.5),
+      isoToScreen(TRAM.gxMax, gy + 0.5), isoToScreen(TRAM.gxMin, gy + 0.5),
+    ], "#3a4053");
+    railLine(TRAM.gxMin, gy - 0.22, TRAM.gxMax, gy - 0.22, "#5a6478", 2.5);
+    railLine(TRAM.gxMin, gy + 0.22, TRAM.gxMax, gy + 0.22, "#5a6478", 2.5);
+    for (let gx = TRAM.gxMin; gx <= TRAM.gxMax; gx += 0.5) {
+      railLine(gx, gy - 0.3, gx, gy + 0.3, "#2c3346", 2);
+    }
+  }
+
+  // A rounded, lit vehicle. fx/fy = footprint extent (tiles) along gx/gy.
+  function drawVehicle(v) {
+    const fx = v.fx, fy = v.fy, H = v.hgt;
+    const g0 = { gx: v.gx - fx / 2, gy: v.gy - fy / 2 };
+    const baseBack  = isoToScreen(g0.gx,       g0.gy);
+    const baseEast  = isoToScreen(g0.gx + fx,  g0.gy);
+    const baseSouth = isoToScreen(g0.gx + fx,  g0.gy + fy);
+    const baseWest  = isoToScreen(g0.gx,       g0.gy + fy);
+    const up = (p) => ({ x: p.x, y: p.y - H });
+    const tBack = up(baseBack), tEast = up(baseEast), tSouth = up(baseSouth), tWest = up(baseWest);
+
+    // left face
+    poly([baseWest, baseSouth, tSouth, tWest], shade(v.body, 0.78));
+    // right face
+    poly([baseSouth, baseEast, tEast, tSouth], shade(v.body, 0.95));
+    // roof
+    poly([tBack, tEast, tSouth, tWest], shade(v.body, 1.18));
+
+    // window strips (bright)
+    faceSpace(
+      { x: baseWest.x, y: baseWest.y },
+      { x: baseSouth.x - baseWest.x, y: baseSouth.y - baseWest.y },
+      { x: tWest.x - baseWest.x, y: tWest.y - baseWest.y },
+      () => { ctx.fillStyle = "rgba(180,230,255,0.9)"; ctx.fillRect(0.06, 0.35, 0.88, 0.4); }
+    );
+    faceSpace(
+      { x: baseSouth.x, y: baseSouth.y },
+      { x: baseEast.x - baseSouth.x, y: baseEast.y - baseSouth.y },
+      { x: tSouth.x - baseSouth.x, y: tSouth.y - baseSouth.y },
+      () => { ctx.fillStyle = "rgba(180,230,255,0.9)"; ctx.fillRect(0.1, 0.35, 0.8, 0.4); }
+    );
+  }
+
+  function poly(pts, fill) {
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+  }
+
+  function updateTram(dt) {
+    TRAM.gx += TRAM.dir * TRAM.speed * dt;
+    if (TRAM.gx < TRAM.gxMin) { TRAM.gx = TRAM.gxMin; TRAM.dir = 1; }
+    if (TRAM.gx > TRAM.gxMax) { TRAM.gx = TRAM.gxMax; TRAM.dir = -1; }
+  }
+
+  // ---- Unified depth-sorted scene ----
+  function drawScene() {
+    const items = [];
+    for (const b of buildings) items.push({ z: b.gx + b.gy + b.w + b.h, draw: () => drawBuilding(b) });
+    items.push({
+      z: TRAM.gx + TRAM.gy + 0.9,
+      draw: () => drawVehicle({ gx: TRAM.gx, gy: TRAM.gy, fx: 2.6, fy: 0.7, hgt: 26, body: "#c9d2e0" }),
+    });
+    items.sort((a, b) => a.z - b.z);
+    for (const it of items) it.draw();
+  }
+
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(50, now - last); last = now;
+    updateTram(dt);
+
     const g = ctx.createLinearGradient(0, 0, 0, window.innerHeight);
     g.addColorStop(0, "#0a1024");
     g.addColorStop(1, "#141d3a");
@@ -256,7 +343,8 @@
     ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
 
     drawGround();
-    drawBuildings();
+    drawRails();
+    drawScene();
     requestAnimationFrame(frame);
   }
 

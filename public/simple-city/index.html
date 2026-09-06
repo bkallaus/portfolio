@@ -168,6 +168,23 @@
     ctx.restore();
   }
 
+  // Soft additive bloom over lit facades and neon.
+  function drawBloom() {
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    for (const b of buildings) {
+      const c = isoToScreen(b.gx + b.w / 2, b.gy + b.h / 2);
+      const cy = c.y - b.hgt * 0.5;
+      const R = Math.max(40, b.hgt * 0.55);
+      const grd = ctx.createRadialGradient(c.x, cy, 4, c.x, cy, R);
+      grd.addColorStop(0, "rgba(255,224,158,0.07)");
+      grd.addColorStop(1, "rgba(255,224,158,0)");
+      ctx.fillStyle = grd;
+      ctx.beginPath(); ctx.arc(c.x, cy, R, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
   // Soft contact shadows under each building.
   function drawShadows() {
     ctx.save();
@@ -1145,6 +1162,7 @@
     drawRails();
     drawScene();
     drawMonorail();
+    drawBloom();
     drawAllSigns();
     drawDrone();
     drawBubbles();

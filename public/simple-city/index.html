@@ -243,6 +243,21 @@
       () => drawWindows(Math.max(2, Math.round(b.w * 2)), rows, litR)
     );
 
+    // Storefront band + awning on the two front walls
+    const isShop = b.hgt <= 135;
+    faceSpace(
+      { x: baseWest.x, y: baseWest.y },
+      { x: baseSouth.x - baseWest.x, y: baseSouth.y - baseWest.y },
+      { x: topWest.x - baseWest.x, y: topWest.y - baseWest.y },
+      () => drawStorefront(b, Math.max(2, Math.round(b.h * 2)), isShop, rows)
+    );
+    faceSpace(
+      { x: baseSouth.x, y: baseSouth.y },
+      { x: baseEast.x - baseSouth.x, y: baseEast.y - baseSouth.y },
+      { x: topSouth.x - baseSouth.x, y: topSouth.y - baseSouth.y },
+      () => drawStorefront(b, Math.max(2, Math.round(b.w * 2)), isShop, rows)
+    );
+
     // Top (roof)
     ctx.beginPath();
     ctx.moveTo(topBack.x, topBack.y);
@@ -252,6 +267,30 @@
     ctx.closePath();
     ctx.fillStyle = shade(b.wall, 1.15);
     ctx.fill();
+  }
+
+  // Lit shopfront glow + striped awning near the bottom of a front wall
+  // (drawn in the wall's unit space: u across 0..1, v up 0..1).
+  function drawStorefront(b, cols, isShop, rows) {
+    const bandTop = 1 / rows;          // one storey tall
+    // warm lit ground floor
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "rgba(255,196,120,0.55)";
+    ctx.fillRect(0.1, 0.03, 0.8, bandTop * 0.62);
+    // dark doorway
+    ctx.fillStyle = "rgba(30,22,16,0.7)";
+    ctx.fillRect(0.44, 0.03, 0.12, bandTop * 0.5);
+    if (!isShop) return;
+    // striped awning just above the shopfront
+    const ay = bandTop * 0.72, ah = bandTop * 0.42;
+    const stripes = Math.max(4, cols * 2);
+    const sw = 0.8 / stripes;
+    for (let i = 0; i < stripes; i++) {
+      ctx.fillStyle = (i % 2 === 0) ? b.neon : "#f2f4f8";
+      ctx.globalAlpha = 0.92;
+      ctx.fillRect(0.1 + i * sw, ay, sw + 0.002, ah);
+    }
+    ctx.globalAlpha = 1;
   }
 
   // Front-face geometry used to anchor a building's sign.

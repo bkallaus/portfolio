@@ -103,6 +103,54 @@
     }
   }
 
+  // Soft contact shadows under each building.
+  function drawShadows() {
+    ctx.save();
+    ctx.fillStyle = "rgba(0,0,0,0.22)";
+    for (const b of buildings) {
+      const pad = 0.18;
+      const p1 = isoToScreen(b.gx - pad, b.gy - pad);
+      const p2 = isoToScreen(b.gx + b.w + pad, b.gy - pad);
+      const p3 = isoToScreen(b.gx + b.w + pad, b.gy + b.h + pad);
+      const p4 = isoToScreen(b.gx - pad, b.gy + b.h + pad);
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+      ctx.lineTo(p3.x, p3.y); ctx.lineTo(p4.x, p4.y);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // ---- Starfield ----
+  const stars = [];
+  (function seedStars() {
+    for (let i = 0; i < 90; i++) {
+      stars.push({ x: Math.random(), y: Math.random() * 0.5, r: Math.random() * 1.3 + 0.3, ph: Math.random() * 6.3 });
+    }
+  })();
+  function drawStars() {
+    const W = window.innerWidth, H = window.innerHeight;
+    for (const s of stars) {
+      const tw = 0.5 + 0.5 * Math.sin(nowMs * 0.002 + s.ph);
+      ctx.globalAlpha = 0.25 + tw * 0.6;
+      ctx.fillStyle = "#dfe8ff";
+      ctx.beginPath();
+      ctx.arc(s.x * W, s.y * H, s.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawVignette() {
+    const W = window.innerWidth, H = window.innerHeight;
+    const g = ctx.createRadialGradient(W / 2, H * 0.52, H * 0.25, W / 2, H * 0.52, H * 0.9);
+    g.addColorStop(0, "rgba(0,0,0,0)");
+    g.addColorStop(1, "rgba(4,7,18,0.55)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+  }
+
   // ---- Color utilities ----
   function shade(hex, f) {
     const n = parseInt(hex.slice(1), 16);
@@ -129,13 +177,23 @@
     const pad = 0.18;
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
-        const lit = ((c * 7 + r * 13) % 5) !== 0;   // most windows lit
-        ctx.fillStyle = lit ? litColor : "rgba(20,26,45,0.9)";
+        const seed = c * 7 + r * 13;
+        const lit = (seed % 5) !== 0;   // most windows lit
+        if (lit) {
+          // occasional slow flicker on a subset of windows
+          const flick = (seed % 4 === 0) ? (0.72 + 0.28 * Math.sin(nowMs * 0.003 + seed)) : 1;
+          ctx.globalAlpha = flick;
+          ctx.fillStyle = litColor;
+        } else {
+          ctx.globalAlpha = 1;
+          ctx.fillStyle = "rgba(20,26,45,0.9)";
+        }
         const x = mx + c * cw + cw * pad;
         const y = my + r * ch + ch * pad;
         ctx.fillRect(x, y, cw * (1 - pad * 2), ch * (1 - pad * 2));
       }
     }
+    ctx.globalAlpha = 1;
   }
 
   function drawBuilding(b) {
@@ -219,15 +277,16 @@
     roundRect(cx - bw / 2, cy - bh / 2, bw, bh, 4);
     ctx.fill();
 
-    // Neon border + text glow
+    // Neon border + text glow (gently pulsing)
+    const pulse = 10 + Math.sin(nowMs * 0.004 + cx * 0.05) * 4;
     ctx.shadowColor = b.neon;
-    ctx.shadowBlur = 12;
+    ctx.shadowBlur = pulse + 2;
     ctx.strokeStyle = b.neon;
     ctx.lineWidth = 1.4;
     roundRect(cx - bw / 2, cy - bh / 2, bw, bh, 4);
     ctx.stroke();
 
-    ctx.shadowBlur = 10;
+    ctx.shadowBlur = pulse;
     ctx.fillStyle = b.neon;
     ctx.fillText(b.name, cx, cy + 0.5);
     ctx.restore();
@@ -569,12 +628,15 @@
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
 
+    drawStars();
     drawGround();
     drawPonds();
+    drawShadows();
     drawRails();
     drawScene();
     drawMonorail();
     drawBubbles();
+    drawVignette();
     requestAnimationFrame(frame);
   }
 

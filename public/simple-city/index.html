@@ -570,28 +570,62 @@
   ];
   const bushes = [ [0.6, 4.8], [0.6, 8.6], [7.9, 8.6], [10.2, 9.0], [1.2, 12.2], [8.0, 5.4], [13.0, 12.4] ];
   const flowerbeds = [ [1.0, 10.4], [8.9, 12.4], [3.4, 13.6], [13.6, 12.0] ];
-  const ponds = [ [2.4, 14.6, 1.4], [9.6, 13.8, 1.2] ];
+  const ponds = [
+    { gx: 2.4, gy: 14.6, r: 1.4, fountain: true },
+    { gx: 9.6, gy: 13.8, r: 1.2, fountain: false },
+  ];
   const lamps = [ [3.0, 11.7], [7.5, 11.7], [11.5, 11.7], [0.5, 11.7], [14.0, 11.7] ];
   const benches = [ [4.0, 12.0], [8.6, 12.0], [12.0, 12.0] ];
   const umbrellas = [ [1.1, 7.7, "#8bd66b"], [1.9, 7.7, "#7fd0ff"], [3.2, 8.5, "#5ad6f0"], [4.1, 8.5, "#ff9f6b"] ];
 
-  function drawPond(gx, gy, r) {
-    const c = isoToScreen(gx, gy);
+  function drawPond(p) {
+    const c = isoToScreen(p.gx, p.gy);
+    const R = p.r * TILE_W * 0.5;
     ctx.save();
     ctx.translate(c.x, c.y);
     ctx.scale(1, 0.5);
-    ctx.beginPath();
-    ctx.arc(0, 0, r * TILE_W * 0.5, 0, Math.PI * 2);
-    ctx.fillStyle = "#2f6f9e";
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(-r * 4, -r * 4, r * TILE_W * 0.32, 0, Math.PI * 2);
-    ctx.fillStyle = "#4f93c4";
-    ctx.fill();
+    // water
+    ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.fillStyle = "#2f6f9e"; ctx.fill();
+    ctx.beginPath(); ctx.arc(-R * 0.3, -R * 0.3, R * 0.64, 0, Math.PI * 2); ctx.fillStyle = "#4f93c4"; ctx.fill();
+    // ripples
+    ctx.strokeStyle = "rgba(220,240,255,0.5)"; ctx.lineWidth = 1;
+    for (let k = 0; k < 3; k++) {
+      const t = ((nowMs * 0.00018 + k / 3) % 1);
+      ctx.globalAlpha = (1 - t) * 0.5;
+      ctx.beginPath(); ctx.arc(0, 0, t * R * 0.9, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    // lily pads
+    ctx.fillStyle = "#357a45";
+    for (const o of [[-0.5, 0.3], [0.55, -0.2], [0.1, 0.55]]) {
+      ctx.beginPath(); ctx.ellipse(o[0] * R, o[1] * R, 5, 5, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    // duck
+    const dx = Math.sin(nowMs * 0.0006) * R * 0.4;
+    ctx.fillStyle = "#eef1f6";
+    ctx.beginPath(); ctx.ellipse(dx, R * 0.2, 4, 3, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#e8b24a";
+    ctx.beginPath(); ctx.arc(dx + 3.5, R * 0.2 - 1.5, 1.6, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
+
+    // fountain (upright, screen space)
+    if (p.fountain) {
+      ctx.save();
+      ctx.strokeStyle = "rgba(180,225,255,0.75)"; ctx.lineWidth = 1.4;
+      for (let a = -2; a <= 2; a++) {
+        const sway = Math.sin(nowMs * 0.006 + a) * 2;
+        ctx.beginPath();
+        ctx.moveTo(c.x, c.y - 2);
+        ctx.quadraticCurveTo(c.x + a * 3, c.y - 20, c.x + a * 6 + sway, c.y - 4);
+        ctx.stroke();
+      }
+      ctx.fillStyle = "rgba(200,235,255,0.9)"; ctx.shadowColor = "#bfe6ff"; ctx.shadowBlur = 8;
+      ctx.beginPath(); ctx.arc(c.x, c.y - 22, 2.2, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
   }
 
-  function drawPonds() { for (const p of ponds) drawPond(p[0], p[1], p[2]); }
+  function drawPonds() { for (const p of ponds) drawPond(p); }
 
   function drawTree(gx, gy, type = "round") {
     const b = isoToScreen(gx, gy);

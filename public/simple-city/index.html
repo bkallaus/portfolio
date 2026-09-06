@@ -193,6 +193,54 @@
     ctx.closePath();
     ctx.fillStyle = shade(b.wall, 1.15);
     ctx.fill();
+
+    drawSign(b, topSouth, baseSouth);
+  }
+
+  // Billboarded neon sign anchored near the front-top of a building.
+  function drawSign(b, topSouth, baseSouth) {
+    if (!b.name) return;
+    // Anchor a little below the roofline on the front face.
+    const t = 0.14;
+    const cx = topSouth.x + (baseSouth.x - topSouth.x) * t;
+    const cy = topSouth.y + (baseSouth.y - topSouth.y) * t;
+
+    const fs = Math.max(11, Math.min(15, b.w * 8));
+    ctx.font = `700 ${fs}px "Trebuchet MS", "Segoe UI", sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    const tw = ctx.measureText(b.name).width;
+    const padX = 8, padY = 5;
+    const bw = tw + padX * 2, bh = fs + padY * 2;
+
+    // Dark plaque
+    ctx.save();
+    ctx.fillStyle = "rgba(12,16,30,0.82)";
+    roundRect(cx - bw / 2, cy - bh / 2, bw, bh, 4);
+    ctx.fill();
+
+    // Neon border + text glow
+    ctx.shadowColor = b.neon;
+    ctx.shadowBlur = 12;
+    ctx.strokeStyle = b.neon;
+    ctx.lineWidth = 1.4;
+    roundRect(cx - bw / 2, cy - bh / 2, bw, bh, 4);
+    ctx.stroke();
+
+    ctx.shadowBlur = 10;
+    ctx.fillStyle = b.neon;
+    ctx.fillText(b.name, cx, cy + 0.5);
+    ctx.restore();
+  }
+
+  function roundRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
   }
 
   function drawBuildings() {

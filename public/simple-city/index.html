@@ -727,6 +727,58 @@
   }
   function tmsecPhase(p, tmsec) { return p.ph + tmsec * 0.008; }
 
+  // ---- Cyclists / scooter riders ----
+  const riders = [];
+  (function seedRiders() {
+    const routes = [
+      [0, 11.6, 15.5, 11.6, "bike"], [15.5, 11.6, 0, 11.6, "scooter"],
+      [10.3, 12, 10.3, 4, "bike"], [3, 6.4, 12, 6.4, "scooter"],
+    ];
+    for (const r of routes) {
+      riders.push({
+        ax: r[0], ay: r[1], bx: r[2], by: r[3], kind: r[4],
+        t: Math.random(), dir: 1, spd: rand(0.5, 0.8) / 1000,
+        shirt: shirtCols[(Math.random() * shirtCols.length) | 0],
+        skin: skinTones[(Math.random() * skinTones.length) | 0],
+      });
+    }
+  })();
+
+  function updateRiders(dt) {
+    for (const r of riders) {
+      r.t += r.dir * r.spd * dt;
+      if (r.t > 1) { r.t = 1; r.dir = -1; }
+      if (r.t < 0) { r.t = 0; r.dir = 1; }
+    }
+  }
+
+  function drawRider(r) {
+    const g = { gx: r.ax + (r.bx - r.ax) * r.t, gy: r.ay + (r.by - r.ay) * r.t };
+    const s = isoToScreen(g.gx, g.gy);
+    // shadow
+    ctx.save(); ctx.translate(s.x, s.y); ctx.scale(1, 0.5);
+    ctx.fillStyle = "rgba(0,0,0,0.25)";
+    ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    // wheels + frame
+    ctx.strokeStyle = "#20242f"; ctx.lineWidth = 1.4;
+    const wy = s.y - 3, spin = nowMs * 0.02;
+    for (const dx of [-4, 4]) {
+      ctx.beginPath(); ctx.arc(s.x + dx, wy, 3, 0, Math.PI * 2); ctx.stroke();
+      // spoke to show spin
+      ctx.beginPath();
+      ctx.moveTo(s.x + dx, wy);
+      ctx.lineTo(s.x + dx + Math.cos(spin) * 3, wy + Math.sin(spin) * 3);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = "#6b7690";
+    ctx.beginPath(); ctx.moveTo(s.x - 4, wy); ctx.lineTo(s.x, wy - 4); ctx.lineTo(s.x + 4, wy); ctx.stroke();
+    // rider
+    ctx.fillStyle = r.shirt;
+    ctx.beginPath(); ctx.roundRect(s.x - 2, s.y - 13, 4, 8, 2); ctx.fill();
+    ctx.fillStyle = r.skin;
+    ctx.beginPath(); ctx.arc(s.x, s.y - 14.5, 2.4, 0, Math.PI * 2); ctx.fill();
+  }
+
   // ---- Floating emoji speech bubbles ----
   const bubbles = [
     [4.6, 7.4, "😊", 64],   // 😊 near the cafes
@@ -777,6 +829,7 @@
     for (const bn of benches) items.push({ z: bn[0] + bn[1] - 0.02, draw: () => drawBench(bn[0], bn[1]) });
     for (const p of people)  { const g = personPos(p); items.push({ z: g.gx + g.gy + 0.05, draw: () => drawPerson(p, nowMs) }); }
     for (const c of cars)    items.push({ z: c.lane + c.gy + 0.3, draw: () => drawCar(c) });
+    for (const r of riders)  { const g = { gx: r.ax+(r.bx-r.ax)*r.t, gy: r.ay+(r.by-r.ay)*r.t }; items.push({ z: g.gx + g.gy + 0.06, draw: () => drawRider(r) }); }
     items.push({
       z: TRAM.gx + TRAM.gy + 0.9,
       draw: () => drawVehicle({ gx: TRAM.gx, gy: TRAM.gy, fx: 2.6, fy: 0.7, hgt: 26, body: "#c9d2e0" }),
@@ -794,6 +847,7 @@
     updateMono(dt);
     updatePeople(dt);
     updateCars(dt);
+    updateRiders(dt);
 
     const W = window.innerWidth, H = window.innerHeight;
     // Screen-space backdrop

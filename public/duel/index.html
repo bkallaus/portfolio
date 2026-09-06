@@ -18,7 +18,6 @@
       --muted: #6b7280;
       --line: #e5e7eb;
       --accent: #2563eb;
-      --code-bg: #f3f4f6;
       --slab: #1f2937;
     }
 
@@ -35,11 +34,6 @@
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       line-height: 1.7;
-    }
-
-    code,
-    pre {
-      font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
     }
 
     .topbar {
@@ -166,78 +160,8 @@
       font-weight: 600;
     }
 
-    em {
-      font-style: italic;
-    }
-
     a {
       color: var(--accent);
-    }
-
-    p code,
-    li code,
-    td code {
-      background: var(--code-bg);
-      border-radius: 4px;
-      padding: 1px 5px;
-      font-size: 0.9em;
-      color: #1f2937;
-      white-space: nowrap;
-    }
-
-    pre {
-      background: var(--slab);
-      color: #e5e7eb;
-      border-radius: 10px;
-      padding: 18px 20px;
-      overflow-x: auto;
-      font-size: 14px;
-      line-height: 1.65;
-      margin: 20px 0;
-    }
-
-    pre .c {
-      color: #9ca3af;
-    }
-
-    .table-wrap {
-      overflow-x: auto;
-      margin: 20px 0;
-    }
-
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      min-width: 460px;
-      font-size: 15px;
-    }
-
-    th,
-    td {
-      text-align: left;
-      padding: 10px 14px;
-      border-bottom: 1px solid var(--line);
-      vertical-align: top;
-    }
-
-    th {
-      color: var(--ink);
-      font-weight: 600;
-      border-bottom: 2px solid var(--line);
-      white-space: nowrap;
-    }
-
-    tbody tr:last-child td {
-      border-bottom: none;
-    }
-
-    ul {
-      margin: 16px 0;
-      padding-left: 22px;
-    }
-
-    li {
-      margin: 10px 0;
     }
 
     footer {
@@ -300,153 +224,14 @@
 
   <main>
     <section>
-      <pre><code>npm install
-npm run dev      <span class="c"># local server</span>
-npm test         <span class="c"># all three suites, ~10s</span>
-npm run build    <span class="c"># static output in dist/</span></code></pre>
-
-      <h2>Layout</h2>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>File</th>
-              <th>Role</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><code>src/engine.js</code></td>
-              <td>All game logic. Pure, no React, no DOM.</td>
-            </tr>
-            <tr>
-              <td><code>src/theme.js</code></td>
-              <td>Palette, resource colours, science symbol shapes.</td>
-            </tr>
-            <tr>
-              <td><code>src/net.js</code></td>
-              <td>Two connection transports behind one interface.</td>
-            </tr>
-            <tr>
-              <td><code>src/DuelBoard.jsx</code></td>
-              <td>Every component. The only file that touches React.</td>
-            </tr>
-            <tr>
-              <td><code>test/</code></td>
-              <td>Three suites, run by <code>test/run.mjs</code>.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <section>
-      <h2>Invariants worth not breaking</h2>
+      <h2>How to play</h2>
       <p>
-        <strong>The engine is pure.</strong> Every function in <code>engine.js</code> takes state and returns new state.
-        No DOM, no network, no mutation of the argument (<code>clone</code> first). This is what makes the
-        tests possible and what makes multiplayer a matter of shipping state rather than syncing
-        events. If you find yourself wanting to import React into <code>engine.js</code>, the design has gone
-        wrong somewhere else.
+        <strong>Same screen</strong> &mdash; pass the laptop back and forth, or sit side by side.
       </p>
       <p>
-        <strong>Derive, don't store.</strong> <code>PlayerState</code> holds only <code>coins</code>,
-        <code>built</code>, <code>wonders</code>, <code>tokens</code>.
-        Shields, production, science symbols, trade discounts and score are all computed by
-        <code>view()</code> on demand. There is deliberately no cached <code>shields</code> field. Adding one is how
-        this codebase would start to rot.
+        <strong>Two devices</strong> &mdash; the game connects the two browsers directly to each other,
+        peer to peer, with no account and no server in between.
       </p>
-      <p>
-        <strong>Both peers run the same engine.</strong> After each move the whole state is sent over the wire
-        and the receiver adopts it wholesale. There is no host authority and no event reconciliation.
-        Keep it that way unless the state grows a lot.
-      </p>
-      <p>
-        <strong>Interrupts live in state, not in React.</strong> Effects that need a mid-turn decision set
-        <code>state.pending</code>, and the reducer refuses normal actions until it's resolved. Don't move this
-        into component state or modals &mdash; it will desync the moment someone refreshes.
-      </p>
-    </section>
-
-    <section>
-      <h2>The two hard parts</h2>
-      <p>
-        <strong><code>resourceCost()</code></strong> &mdash; the cost solver. Not a subtraction, because of three
-        interacting
-        complications: flexible producers that yield "one of these, your choice, each turn"
-        (Great Lighthouse, Piraeus, Forum, Caravansery); the Architecture and Masonry tokens which
-        waive 2 resources <em>of your choice</em>; and per-resource prices driven by the opponent's brown
-        and grey cards. It brute-forces the flexible assignments and greedily waives the priciest
-        units, which is optimal here since units are independent. Seven hand-computed cases in
-        <code>engine.test.mjs</code> cover it. Change this function and run the tests.
-      </p>
-      <p>
-        <strong>The covering graph</strong> in <code>buildSlots()</code> &mdash; which slot sits on which. Generated
-        from row
-        widths rather than hand-entered. Age III's middle rows are the awkward case: a row of 4
-        covered by a row of 2 (<code>b === a/2</code>) and then a row of 2 covered by a row of 4
-        (<code>b === a*2</code>).
-        Tests assert every age deals 20 slots, starts 8 face down, opens the right number of cards,
-        and never strands an unreachable slot.
-      </p>
-    </section>
-
-    <section>
-      <h2>What's verified and what isn't</h2>
-      <p>
-        Verified by test: 4,000 random self-play games with no crashes or stalls, 51 assertions on
-        wonder behaviour, 14 edge cases, scoring reconciled against a hand-totalled game.
-      </p>
-      <p>
-        <strong>Not verified: the card data itself.</strong> The costs, names and chain links in the
-        <code>CARDS</code>
-        array at the top of <code>engine.js</code> are a reconstruction and have not been checked against a
-        physical copy. The engine is right; the numbers may not be. Only the Temple of Artemis cost
-        was confirmed against an external source. Proofreading this is the highest-value hour
-        available and doesn't require touching any logic.
-      </p>
-      <p>
-        Also unconfirmed: the wonder draft order. Currently the pick order flips for the second set
-        of four (<code>DRAFT = [0,1,1,0, 1,0,0,1]</code>). If it should continue as a snake instead, that's one
-        array.
-      </p>
-    </section>
-
-    <section>
-      <h2>Connection</h2>
-      <p>
-        <code>net.js</code> exposes two transports that both produce <code>{ send, isOpen, role, close }</code>.
-        Nothing
-        above that line knows which is in use.
-      </p>
-      <ul>
-        <li>
-          <strong>quick</strong> &mdash; PeerJS brokers the introduction, so players exchange a 5-character code.
-          Loaded from a CDN at runtime rather than bundled, so the same file also runs in
-          environments where npm imports aren't available. Broker sees signalling only.
-        </li>
-        <li>
-          <strong>manual</strong> &mdash; raw WebRTC. ICE gathering is allowed to finish before the descriptor is
-          shown, which collapses signalling into one static string each way and removes the need
-          for any server at all.
-        </li>
-      </ul>
-    </section>
-
-    <section>
-      <h2>Open items</h2>
-      <ul>
-        <li>Card data proofread (see above).</li>
-        <li>
-          <strong>Reconnect.</strong> State lives only in the two browsers. Close both tabs and the game is gone.
-          Fix would be persisting state to <code>localStorage</code> on each move plus a rejoin handshake.
-        </li>
-        <li>
-          <strong>TURN.</strong> Behind carrier-grade NAT, no direct route exists and connection fails outright.
-          There's a commented slot in <code>ICE</code> in <code>net.js</code>; credentials are the only fix.
-        </li>
-        <li>Undo is local-history based and rewinds both players when used over a connection.</li>
-      </ul>
     </section>
   </main>
 

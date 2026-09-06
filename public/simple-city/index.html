@@ -76,7 +76,7 @@
     canvas.style.height = window.innerHeight + "px";
     const w = window.innerWidth, h = window.innerHeight;
     // Auto-fit: keep the whole city on screen across sizes / iframe embeds.
-    VIEW.scale = Math.max(0.42, Math.min(w / 1240, h / 830, 1.2));
+    VIEW.scale = Math.max(0.42, Math.min(w / 1180, h / 790, 1.25));
     VIEW.ox = w / 2 - GRID * (TILE_W / 2) * VIEW.scale * 0.02;
     VIEW.oy = h * 0.30;
   }
@@ -1218,12 +1218,24 @@
     ctx.fillStyle = "rgba(255,170,80,0.10)";
     ctx.fillRect(0, 0, W, H);
     ctx.restore();
-    requestAnimationFrame(frame);
   }
+
+  // ---- Scheduler: pause when hidden, honour reduced-motion ----
+  const reduceMotion = window.matchMedia
+    && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let running = false;
+  function loop(now) {
+    running = true;
+    frame(now);
+    if (reduceMotion || document.hidden) { running = false; return; }
+    requestAnimationFrame(loop);
+  }
+  function start() { if (!running) { last = performance.now(); requestAnimationFrame(loop); } }
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) start(); });
 
   window.addEventListener("resize", resize);
   resize();
-  requestAnimationFrame(frame);
+  start();
 })();
 </script>
 </body>

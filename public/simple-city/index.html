@@ -497,6 +497,47 @@
   }
   function tmsecPhase(p, tmsec) { return p.ph + tmsec * 0.008; }
 
+  // ---- Floating emoji speech bubbles ----
+  const bubbles = [
+    [4.6, 7.4, "😊", 64],   // 😊 near the cafes
+    [8.2, 6.6, "🍕", 78],  // 🍕 plaza dining
+    [11.8, 5.2, "👥", 150], // 👥 crowd top-right
+    [2.2, 5.6, "☕", 96],         // ☕ coffee, left cafes
+    [12.6, 9.4, "💬", 60],  // 💬 chat, right shops
+    [6.6, 9.2, "❤️", 40],   // ❤ plaza
+  ];
+
+  function drawBubble(gx, gy, emoji, lift) {
+    const anchor = isoLift(gx, gy, lift);
+    const bob = Math.sin(nowMs * 0.002 + gx) * 2.2;
+    const cx = anchor.x, cy = anchor.y + bob;
+    const w = 30, h = 26, r = 9;
+
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,0.35)";
+    ctx.shadowBlur = 6; ctx.shadowOffsetY = 2;
+    ctx.fillStyle = "#f6f8fc";
+    roundRect(cx - w / 2, cy - h, w, h, r);
+    ctx.fill();
+    // tail
+    ctx.beginPath();
+    ctx.moveTo(cx - 5, cy - 2);
+    ctx.lineTo(cx + 5, cy - 2);
+    ctx.lineTo(cx, cy + 7);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+    ctx.font = '15px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(emoji, cx, cy - h / 2 + 1);
+  }
+
+  function drawBubbles() {
+    for (const b of bubbles) drawBubble(b[0], b[1], b[2], b[3]);
+  }
+
   // ---- Unified depth-sorted scene ----
   function drawScene() {
     const items = [];
@@ -533,6 +574,7 @@
     drawRails();
     drawScene();
     drawMonorail();
+    drawBubbles();
     requestAnimationFrame(frame);
   }
 

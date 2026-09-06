@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dev City</title>
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #0d1326; }
+  #stage { display: block; width: 100vw; height: 100vh; }
+</style>
+</head>
+<body>
+<canvas id="stage"></canvas>
+<script>
+(() => {
+  "use strict";
+
+  const canvas = document.getElementById("stage");
+  const ctx = canvas.getContext("2d");
+
+  // ---- Isometric configuration ----
+  const TILE_W = 64;          // full tile width in pixels
+  const TILE_H = 32;          // full tile height (2:1 iso)
+  const GRID = 16;            // grid size (GRID x GRID tiles)
+
+  let DPR = 1;
+  let originX = 0, originY = 0;
+
+  // Ground tile types: 0 = grass, 1 = pavement
+  const ground = [];
+  for (let y = 0; y < GRID; y++) {
+    const row = [];
+    for (let x = 0; x < GRID; x++) {
+      // A couple of pavement plazas / paths woven through grass
+      const path = (x === 5 || x === 10 || y === 6 || y === 11);
+      row.push(path ? 1 : 0);
+    }
+    ground.push(row);
+  }
+
+  // ---- Coordinate helpers ----
+  function isoToScreen(gx, gy) {
+    return {
+      x: originX + (gx - gy) * (TILE_W / 2),
+      y: originY + (gx + gy) * (TILE_H / 2),
+    };
+  }
+
+  function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.floor(window.innerWidth * DPR);
+    canvas.height = Math.floor(window.innerHeight * DPR);
+    canvas.style.width = window.innerWidth + "px";
+    canvas.style.height = window.innerHeight + "px";
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+    // Centre the grid diamond on screen
+    const w = window.innerWidth, h = window.innerHeight;
+    originX = w / 2;
+    originY = h / 2 - (GRID * TILE_H) / 2;
+  }
+
+  // ---- Tile drawing ----
+  function drawTileDiamond(sx, sy, topColor) {
+    ctx.beginPath();
+    ctx.moveTo(sx, sy);
+    ctx.lineTo(sx + TILE_W / 2, sy + TILE_H / 2);
+    ctx.lineTo(sx, sy + TILE_H);
+    ctx.lineTo(sx - TILE_W / 2, sy + TILE_H / 2);
+    ctx.closePath();
+    ctx.fillStyle = topColor;
+    ctx.fill();
+  }
+
+  function grassColor(x, y) {
+    // Subtle checker variation for texture
+    return ((x + y) % 2 === 0) ? "#2f6d3a" : "#2a6234";
+  }
+  function paveColor(x, y) {
+    return ((x + y) % 2 === 0) ? "#565f75" : "#4e576d";
+  }
+
+  // ---- Render loop ----
+  function drawGround() {
+    for (let y = 0; y < GRID; y++) {
+      for (let x = 0; x < GRID; x++) {
+        const s = isoToScreen(x, y);
+        const col = ground[y][x] === 1 ? paveColor(x, y) : grassColor(x, y);
+        drawTileDiamond(s.x, s.y, col);
+      }
+    }
+  }
+
+  function frame() {
+    // Night sky gradient backdrop
+    const g = ctx.createLinearGradient(0, 0, 0, window.innerHeight);
+    g.addColorStop(0, "#0a1024");
+    g.addColorStop(1, "#141d3a");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+
+    drawGround();
+    requestAnimationFrame(frame);
+  }
+
+  window.addEventListener("resize", resize);
+  resize();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

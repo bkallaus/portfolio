@@ -3,11 +3,15 @@
 A two-player strategy card game for the browser. Built for two people to play together
 remotely.
 
+Lives inside the portfolio's own Vite project rather than as a standalone app — there's no
+`package.json` here beyond `{ "type": "module" }`, which just scopes ESM parsing to this
+directory. Run everything from the repo root:
+
 ```
 npm install
-npm run dev      # local server
+npm run dev      # local server; game is served at /duel/play/
 npm test         # all three suites, ~10s
-npm run build    # static output in dist/
+npm run build    # static output in build/duel/play/
 ```
 
 ## Layout

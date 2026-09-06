@@ -495,7 +495,6 @@ function actWonder(st, slotId, wonderId) {
     st.pending = { type: "mausoleum", player: i, again };
     return st;
   }
-  if (st.winner) { st.phase = "over"; return st; }
   return endTurn(st, again && st.remaining > 0);
 }
 

@@ -566,8 +566,10 @@
   const trees = [
     [1.3, 13.4], [3.1, 14.6], [5.0, 13.2], [8.4, 14.4], [10.2, 13.0],
     [12.6, 13.6], [14.4, 12.4], [1.0, 9.2], [0.8, 6.0], [6.6, 8.6],
-    [15.2, 6.8], [11.0, 11.0], [4.2, 10.6],
+    [15.2, 6.8, "pine"], [11.0, 11.0], [4.2, 10.6, "pine"], [0.6, 13.6, "pine"], [15.4, 13.0, "pine"], [7.7, 13.8],
   ];
+  const bushes = [ [0.6, 4.8], [0.6, 8.6], [7.9, 8.6], [10.2, 9.0], [1.2, 12.2], [8.0, 5.4], [13.0, 12.4] ];
+  const flowerbeds = [ [1.0, 10.4], [8.9, 12.4], [3.4, 13.6], [13.6, 12.0] ];
   const ponds = [ [2.4, 14.6, 1.4], [9.6, 13.8, 1.2] ];
   const lamps = [ [3.0, 11.7], [7.5, 11.7], [11.5, 11.7], [0.5, 11.7], [14.0, 11.7] ];
   const benches = [ [4.0, 12.0], [8.6, 12.0], [12.0, 12.0] ];
@@ -591,22 +593,46 @@
 
   function drawPonds() { for (const p of ponds) drawPond(p[0], p[1], p[2]); }
 
-  function drawTree(gx, gy, s = 1) {
+  function drawTree(gx, gy, type = "round") {
     const b = isoToScreen(gx, gy);
+    if (type === "pine") {
+      ctx.fillStyle = "#5a3f2b";
+      ctx.fillRect(b.x - 1.6, b.y - 12, 3.2, 12);
+      const tri = (cy, w, col) => { poly([{ x: b.x, y: b.y - cy - 13 }, { x: b.x + w, y: b.y - cy + 2 }, { x: b.x - w, y: b.y - cy + 2 }], col); };
+      tri(6, 10, "#1f4d2a"); tri(15, 8, "#256034"); tri(24, 6, "#2c6f3c");
+      return;
+    }
     // trunk
     ctx.fillStyle = "#5a3f2b";
-    ctx.fillRect(b.x - 2 * s, b.y - 16 * s, 4 * s, 16 * s);
-    // foliage (three stacked blobs for volume)
+    ctx.fillRect(b.x - 2, b.y - 16, 4, 16);
     const blob = (dx, dy, r, col) => {
-      ctx.beginPath();
-      ctx.arc(b.x + dx, b.y - 22 * s + dy, r * s, 0, Math.PI * 2);
-      ctx.fillStyle = col;
-      ctx.fill();
+      ctx.beginPath(); ctx.arc(b.x + dx, b.y - 22 + dy, r, 0, Math.PI * 2);
+      ctx.fillStyle = col; ctx.fill();
     };
     blob(0, 6, 12, "#20502c");
     blob(-6, 0, 9, "#286237");
     blob(6, 1, 9, "#2c6b3c");
     blob(0, -5, 10, "#347a45");
+  }
+
+  function drawBush(gx, gy) {
+    const b = isoToScreen(gx, gy);
+    const blob = (dx, r, col) => { ctx.beginPath(); ctx.arc(b.x + dx, b.y - 3, r, 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill(); };
+    blob(-4, 5, "#245a30"); blob(4, 5, "#245a30"); blob(0, 6, "#2c6d3c");
+  }
+
+  function drawFlowerbed(gx, gy) {
+    const b = isoToScreen(gx, gy);
+    ctx.save(); ctx.translate(b.x, b.y); ctx.scale(1, 0.5);
+    ctx.fillStyle = "#4a3526"; ctx.beginPath(); ctx.arc(0, 0, 9, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    const cols = ["#e57373", "#f6c453", "#7fd0ff", "#e57fd0", "#f2f4f8"];
+    for (let i = 0; i < 7; i++) {
+      const a = i * 1.7, rr = 5;
+      ctx.fillStyle = cols[i % cols.length];
+      ctx.beginPath();
+      ctx.arc(b.x + Math.cos(a) * rr, b.y - 2 + Math.sin(a) * rr * 0.5, 1.6, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 
   function drawLamp(gx, gy) {
@@ -909,7 +935,9 @@
   function drawScene() {
     const items = [];
     for (const b of buildings) items.push({ z: b.gx + b.gy + b.w + b.h, draw: () => drawBuilding(b) });
-    for (const t of trees)   items.push({ z: t[0] + t[1], draw: () => drawTree(t[0], t[1]) });
+    for (const t of trees)   items.push({ z: t[0] + t[1], draw: () => drawTree(t[0], t[1], t[2]) });
+    for (const bs of bushes) items.push({ z: bs[0] + bs[1] - 0.03, draw: () => drawBush(bs[0], bs[1]) });
+    for (const f of flowerbeds) items.push({ z: f[0] + f[1] - 0.04, draw: () => drawFlowerbed(f[0], f[1]) });
     for (const l of lamps)   items.push({ z: l[0] + l[1] - 0.01, draw: () => drawLamp(l[0], l[1]) });
     for (const bn of benches) items.push({ z: bn[0] + bn[1] - 0.02, draw: () => drawBench(bn[0], bn[1]) });
     for (const u of umbrellas) items.push({ z: u[0] + u[1], draw: () => drawUmbrella(u[0], u[1], u[2]) });

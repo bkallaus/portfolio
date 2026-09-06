@@ -571,6 +571,7 @@
   const ponds = [ [2.4, 14.6, 1.4], [9.6, 13.8, 1.2] ];
   const lamps = [ [3.0, 11.7], [7.5, 11.7], [11.5, 11.7], [0.5, 11.7], [14.0, 11.7] ];
   const benches = [ [4.0, 12.0], [8.6, 12.0], [12.0, 12.0] ];
+  const umbrellas = [ [1.1, 7.7, "#8bd66b"], [1.9, 7.7, "#7fd0ff"], [3.2, 8.5, "#5ad6f0"], [4.1, 8.5, "#ff9f6b"] ];
 
   function drawPond(gx, gy, r) {
     const c = isoToScreen(gx, gy);
@@ -626,6 +627,25 @@
     ctx.fillStyle = "#ffe6a0";
     ctx.beginPath(); ctx.arc(b.x + 8, b.y - 35, 2.6, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
+  }
+
+  function drawUmbrella(gx, gy, col) {
+    const s = isoToScreen(gx, gy);
+    // table
+    ctx.fillStyle = "#6b7488";
+    ctx.save(); ctx.translate(s.x, s.y - 2); ctx.scale(1, 0.5);
+    ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    // little chairs (dots)
+    ctx.fillStyle = "#575e70";
+    for (const dx of [-7, 7]) { ctx.beginPath(); ctx.arc(s.x + dx, s.y - 1, 1.8, 0, Math.PI * 2); ctx.fill(); }
+    // pole
+    ctx.strokeStyle = "#cfd3dc"; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.moveTo(s.x, s.y - 2); ctx.lineTo(s.x, s.y - 26); ctx.stroke();
+    // canopy (4 alternating panels)
+    const cy = s.y - 26, cw = 15, ch = 7, apex = { x: s.x, y: cy - 5 };
+    const T = { x: s.x, y: cy - ch }, R = { x: s.x + cw, y: cy }, B = { x: s.x, y: cy + ch }, L = { x: s.x - cw, y: cy };
+    const panels = [[T, R], [R, B], [B, L], [L, T]];
+    panels.forEach((p, i) => poly([apex, p[0], p[1]], (i % 2 === 0) ? col : "#f2f4f8"));
   }
 
   function drawBench(gx, gy) {
@@ -892,6 +912,7 @@
     for (const t of trees)   items.push({ z: t[0] + t[1], draw: () => drawTree(t[0], t[1]) });
     for (const l of lamps)   items.push({ z: l[0] + l[1] - 0.01, draw: () => drawLamp(l[0], l[1]) });
     for (const bn of benches) items.push({ z: bn[0] + bn[1] - 0.02, draw: () => drawBench(bn[0], bn[1]) });
+    for (const u of umbrellas) items.push({ z: u[0] + u[1], draw: () => drawUmbrella(u[0], u[1], u[2]) });
     for (const p of people)  { const g = personPos(p); items.push({ z: g.gx + g.gy + 0.05, draw: () => drawPerson(p, nowMs) }); }
     for (const c of cars)    items.push({ z: c.lane + c.gy + 0.3, draw: () => drawCar(c) });
     for (const r of riders)  { const g = { gx: r.ax+(r.bx-r.ax)*r.t, gy: r.ay+(r.by-r.ay)*r.t }; items.push({ z: g.gx + g.gy + 0.06, draw: () => drawRider(r) }); }

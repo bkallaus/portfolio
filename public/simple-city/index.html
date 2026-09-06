@@ -19,9 +19,9 @@
   const ctx = canvas.getContext("2d");
 
   // ---- Isometric configuration ----
-  const TILE_W = 64;          // full tile width in pixels
-  const TILE_H = 32;          // full tile height (2:1 iso)
-  const GRID = 16;            // grid size (GRID x GRID tiles)
+  const TILE_W = 64;
+  const TILE_H = 32;
+  const GRID = 16;
 
   let DPR = 1;
   let originX = 0, originY = 0;
@@ -31,12 +31,34 @@
   for (let y = 0; y < GRID; y++) {
     const row = [];
     for (let x = 0; x < GRID; x++) {
-      // A couple of pavement plazas / paths woven through grass
       const path = (x === 5 || x === 10 || y === 6 || y === 11);
       row.push(path ? 1 : 0);
     }
     ground.push(row);
   }
+
+  // ---- Building layout (roughly mirrors the target: shops + towers) ----
+  // gx,gy = back corner tile; w,h = footprint in tiles; hgt = pixels tall
+  const buildings = [
+    // Left cluster (cafes / shops)
+    { gx: 0.4, gy: 0.4, w: 2, h: 2.4, hgt: 250, wall: "#3b4d78", name: "KUBER-CUTIE",  neon: "#6ee7f0" },
+    { gx: 0.4, gy: 3.2, w: 2, h: 1.8, hgt: 120, wall: "#3d4a63", name: "CLOUDY CAT",   neon: "#7fd0ff" },
+    { gx: 0.4, gy: 5.4, w: 2, h: 1.8, hgt: 96,  wall: "#3a4257", name: "BEANSTACK",    neon: "#8bd66b" },
+    { gx: 2.9, gy: 3.4, w: 2, h: 2,   hgt: 150, wall: "#39415a", name: "DOCKER'S DEN", neon: "#7fb2ff" },
+    { gx: 2.9, gy: 6.2, w: 2, h: 1.8, hgt: 90,  wall: "#3b4258", name: "REACT-A-LOT",  neon: "#5ad6f0" },
+
+    // Center towers
+    { gx: 6.2, gy: 0.5, w: 1.6, h: 1.6, hgt: 300, wall: "#2f3550", name: "CODE WARS",  neon: "#7ad0ff" },
+    { gx: 8.0, gy: 0.7, w: 1.6, h: 1.6, hgt: 260, wall: "#333a55", name: "TS TOWERS",  neon: "#67d3f2" },
+    { gx: 6.4, gy: 3.2, w: 2.2, h: 1.8, hgt: 150, wall: "#3a4570", name: "LAMBDA LABS", neon: "#8fd6ff" },
+    { gx: 8.8, gy: 3.2, w: 1.6, h: 1.8, hgt: 150, wall: "#3a4570", name: "SERVERLESS",  neon: "#a9b6ff" },
+
+    // Right cluster
+    { gx: 11.6, gy: 0.6, w: 2, h: 2, hgt: 230, wall: "#39344f", name: "DATA-DOGGO",  neon: "#ffb469" },
+    { gx: 12.2, gy: 6.4, w: 1.8, h: 1.6, hgt: 110, wall: "#3a4258", name: "BLUEPRINT",  neon: "#8fd0ff" },
+    { gx: 13.9, gy: 8.0, w: 1.8, h: 1.6, hgt: 96,  wall: "#4a3a52", name: "ARCH-PUPS",  neon: "#ff86e0" },
+    { gx: 13.6, gy: 10.0, w: 2, h: 1.8, hgt: 120, wall: "#43384f", name: "CODE WORKS",  neon: "#ffab5e" },
+  ];
 
   // ---- Coordinate helpers ----
   function isoToScreen(gx, gy) {
@@ -53,11 +75,9 @@
     canvas.style.width = window.innerWidth + "px";
     canvas.style.height = window.innerHeight + "px";
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-
-    // Centre the grid diamond on screen
     const w = window.innerWidth, h = window.innerHeight;
     originX = w / 2;
-    originY = h / 2 - (GRID * TILE_H) / 2;
+    originY = h * 0.30;
   }
 
   // ---- Tile drawing ----
@@ -71,28 +91,116 @@
     ctx.fillStyle = topColor;
     ctx.fill();
   }
+  const grassColor = (x, y) => ((x + y) % 2 === 0) ? "#2f6d3a" : "#2a6234";
+  const paveColor  = (x, y) => ((x + y) % 2 === 0) ? "#565f75" : "#4e576d";
 
-  function grassColor(x, y) {
-    // Subtle checker variation for texture
-    return ((x + y) % 2 === 0) ? "#2f6d3a" : "#2a6234";
-  }
-  function paveColor(x, y) {
-    return ((x + y) % 2 === 0) ? "#565f75" : "#4e576d";
-  }
-
-  // ---- Render loop ----
   function drawGround() {
     for (let y = 0; y < GRID; y++) {
       for (let x = 0; x < GRID; x++) {
         const s = isoToScreen(x, y);
-        const col = ground[y][x] === 1 ? paveColor(x, y) : grassColor(x, y);
-        drawTileDiamond(s.x, s.y, col);
+        drawTileDiamond(s.x, s.y, ground[y][x] === 1 ? paveColor(x, y) : grassColor(x, y));
       }
     }
   }
 
+  // ---- Color utilities ----
+  function shade(hex, f) {
+    const n = parseInt(hex.slice(1), 16);
+    let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    r = Math.max(0, Math.min(255, Math.round(r * f)));
+    g = Math.max(0, Math.min(255, Math.round(g * f)));
+    b = Math.max(0, Math.min(255, Math.round(b * f)));
+    return `rgb(${r},${g},${b})`;
+  }
+
+  // Fill a face parallelogram, then run a callback in its local unit space.
+  function faceSpace(O, U, V, drawLocal) {
+    ctx.save();
+    ctx.transform(U.x, U.y, V.x, V.y, O.x, O.y);
+    drawLocal();
+    ctx.restore();
+  }
+
+  function drawWindows(cols, rows, litColor) {
+    // In unit space: u across (0..1), v up (0..1)
+    const mx = 0.12, my = 0.06;             // margins
+    const cw = (1 - mx * 2) / cols;
+    const ch = (1 - my * 2) / rows;
+    const pad = 0.18;
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const lit = ((c * 7 + r * 13) % 5) !== 0;   // most windows lit
+        ctx.fillStyle = lit ? litColor : "rgba(20,26,45,0.9)";
+        const x = mx + c * cw + cw * pad;
+        const y = my + r * ch + ch * pad;
+        ctx.fillRect(x, y, cw * (1 - pad * 2), ch * (1 - pad * 2));
+      }
+    }
+  }
+
+  function drawBuilding(b) {
+    const H = b.hgt;
+    const baseBack  = isoToScreen(b.gx, b.gy);
+    const baseEast  = isoToScreen(b.gx + b.w, b.gy);
+    const baseSouth = isoToScreen(b.gx + b.w, b.gy + b.h);
+    const baseWest  = isoToScreen(b.gx, b.gy + b.h);
+    const up = (p) => ({ x: p.x, y: p.y - H });
+    const topBack = up(baseBack), topEast = up(baseEast), topSouth = up(baseSouth), topWest = up(baseWest);
+
+    // Left face (west <-> south)
+    ctx.beginPath();
+    ctx.moveTo(baseWest.x, baseWest.y);
+    ctx.lineTo(baseSouth.x, baseSouth.y);
+    ctx.lineTo(topSouth.x, topSouth.y);
+    ctx.lineTo(topWest.x, topWest.y);
+    ctx.closePath();
+    ctx.fillStyle = shade(b.wall, 0.72);
+    ctx.fill();
+
+    // Right face (south <-> east)
+    ctx.beginPath();
+    ctx.moveTo(baseSouth.x, baseSouth.y);
+    ctx.lineTo(baseEast.x, baseEast.y);
+    ctx.lineTo(topEast.x, topEast.y);
+    ctx.lineTo(topSouth.x, topSouth.y);
+    ctx.closePath();
+    ctx.fillStyle = shade(b.wall, 0.92);
+    ctx.fill();
+
+    // Windows on both faces
+    const rows = Math.max(2, Math.round(H / 34));
+    const litL = "rgba(255,214,140,0.85)";
+    const litR = "rgba(255,224,160,0.95)";
+    faceSpace(
+      { x: baseWest.x, y: baseWest.y },
+      { x: baseSouth.x - baseWest.x, y: baseSouth.y - baseWest.y },
+      { x: topWest.x - baseWest.x, y: topWest.y - baseWest.y },
+      () => drawWindows(Math.max(2, Math.round(b.h * 2)), rows, litL)
+    );
+    faceSpace(
+      { x: baseSouth.x, y: baseSouth.y },
+      { x: baseEast.x - baseSouth.x, y: baseEast.y - baseSouth.y },
+      { x: topSouth.x - baseSouth.x, y: topSouth.y - baseSouth.y },
+      () => drawWindows(Math.max(2, Math.round(b.w * 2)), rows, litR)
+    );
+
+    // Top (roof)
+    ctx.beginPath();
+    ctx.moveTo(topBack.x, topBack.y);
+    ctx.lineTo(topEast.x, topEast.y);
+    ctx.lineTo(topSouth.x, topSouth.y);
+    ctx.lineTo(topWest.x, topWest.y);
+    ctx.closePath();
+    ctx.fillStyle = shade(b.wall, 1.15);
+    ctx.fill();
+  }
+
+  function drawBuildings() {
+    const sorted = [...buildings].sort((a, b) => (a.gx + a.gy + a.w + a.h) - (b.gx + b.gy + b.w + b.h));
+    for (const b of sorted) drawBuilding(b);
+  }
+
   function frame() {
-    // Night sky gradient backdrop
     const g = ctx.createLinearGradient(0, 0, 0, window.innerHeight);
     g.addColorStop(0, "#0a1024");
     g.addColorStop(1, "#141d3a");
@@ -100,6 +208,7 @@
     ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
 
     drawGround();
+    drawBuildings();
     requestAnimationFrame(frame);
   }
 

@@ -122,6 +122,28 @@
     }
   }
 
+  // ---- Cross street (car road along gy at fixed gx) ----
+  const ROADV = { gx: 5.2, gyMin: -1.0, gyMax: 12.4, hw: 0.34 };
+
+  function drawRoads() {
+    const { gx, gyMin, gyMax, hw } = ROADV;
+    // asphalt
+    poly([isoToScreen(gx - hw, gyMin), isoToScreen(gx + hw, gyMin),
+          isoToScreen(gx + hw, gyMax), isoToScreen(gx - hw, gyMax)], "#3a4053");
+    // dashed centre line
+    for (let gy = gyMin; gy < gyMax; gy += 0.8) {
+      railLine(gx, gy + 0.12, gx, gy + 0.5, "#caa94e", 1.6);
+    }
+    // zebra crossing over the cross street at the y=6 plaza
+    for (let g = -0.28; g <= 0.28; g += 0.14) {
+      railLine(gx + g, 5.7, gx + g, 6.6, "#e8ecf4", 2.4);
+    }
+    // zebra crossing over the tram street
+    for (let g = 4.7; g <= 5.7; g += 0.16) {
+      railLine(g, 11.95, g, 12.85, "#e8ecf4", 2.6);
+    }
+  }
+
   // Soft contact shadows under each building.
   function drawShadows() {
     ctx.save();
@@ -740,6 +762,7 @@
     ctx.setTransform(DPR * VIEW.scale, 0, 0, DPR * VIEW.scale, DPR * VIEW.ox, DPR * VIEW.oy);
     drawGround();
     drawLots();
+    drawRoads();
     drawPonds();
     drawShadows();
     drawRails();

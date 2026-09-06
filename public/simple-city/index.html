@@ -104,6 +104,24 @@
     }
   }
 
+  // Paved lots / sidewalks under each building block.
+  function drawLots() {
+    for (const b of buildings) {
+      const pad = 0.55;
+      const p1 = isoToScreen(b.gx - pad, b.gy - pad);
+      const p2 = isoToScreen(b.gx + b.w + pad, b.gy - pad);
+      const p3 = isoToScreen(b.gx + b.w + pad, b.gy + b.h + pad);
+      const p4 = isoToScreen(b.gx - pad, b.gy + b.h + pad);
+      poly([p1, p2, p3, p4], "#525a70");
+      // curb highlight
+      ctx.strokeStyle = "#5f6884"; ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+      ctx.lineTo(p3.x, p3.y); ctx.lineTo(p4.x, p4.y); ctx.closePath();
+      ctx.stroke();
+    }
+  }
+
   // Soft contact shadows under each building.
   function drawShadows() {
     ctx.save();
@@ -721,6 +739,7 @@
     // World-space scene (auto-fitted)
     ctx.setTransform(DPR * VIEW.scale, 0, 0, DPR * VIEW.scale, DPR * VIEW.ox, DPR * VIEW.oy);
     drawGround();
+    drawLots();
     drawPonds();
     drawShadows();
     drawRails();

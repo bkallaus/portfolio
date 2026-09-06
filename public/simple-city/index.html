@@ -41,24 +41,24 @@
   // gx,gy = back corner tile; w,h = footprint in tiles; hgt = pixels tall
   const buildings = [
     // Left cluster (cafes / shops)
-    { gx: 0.4, gy: 0.4, w: 2, h: 2.4, hgt: 250, wall: "#3b4d78", name: "KUBER-CUTIE",  neon: "#6ee7f0" },
-    { gx: 0.4, gy: 3.2, w: 2, h: 1.8, hgt: 120, wall: "#3d4a63", name: "CLOUDY CAT",   neon: "#7fd0ff" },
-    { gx: 0.4, gy: 5.4, w: 2, h: 1.8, hgt: 96,  wall: "#3a4257", name: "BEANSTACK",    neon: "#8bd66b" },
-    { gx: 2.9, gy: 3.4, w: 2, h: 2,   hgt: 150, wall: "#39415a", name: "DOCKER'S DEN", neon: "#7fb2ff" },
-    { gx: 2.9, gy: 6.2, w: 2, h: 1.8, hgt: 90,  wall: "#3b4258", name: "REACT-A-LOT",  neon: "#5ad6f0" },
+    { gx: 0.4, gy: 0.4, w: 2, h: 2.4, hgt: 250, wall: "#3b4d78", name: "KUBER-CUTIE",  icon: "📦",  neon: "#6ee7f0" },
+    { gx: 0.4, gy: 3.2, w: 2, h: 1.8, hgt: 120, wall: "#3d4a63", name: "CLOUDY CAT",   icon: "☁️",   neon: "#7fd0ff" },
+    { gx: 0.4, gy: 5.4, w: 2, h: 1.8, hgt: 96,  wall: "#3a4257", name: "BEANSTACK",    icon: "🌱",    neon: "#8bd66b" },
+    { gx: 2.9, gy: 3.4, w: 2, h: 2,   hgt: 150, wall: "#39415a", name: "DOCKER'S DEN", icon: "🐳", neon: "#7fb2ff" },
+    { gx: 2.9, gy: 6.2, w: 2, h: 1.8, hgt: 90,  wall: "#3b4258", name: "REACT-A-LOT",  icon: "⚛️",  neon: "#5ad6f0" },
 
     // Center towers
-    { gx: 6.2, gy: 0.5, w: 1.6, h: 1.6, hgt: 300, wall: "#2f3550", name: "CODE WARS",  neon: "#7ad0ff" },
-    { gx: 8.0, gy: 0.7, w: 1.6, h: 1.6, hgt: 260, wall: "#333a55", name: "TS TOWERS",  neon: "#67d3f2" },
-    { gx: 6.4, gy: 3.2, w: 2.2, h: 1.8, hgt: 150, wall: "#3a4570", name: "LAMBDA LABS", neon: "#8fd6ff" },
-    { gx: 8.8, gy: 3.2, w: 1.6, h: 1.8, hgt: 150, wall: "#3a4570", name: "SERVERLESS",  neon: "#a9b6ff" },
+    { gx: 6.2, gy: 0.5, w: 1.6, h: 1.6, hgt: 300, wall: "#2f3550", name: "CODE WARS",  icon: "⚔️",  neon: "#7ad0ff" },
+    { gx: 8.0, gy: 0.7, w: 1.6, h: 1.6, hgt: 260, wall: "#333a55", name: "TS TOWERS",  icon: "🔷",  neon: "#67d3f2" },
+    { gx: 6.4, gy: 3.2, w: 2.2, h: 1.8, hgt: 150, wall: "#3a4570", name: "LAMBDA LABS", icon: "🧪", neon: "#8fd6ff" },
+    { gx: 8.8, gy: 3.2, w: 1.6, h: 1.8, hgt: 150, wall: "#3a4570", name: "SERVERLESS",  icon: "🐑",  neon: "#a9b6ff" },
 
     // Right cluster
-    { gx: 11.6, gy: 0.6, w: 2, h: 2, hgt: 230, wall: "#39344f", name: "DATA-DOGGO",  neon: "#ffb469" },
-    { gx: 12.2, gy: 6.4, w: 1.8, h: 1.6, hgt: 110, wall: "#3a4258", name: "BLUEPRINT",  neon: "#8fd0ff" },
-    { gx: 11.1, gy: 9.0, w: 1.6, h: 1.4, hgt: 104, wall: "#3c4a5a", name: "STYLISH",   neon: "#ff7fa8" },
-    { gx: 13.9, gy: 8.0, w: 1.8, h: 1.6, hgt: 96,  wall: "#4a3a52", name: "ARCH-PUPS",  neon: "#ff86e0" },
-    { gx: 13.6, gy: 10.0, w: 2, h: 1.8, hgt: 120, wall: "#43384f", name: "CODE WORKS",  neon: "#ffab5e" },
+    { gx: 11.6, gy: 0.6, w: 2, h: 2, hgt: 230, wall: "#39344f", name: "DATA-DOGGO",  icon: "🐶",  neon: "#ffb469" },
+    { gx: 12.2, gy: 6.4, w: 1.8, h: 1.6, hgt: 110, wall: "#3a4258", name: "BLUEPRINT",  icon: "📐",  neon: "#8fd0ff" },
+    { gx: 11.1, gy: 9.0, w: 1.6, h: 1.4, hgt: 104, wall: "#3c4a5a", name: "STYLISH",   icon: "🎨",   neon: "#ff7fa8" },
+    { gx: 13.9, gy: 8.0, w: 1.8, h: 1.6, hgt: 96,  wall: "#4a3a52", name: "ARCH-PUPS",  icon: "🐾",  neon: "#ff86e0" },
+    { gx: 13.6, gy: 10.0, w: 2, h: 1.8, hgt: 120, wall: "#43384f", name: "CODE WORKS",  icon: "🛠️",  neon: "#ffab5e" },
   ];
 
   // ---- Coordinate helpers ----
@@ -390,31 +390,46 @@
     const cy = topSouth.y + (baseSouth.y - topSouth.y) * t;
 
     const fs = Math.max(11, Math.min(15, b.w * 8));
-    ctx.font = `700 ${fs}px "Trebuchet MS", "Segoe UI", sans-serif`;
-    ctx.textAlign = "center";
+    const nameFont = `700 ${fs}px "Trebuchet MS", "Segoe UI", sans-serif`;
+    const emojiFont = `${fs}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
     ctx.textBaseline = "middle";
+    ctx.font = nameFont;
     const tw = ctx.measureText(b.name).width;
-    const padX = 8, padY = 5;
-    const bw = tw + padX * 2, bh = fs + padY * 2;
+    const icon = b.icon || "";
+    const iconW = icon ? fs + 4 : 0;
+    const padX = 8, padY = 5, gap = icon ? 4 : 0;
+    const contentW = iconW + gap + tw;
+    const bw = contentW + padX * 2, bh = fs + padY * 2;
+    const left = cx - bw / 2;
 
     // Dark plaque
     ctx.save();
     ctx.fillStyle = "rgba(12,16,30,0.82)";
-    roundRect(cx - bw / 2, cy - bh / 2, bw, bh, 4);
+    roundRect(left, cy - bh / 2, bw, bh, 4);
     ctx.fill();
 
-    // Neon border + text glow (gently pulsing)
+    // Neon border (gently pulsing)
     const pulse = 10 + Math.sin(nowMs * 0.004 + cx * 0.05) * 4;
     ctx.shadowColor = b.neon;
     ctx.shadowBlur = pulse + 2;
     ctx.strokeStyle = b.neon;
     ctx.lineWidth = 1.4;
-    roundRect(cx - bw / 2, cy - bh / 2, bw, bh, 4);
+    roundRect(left, cy - bh / 2, bw, bh, 4);
     ctx.stroke();
 
+    // Icon
+    ctx.textAlign = "left";
+    if (icon) {
+      ctx.shadowBlur = 0;
+      ctx.font = emojiFont;
+      ctx.fillStyle = "#fff";
+      ctx.fillText(icon, left + padX, cy + 0.5);
+    }
+    // Name (glowing neon)
     ctx.shadowBlur = pulse;
+    ctx.font = nameFont;
     ctx.fillStyle = b.neon;
-    ctx.fillText(b.name, cx, cy + 0.5);
+    ctx.fillText(b.name, left + padX + iconW + gap, cy + 0.5);
     ctx.restore();
   }
 

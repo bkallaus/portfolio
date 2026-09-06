@@ -1,18 +1,38 @@
 import React, { useState, useEffect, useRef } from "react";
-import { C, CARDCOL, RES, RESCOL, RESLET, SCI } from "./theme.js";
+import { C, CARDCOL, RES, RESCOL, RESLET, SCI } from "./theme.ts";
+import type { CardColor, Resource, ScienceSymbol } from "./theme.ts";
 import {
   CARDS, CARD, WONDERS, WON, TOKENS, TOK, LAYOUTS,
-  buildSlots, isOpen, view, cardCost, wonderCost,
+  isOpen, view, cardCost, wonderCost,
   newGame, DRAFT, draftPick, clone,
   actBuild, actDiscard, actWonder, resolve,
   milVP, score,
-} from "./engine.js";
-import { loadPeer, quickHost, quickJoin, manualHost, manualJoin, unpack } from "./net.js";
+} from "./engine.ts";
+import type { Age, Card, Cost, GameState, ScoreBreakdown } from "./engine.ts";
+import { loadPeer, quickHost, quickJoin, manualHost, manualJoin, unpack } from "./net.ts";
+import type { Handlers, Link, PeerInstance, Role } from "./net.ts";
+
+/* Object.entries widens its keys to string; this keeps the domain union. */
+const entries = <K extends string, V>(o: Partial<Record<K, V>>): [K, V][] =>
+  Object.entries(o) as [K, V][];
+
+type Mode = "local" | "direct";
+type Transport = "quick" | "manual";
+type QuickProbe = "checking" | "ready" | "no";
+
+/* What the linking screen is showing: the code we produced, or a spinner
+   while we produce it. */
+interface LinkStep {
+  how: Transport;
+  role: Role;
+  step: "working" | "share";
+  myCode?: string;
+}
 
 /* ============================================================
    SMALL VISUAL PARTS
    ============================================================ */
-const Pip = ({ r, size = 13 }) => (
+const Pip = ({ r, size = 13 }: { r: Resource; size?: number }) => (
   <span style={{
     width: size, height: size, borderRadius: "50%", background: RESCOL[r],
     display: "inline-flex", alignItems: "center", justifyContent: "center",
@@ -20,7 +40,7 @@ const Pip = ({ r, size = 13 }) => (
   }}>{RESLET[r]}</span>
 );
 
-const Coin = ({ n, size = 14 }) => (
+const Coin = ({ n, size = 14 }: { n: number; size?: number }) => (
   <span style={{
     minWidth: size, height: size, padding: "0 3px", borderRadius: size,
     background: C.gold, color: "#2a2109", fontSize: size * 0.66, fontWeight: 700,
@@ -28,10 +48,10 @@ const Coin = ({ n, size = 14 }) => (
   }}>{n}</span>
 );
 
-function SciMark({ k, size = 15 }) {
+function SciMark({ k, size = 15 }: { k: ScienceSymbol; size?: number }) {
   const { col, shape } = SCI[k];
   const s = size, h = s / 2;
-  const paths = {
+  const paths: Record<string, React.ReactElement> = {
     circle: <circle cx={h} cy={h} r={h - 1} fill={col} />,
     square: <rect x="2" y="2" width={s - 4} height={s - 4} fill={col} />,
     triangle: <polygon points={`${h},1 ${s - 1},${s - 1} 1,${s - 1}`} fill={col} />,
@@ -43,22 +63,22 @@ function SciMark({ k, size = 15 }) {
   return <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`} style={{ display: "block" }}>{paths[shape]}</svg>;
 }
 
-const Shield = ({ n }) => (
+const Shield = ({ n }: { n: number }) => (
   <span style={{ display: "inline-flex", alignItems: "center", gap: 2 }}>
     <svg width="13" height="14" viewBox="0 0 13 14"><path d="M6.5 0 13 2.5v5C13 11 9.5 13.3 6.5 14 3.5 13.3 0 11 0 7.5v-5z" fill={C.blood} /></svg>
     {n > 1 && <b style={{ fontSize: 11, color: C.blood }}>{n}</b>}
   </span>
 );
 
-const VP = ({ n }) => (
+const VP = ({ n }: { n: number }) => (
   <span style={{
     width: 17, height: 17, borderRadius: 3, background: CARDCOL.blue, color: "#fff",
     fontSize: 11, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center",
   }}>{n}</span>
 );
 
-function CostRow({ cost, size = 12 }) {
-  const items = [];
+function CostRow({ cost, size = 12 }: { cost: Cost; size?: number }) {
+  const items: React.ReactElement[] = [];
   if (cost.coins) items.push(<Coin key="c" n={cost.coins} size={size + 1} />);
   RES.forEach((r) => {
     for (let i = 0; i < (cost[r] || 0); i++) items.push(<Pip key={r + i} r={r} size={size} />);
@@ -70,7 +90,16 @@ function CostRow({ cost, size = 12 }) {
 /* ============================================================
    CARD FACES
    ============================================================ */
-function CardFace({ card, w = 74, selected, dim, onClick, cost }) {
+interface CardFaceProps {
+  card: Card;
+  w?: number;
+  selected?: boolean;
+  dim?: boolean;
+  onClick?: () => void;
+  cost?: { total: number; chained: boolean; affordable: boolean } | null;
+}
+
+function CardFace({ card, w = 74, selected, dim, onClick, cost }: CardFaceProps) {
   const col = CARDCOL[card.color];
   return (
     <button
@@ -90,7 +119,7 @@ function CardFace({ card, w = 74, selected, dim, onClick, cost }) {
         </div>
       </div>
       <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 3, flexWrap: "wrap", padding: 2 }}>
-        {card.prod && Object.entries(card.prod).flatMap(([r, n]) =>
+        {card.prod && entries(card.prod).flatMap(([r, n]) =>
           Array.from({ length: n }, (_, k) => <Pip key={r + k} r={r} size={14} />))}
         {card.prodChoice && (
           <span style={{ display: "flex", gap: 1, alignItems: "center" }}>
@@ -111,7 +140,7 @@ function CardFace({ card, w = 74, selected, dim, onClick, cost }) {
         {card.coinsPer && <span style={{ fontSize: 8, color: "#444" }}>{card.coinsPer.n}c / {card.coinsPer.colors.join("+")}</span>}
         {card.coinsPerWonder && <span style={{ fontSize: 8, color: "#444" }}>{card.coinsPerWonder}c / wonder</span>}
         {card.guild && <span style={{ fontSize: 7.5, color: "#444", textAlign: "center", padding: "0 2px" }}>
-          {card.guild.treasury ? "1 VP / 3 coins" : card.guild.wonders ? "2 VP / wonder" : `1 VP / ${card.guild.colors.join("+")}`}
+          {card.guild.treasury ? "1 VP / 3 coins" : card.guild.wonders ? "2 VP / wonder" : `1 VP / ${(card.guild.colors ?? []).join("+")}`}
         </span>}
       </div>
       <div style={{ padding: "2px 3px", borderTop: "1px solid #ddd6c4", minHeight: 18, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -130,7 +159,7 @@ function CardFace({ card, w = 74, selected, dim, onClick, cost }) {
   );
 }
 
-const CardBack = ({ w = 74 }) => (
+const CardBack = ({ w = 74 }: { w?: number }) => (
   <div style={{
     width: w, height: w * 1.36, borderRadius: 6,
     background: `repeating-linear-gradient(45deg, #2f4a52, #2f4a52 5px, #35545d 5px, #35545d 10px)`,
@@ -141,8 +170,8 @@ const CardBack = ({ w = 74 }) => (
 /* ============================================================
    BOARD PIECES
    ============================================================ */
-function MilitaryTrack({ st }) {
-  const cells = [];
+function MilitaryTrack({ st }: { st: GameState }) {
+  const cells: React.ReactElement[] = [];
   for (let v = -9; v <= 9; v++) {
     const abs = Math.abs(v);
     const zone = abs === 9 ? "cap" : abs === 0 ? "mid" : abs <= 2 ? 2 : abs <= 5 ? 5 : 10;
@@ -178,7 +207,7 @@ function MilitaryTrack({ st }) {
   );
 }
 
-function TokenChip({ id, onClick, small }) {
+function TokenChip({ id, onClick, small }: { id: string; onClick?: () => void; small?: boolean }) {
   const t = TOK[id];
   return (
     <button onClick={onClick} title={t.text} style={{
@@ -192,9 +221,9 @@ function TokenChip({ id, onClick, small }) {
   );
 }
 
-function City({ st, i, me, compact }) {
+function City({ st, i, me, compact }: { st: GameState; i: number; me?: boolean; compact?: boolean }) {
   const v = view(st, i);
-  const groups = ["brown", "grey", "blue", "green", "yellow", "red", "purple"];
+  const groups: CardColor[] = ["brown", "grey", "blue", "green", "yellow", "red", "purple"];
   const sc = score(st, i);
   return (
     <div style={{ background: C.panel, borderRadius: 8, padding: 10, border: `1px solid ${C.line}` }}>
@@ -225,7 +254,7 @@ function City({ st, i, me, compact }) {
 
       {Object.keys(v.sci).length > 0 && (
         <div style={{ display: "flex", gap: 4, marginBottom: 8, alignItems: "center" }}>
-          {Object.entries(v.sci).map(([k, n]) => (
+          {entries(v.sci).map(([k, n]) => (
             <span key={k} style={{ display: "flex", alignItems: "center", gap: 1 }}>
               <SciMark k={k} size={14} />{n > 1 && <b style={{ fontSize: 10, color: C.gold }}>×{n}</b>}
             </span>
@@ -278,20 +307,22 @@ function City({ st, i, me, compact }) {
    APP
    ============================================================ */
 export default function DuelBoard() {
-  const [mode, setMode] = useState(null);       // 'local' | 'direct'
+  const [mode, setMode] = useState<Mode | null>(null);
   const [seat, setSeat] = useState(0);
-  const [link, setLink] = useState(null);       // { how, role, step, myCode }
-  const [quick, setQuick] = useState("checking");// 'checking' | 'ready' | 'no'
-  const [st, setSt] = useState(null);
-  const [sel, setSel] = useState(null);
-  const [hist, setHist] = useState([]);
+  const [link, setLink] = useState<LinkStep | null>(null);
+  const [quick, setQuick] = useState<QuickProbe>("checking");
+  const [st, setSt] = useState<GameState | null>(null);
+  const [sel, setSel] = useState<number | null>(null);
+  const [hist, setHist] = useState<GameState[]>([]);
   const [status, setStatus] = useState("");
-  const chan = useRef(null);
-  const peer = useRef(null);
-  const names = useRef(["Host", "Guest"]);
+  const chan = useRef<Link | null>(null);
+  /* Either transport's handle: PeerJS brokers the quick path, a raw
+     RTCPeerConnection carries the manual one. Both answer to close(). */
+  const peer = useRef<PeerInstance | RTCPeerConnection | null>(null);
+  const names = useRef<string[]>(["Host", "Guest"]);
 
   const myTurn = !st ? false : mode === "local" ? true : st.turn === seat;
-  const linked = () => chan.current && chan.current.isOpen();
+  const linked = (): boolean => !!chan.current && chan.current.isOpen();
 
   /* Probe for the broker once, so the lobby can show the quick option only
      when it will actually work. */
@@ -306,14 +337,14 @@ export default function DuelBoard() {
 
   useEffect(() => () => { if (peer.current) peer.current.close(); }, []);
 
-  const push = (next) => {
+  const push = (next: GameState) => {
     if (mode !== "direct") return;
     if (!linked()) { setStatus("Connection dropped. Re-link to carry on."); return; }
-    try { chan.current.send({ t: "state", st: next }); }
+    try { chan.current!.send({ t: "state", st: next }); }
     catch (e) { setStatus("Couldn't send that move — the connection may have dropped."); }
   };
 
-  const handlers = {
+  const handlers: Handlers = {
     onState: (incoming) => { setSt(incoming); setSel(null); setStatus(""); },
     onOpen: (l) => {
       chan.current = l;
@@ -329,13 +360,13 @@ export default function DuelBoard() {
     onError: (msg) => setStatus(msg),
   };
 
-  const abort = (msg) => {
+  const abort = (msg?: string) => {
     if (peer.current) { try { peer.current.close(); } catch (e) {} peer.current = null; }
     setLink(null); setMode(null); setStatus(msg || "");
   };
 
-  const commit = (next) => {
-    if (!next) return;
+  const commit = (next: GameState | null) => {
+    if (!next || !st) return;
     setHist((h) => [...h.slice(-25), st]);
     setSt(next);
     setSel(null);
@@ -344,7 +375,7 @@ export default function DuelBoard() {
 
   const undo = () => {
     if (!hist.length) return;
-    const prev = hist[hist.length - 1];
+    const prev = hist[hist.length - 1]!;
     setHist((h) => h.slice(0, -1));
     setSt(prev);
     setSel(null);
@@ -358,7 +389,9 @@ export default function DuelBoard() {
         link={link}
         status={status}
         onAnswer={async (answer) => {
-          try { await peer.current.setRemoteDescription(unpack(answer)); setStatus("Connecting…"); }
+          /* Only the manual transport ever shows a reply box, so this is
+             always the raw connection rather than a PeerJS handle. */
+          try { await (peer.current as RTCPeerConnection).setRemoteDescription(unpack(answer)); setStatus("Connecting…"); }
           catch (e) { setStatus("That reply code didn't parse. Copy the whole thing and try again."); }
         }}
         onCancel={() => abort()}
@@ -368,7 +401,7 @@ export default function DuelBoard() {
 
   /* ---------- lobby ---------- */
   if (!st) {
-    const startQuickHost = async (a, b) => {
+    const startQuickHost = async (a: string, b: string) => {
       names.current = [a || "Host", b || "Guest"];
       setMode("direct"); setSeat(0);
       setLink({ how: "quick", role: "host", step: "working" });
@@ -378,14 +411,14 @@ export default function DuelBoard() {
       } catch (e) { abort("Couldn't reach the broker. Try swapping codes manually instead."); }
     };
 
-    const startQuickJoin = async (code) => {
+    const startQuickJoin = async (code: string) => {
       setMode("direct"); setSeat(1);
       setLink({ how: "quick", role: "guest", step: "working" });
       try { peer.current = await quickJoin(code, handlers); }
       catch (e) { abort("Couldn't reach the broker. Try swapping codes manually instead."); }
     };
 
-    const startManualHost = async (a, b) => {
+    const startManualHost = async (a: string, b: string) => {
       if (!window.RTCPeerConnection) { setStatus("This browser can't open a direct connection."); return; }
       names.current = [a || "Host", b || "Guest"];
       setMode("direct"); setSeat(0);
@@ -397,7 +430,7 @@ export default function DuelBoard() {
       } catch (e) { abort("Couldn't start a direct connection here."); }
     };
 
-    const startManualJoin = async (offer) => {
+    const startManualJoin = async (offer: string) => {
       if (!window.RTCPeerConnection) { setStatus("This browser can't open a direct connection."); return; }
       setMode("direct"); setSeat(1);
       setLink({ how: "manual", role: "guest", step: "working" });
@@ -536,9 +569,9 @@ export default function DuelBoard() {
   /* ---------- game over ---------- */
   if (st.phase === "over") {
     const a = score(st, 0), b = score(st, 1);
-    const w = st.winner;
-    const rows = ["military", "blue", "green", "yellow", "guild", "wonders", "tokens", "coins"];
-    const label = { military: "Military", blue: "Civilian", green: "Science", yellow: "Commercial", guild: "Guilds", wonders: "Wonders", tokens: "Progress", coins: "Treasury" };
+    const w = st.winner!;
+    const rows: (keyof ScoreBreakdown)[] = ["military", "blue", "green", "yellow", "guild", "wonders", "tokens", "coins"];
+    const label: Record<string, string> = { military: "Military", blue: "Civilian", green: "Science", yellow: "Commercial", guild: "Guilds", wonders: "Wonders", tokens: "Progress", coins: "Treasury" };
     return (
       <Shell status={status}>
         <h2 style={{ margin: "0 0 4px", fontSize: 22, color: C.gold, fontWeight: 600 }}>
@@ -571,7 +604,7 @@ export default function DuelBoard() {
 
   /* ---------- main board ---------- */
   const selSlot = sel !== null ? st.slots.find((s) => s.id === sel) : null;
-  const selCard = selSlot ? CARD[selSlot.card] : null;
+  const selCard = selSlot && selSlot.card ? CARD[selSlot.card] : null;
   const selCost = selCard ? cardCost(st, i, selCard) : null;
   const yellowN = st.players[i].built.filter((id) => CARD[id].color === "yellow").length;
   const rows = LAYOUTS[st.age].rows;
@@ -635,7 +668,7 @@ export default function DuelBoard() {
       </div>
 
       {/* action bar */}
-      {selCard && myTurn && (
+      {selCard && selCost && sel !== null && myTurn && (
         <div style={{ background: C.panel, border: `1px solid ${C.gold}66`, borderRadius: 8, padding: 12, marginBottom: 12 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
             <b style={{ fontSize: 14, color: C.ink }}>{selCard.name}</b>
@@ -687,7 +720,7 @@ export default function DuelBoard() {
    Generated from the data above wherever possible, so editing a
    token, wonder or chain updates the rules panel automatically.
    ============================================================ */
-const Sec = ({ title, children, open }) => (
+const Sec = ({ title, children, open }: { title: string; children: React.ReactNode; open?: boolean }) => (
   <details open={open} style={{ borderBottom: `1px solid ${C.line}` }}>
     <summary style={{
       cursor: "pointer", padding: "11px 2px", fontSize: 13.5, fontWeight: 600,
@@ -699,14 +732,14 @@ const Sec = ({ title, children, open }) => (
   </details>
 );
 
-const Row = ({ head, children }) => (
+const Row = ({ head, children }: { head: React.ReactNode; children: React.ReactNode }) => (
   <div style={{ display: "flex", gap: 8, marginBottom: 7 }}>
     <div style={{ minWidth: 108, color: C.ink, fontWeight: 500 }}>{head}</div>
     <div style={{ flex: 1 }}>{children}</div>
   </div>
 );
 
-function StructureDots({ age }) {
+function StructureDots({ age }: { age: Age }) {
   const { rows, up } = LAYOUTS[age];
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, margin: "6px 0 10px" }}>
@@ -725,7 +758,7 @@ function StructureDots({ age }) {
   );
 }
 
-function RulesPanel({ onClose }) {
+function RulesPanel({ onClose }: { onClose: () => void }) {
   const guilds = CARDS.filter((k) => k.color === "purple");
   const chains = CARDS.filter((k) => k.chainFrom);
   return (
@@ -804,7 +837,7 @@ function RulesPanel({ onClose }) {
           Two matching symbols earns you a progress token straight away. Six different symbols wins
           the game outright.
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 10 }}>
-            {Object.keys(SCI).map((k) => {
+            {(Object.keys(SCI) as ScienceSymbol[]).map((k) => {
               const n = CARDS.filter((x) => x.sci === k).length;
               return (
                 <span key={k} style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -835,7 +868,7 @@ function RulesPanel({ onClose }) {
                 <span style={{ color: C.ink, fontWeight: 500 }}>{w.name}</span>
                 <CostRow cost={w.cost} size={11} />
                 {w.vp > 0 && <VP n={w.vp} />}
-                {w.shields > 0 && <Shield n={w.shields} />}
+                {(w.shields ?? 0) > 0 && <Shield n={w.shields!} />}
               </div>
               <div style={{ fontSize: 11.5 }}>{w.text}</div>
             </div>
@@ -848,9 +881,9 @@ function RulesPanel({ onClose }) {
           <div style={{ marginTop: 8 }}>
             {guilds.map((g) => (
               <Row key={g.id} head={g.name.replace(" Guild", "")}>
-                {g.guild.treasury ? "1 VP per 3 coins in the richest treasury"
-                  : g.guild.wonders ? "2 VP per Wonder built by whoever has the most"
-                  : `1 coin and 1 VP per ${g.guild.colors.join(" or ")} card`}
+                {g.guild!.treasury ? "1 VP per 3 coins in the richest treasury"
+                  : g.guild!.wonders ? "2 VP per Wonder built by whoever has the most"
+                  : `1 coin and 1 VP per ${(g.guild!.colors ?? []).join(" or ")} card`}
               </Row>
             ))}
           </div>
@@ -861,7 +894,7 @@ function RulesPanel({ onClose }) {
           <div style={{ marginTop: 8, columnCount: 1 }}>
             {chains.map((k) => (
               <div key={k.id} style={{ marginBottom: 4 }}>
-                <span style={{ color: C.ink }}>{CARD[k.chainFrom].name}</span>
+                <span style={{ color: C.ink }}>{CARD[k.chainFrom!].name}</span>
                 <span style={{ margin: "0 6px", color: "#5a8a4a" }}>⛓</span>
                 <span style={{ color: C.ink }}>{k.name}</span>
               </div>
@@ -872,7 +905,7 @@ function RulesPanel({ onClose }) {
         <Sec title="The three structures">
           Filled squares start face up. Lower rows sit on top, so the bottom row is what you can
           reach first. Eight cards start hidden in every age.
-          {[1, 2, 3].map((a) => (
+          {([1, 2, 3] as Age[]).map((a) => (
             <div key={a}>
               <div style={{ color: C.ink, marginTop: 8 }}>Age {["", "I", "II", "III"][a]}</div>
               <StructureDots age={a} />
@@ -920,20 +953,20 @@ function RulesPanel({ onClose }) {
 /* ============================================================
    CHROME
    ============================================================ */
-const btn = {
+const btn: React.CSSProperties = {
   background: C.gold, color: "#2a2109", border: "none", borderRadius: 6,
   padding: "8px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer",
 };
-const btnSm = { ...btn, background: C.panel2, color: C.ink, padding: "4px 10px", fontSize: 11.5 };
-const optBtn = (on) => ({
+const btnSm: React.CSSProperties = { ...btn, background: C.panel2, color: C.ink, padding: "4px 10px", fontSize: 11.5 };
+const optBtn = (on: boolean): React.CSSProperties => ({
   width: 190, textAlign: "left", padding: 10, borderRadius: 8,
   background: C.panel, border: `1px solid ${C.line}`, color: C.ink,
   cursor: on ? "pointer" : "default", opacity: on ? 1 : .5,
 });
-const th = { textAlign: "right", padding: "4px 12px", fontSize: 11, color: C.muted, fontWeight: 600 };
-const td = { textAlign: "right", padding: "4px 12px" };
+const th: React.CSSProperties = { textAlign: "right", padding: "4px 12px", fontSize: 11, color: C.muted, fontWeight: 600 };
+const td: React.CSSProperties = { textAlign: "right", padding: "4px 12px" };
 
-function Shell({ children, status }) {
+function Shell({ children, status }: { children: React.ReactNode; status?: string }) {
   const [rules, setRules] = useState(false);
   return (
     <div style={{
@@ -964,7 +997,7 @@ function Shell({ children, status }) {
   );
 }
 
-function CodeBox({ code, label }) {
+function CodeBox({ code, label }: { code: string; label: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <div>
@@ -995,10 +1028,17 @@ function CodeBox({ code, label }) {
   );
 }
 
-function LinkScreen({ link, status, onAnswer, onCancel }) {
+interface LinkScreenProps {
+  link: LinkStep;
+  status: string;
+  onAnswer: (answer: string) => void;
+  onCancel: () => void;
+}
+
+function LinkScreen({ link, status, onAnswer, onCancel }: LinkScreenProps) {
   const [reply, setReply] = useState("");
   const host = link.role === "host";
-  const area = {
+  const area: React.CSSProperties = {
     background: C.panel2, border: `1px solid ${C.line}`, color: C.ink,
     borderRadius: 6, padding: 8, fontSize: 11, width: "100%", boxSizing: "border-box",
     fontFamily: "ui-monospace, monospace", height: 78, resize: "vertical",
@@ -1047,7 +1087,7 @@ function LinkScreen({ link, status, onAnswer, onCancel }) {
             : "Paste this into the message thread. Once the host enters it, the board opens by itself."}
         </p>
 
-        <CodeBox code={link.myCode} label={host ? "Your invite code" : "Your reply code"} />
+        <CodeBox code={link.myCode ?? ""} label={host ? "Your invite code" : "Your reply code"} />
 
         {host ? (
           <div style={{ marginTop: 20 }}>
@@ -1067,7 +1107,17 @@ function LinkScreen({ link, status, onAnswer, onCancel }) {
   );
 }
 
-function Lobby({ onLocal, onQuickHost, onQuickJoin, onManualHost, onManualJoin, status, quick }) {
+interface LobbyProps {
+  onLocal: (a: string, b: string) => void;
+  onQuickHost: (a: string, b: string) => void;
+  onQuickJoin: (code: string) => void;
+  onManualHost: (a: string, b: string) => void;
+  onManualJoin: (offer: string) => void;
+  status: string;
+  quick: QuickProbe;
+}
+
+function Lobby({ onLocal, onQuickHost, onQuickJoin, onManualHost, onManualJoin, status, quick }: LobbyProps) {
   const [a, setA] = useState("Player 1");
   const [b, setB] = useState("Player 2");
   const [tab, setTab] = useState("code");     // 'code' | 'paste'
@@ -1075,11 +1125,11 @@ function Lobby({ onLocal, onQuickHost, onQuickJoin, onManualHost, onManualJoin, 
   const [offer, setOffer] = useState("");
   const [joining, setJoining] = useState(false);
 
-  const inp = {
+  const inp: React.CSSProperties = {
     background: C.panel2, border: `1px solid ${C.line}`, color: C.ink,
     borderRadius: 6, padding: "8px 10px", fontSize: 13, width: "100%", boxSizing: "border-box",
   };
-  const tabBtn = (on) => ({
+  const tabBtn = (on: boolean): React.CSSProperties => ({
     ...btnSm, background: on ? C.gold : C.panel2, color: on ? "#2a2109" : C.muted,
     borderRadius: 5, padding: "5px 12px",
   });

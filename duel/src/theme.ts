@@ -1,6 +1,14 @@
 /* ============================================================
    PALETTE
+   The domain's closed vocabularies live here as unions, so a typo in
+   a resource or symbol name is a compile error rather than a silent
+   undefined at render time.
    ============================================================ */
+export type Resource = "wood" | "clay" | "stone" | "glass" | "papyrus";
+export type CardColor = "brown" | "grey" | "blue" | "green" | "yellow" | "red" | "purple";
+export type ScienceSymbol = "wheel" | "plumb" | "mortar" | "law" | "sundial" | "scales" | "astrolabe";
+export type SciShape = "circle" | "square" | "triangle" | "diamond" | "hex" | "cross" | "star";
+
 export const C = {
   board: "#18262a",
   panel: "#20343a",
@@ -12,7 +20,7 @@ export const C = {
   blood: "#b8453c",
 };
 
-export const CARDCOL = {
+export const CARDCOL: Record<CardColor, string> = {
   brown: "#8a5a35",
   grey: "#8d949a",
   blue: "#3f6fa8",
@@ -22,18 +30,18 @@ export const CARDCOL = {
   purple: "#7a5490",
 };
 
-export const RES = ["wood", "clay", "stone", "glass", "papyrus"];
-export const RESCOL = {
+export const RES: readonly Resource[] = ["wood", "clay", "stone", "glass", "papyrus"];
+export const RESCOL: Record<Resource, string> = {
   wood: "#7a5230",
   clay: "#b5622f",
   stone: "#9aa0a4",
   glass: "#6fb6c8",
   papyrus: "#d9c47a",
 };
-export const RESLET = { wood: "W", clay: "C", stone: "S", glass: "G", papyrus: "P" };
+export const RESLET: Record<Resource, string> = { wood: "W", clay: "C", stone: "S", glass: "G", papyrus: "P" };
 
 /* Seven science symbols, drawn as distinct simple shapes. */
-export const SCI = {
+export const SCI: Record<ScienceSymbol, { col: string; shape: SciShape }> = {
   wheel: { col: "#e0b23c", shape: "circle" },
   plumb: { col: "#7fc2e8", shape: "triangle" },
   mortar: { col: "#d2705e", shape: "square" },

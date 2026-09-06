@@ -1,9 +1,13 @@
-import * as E from "../src/engine.js";
+import * as E from "../src/engine.ts";
+
+/* cardCost and friends only reach into players, so a stub carrying just that
+   is enough to price a card against a hand-made pair of cities. */
+const twoCities = (players: E.PlayerState[]): E.GameState => ({ players }) as unknown as E.GameState;
 
 /* ---------- structural checks ---------- */
-let fails = [];
-const expectOpen = { 1: 6, 2: 2, 3: 2 };
-for (const age of [1, 2, 3]) {
+let fails: string[] = [];
+const expectOpen: Record<E.Age, number> = { 1: 6, 2: 2, 3: 2 };
+for (const age of [1, 2, 3] as E.Age[]) {
   const slots = E.buildSlots(age);
   slots.forEach((s) => (s.card = "x"));
   const open = slots.filter((s) => E.isOpen(slots, s)).length;
@@ -30,10 +34,10 @@ for (const age of [1, 2, 3]) {
   if ((age === 3 ? n + 3 : n) < 20) fails.push(`Age ${age} deck too small to deal 20`);
 }
 const chainTargets = E.CARDS.filter((k) => k.chainFrom);
-chainTargets.forEach((k) => { if (!E.CARD[k.chainFrom]) fails.push(`${k.name} chains from unknown ${k.chainFrom}`); });
+chainTargets.forEach((k) => { if (!E.CARD[k.chainFrom!]) fails.push(`${k.name} chains from unknown ${k.chainFrom}`); });
 
 // science distribution
-const sciCount = {};
+const sciCount: Record<string, number> = {};
 E.CARDS.forEach((k) => { if (k.sci) sciCount[k.sci] = (sciCount[k.sci] || 0) + 1; });
 console.log("science symbols:", sciCount);
 const pairable = Object.values(sciCount).filter((n) => n >= 2).length;
@@ -41,9 +45,9 @@ console.log(`${Object.keys(sciCount).length} symbols, ${pairable} obtainable as 
 if (Object.keys(sciCount).length < 6) fails.push("fewer than 6 distinct symbols — scientific victory impossible");
 
 /* ---------- random self-play ---------- */
-const pick = (a) => a[Math.floor(Math.random() * a.length)];
-let wins = { military: 0, science: 0, points: 0, tiebreak: 0, draw: 0 };
-let totals = [], turnCounts = [], errors = 0, stuck = 0;
+const pick = <T,>(a: T[]): T => a[Math.floor(Math.random() * a.length)];
+let wins: Record<E.WinReason, number> = { military: 0, science: 0, points: 0, tiebreak: 0, draw: 0 };
+let totals: number[] = [], turnCounts: number[] = [], errors = 0, stuck = 0;
 
 for (let g = 0; g < 4000; g++) {
   try {
@@ -54,7 +58,7 @@ for (let g = 0; g < 4000; g++) {
     while (st.phase === "play" && guard++ < 400) {
       if (st.pending) {
         const pd = st.pending;
-        let opts;
+        let opts: (string | number)[] | undefined;
         if (pd.type === "progress") opts = st.board;
         else if (pd.type === "library") opts = pd.options;
         else if (pd.type === "destroy") opts = st.players[1 - pd.player].built.filter((id) => E.CARD[id].color === pd.color);
@@ -68,8 +72,8 @@ for (let g = 0; g < 4000; g++) {
       const open = st.slots.filter((s) => s.card && s.card !== "?" && E.isOpen(st.slots, s));
       if (!open.length) { stuck++; break; }
       const s = pick(open);
-      const card = E.CARD[s.card];
-      const moves = [() => E.actDiscard(st, s.id)];
+      const card = E.CARD[s.card!];
+      const moves: (() => E.GameState | null)[] = [() => E.actDiscard(st, s.id)];
       if (E.cardCost(st, i, card).total <= st.players[i].coins) moves.push(() => E.actBuild(st, s.id));
       st.players[i].wonders.filter((w) => !w.built).forEach((w) => {
         if (E.wonderCost(st, i, E.WON[w.id]).total <= st.players[i].coins)
@@ -82,8 +86,8 @@ for (let g = 0; g < 4000; g++) {
     if (guard >= 400) { stuck++; continue; }
     if (st.phase !== "over") { stuck++; continue; }
     turnCounts.push(guard);
-    wins[st.winner.by]++;
-    if (st.winner.by !== "military" && st.winner.by !== "science") {
+    wins[st.winner!.by]++;
+    if (st.winner!.by !== "military" && st.winner!.by !== "science") {
       totals.push(E.score(st, 0).total, E.score(st, 1).total);
     }
     // wonders built must never exceed 7
@@ -91,20 +95,19 @@ for (let g = 0; g < 4000; g++) {
     if (built > 7) fails.push(`${built} wonders built — cap broken`);
   } catch (e) {
     errors++;
-    if (errors <= 3) console.log("CRASH:", e.message, "\n", e.stack.split("\n")[1]);
+    if (errors <= 3) console.log("CRASH:", (e as Error).message, "\n", (e as Error).stack!.split("\n")[1]);
   }
 }
 
 console.log("\n--- 4000 random games ---");
 console.log("crashes:", errors, " unfinished:", stuck);
 console.log("endings:", wins);
-const avg = (a) => (a.reduce((x, y) => x + y, 0) / a.length).toFixed(1);
+const avg = (a: number[]): string => (a.reduce((x, y) => x + y, 0) / a.length).toFixed(1);
 console.log("avg civilian score:", avg(totals), " avg actions/game:", avg(turnCounts));
 
 console.log("\n--- cost solver spot checks ---");
-const mk = (built, tokens = []) => ({
-  players: [{ coins: 99, built, wonders: [], tokens }, { coins: 99, built: [], wonders: [], tokens: [] }],
-});
+const mk = (built: string[], tokens: string[] = []): E.GameState =>
+  twoCities([{ coins: 99, built, wonders: [], tokens }, { coins: 99, built: [], wonders: [], tokens: [] }]);
 const t1 = E.cardCost(mk([]), 0, E.CARD.aqueduct);              // 3 stone, no production
 const t2 = E.cardCost(mk(["quarry", "quarry"]), 0, E.CARD.aqueduct);
 const t3 = E.cardCost(mk(["baths"]), 0, E.CARD.aqueduct);        // chain
@@ -117,11 +120,11 @@ console.log("  with Masonry:", t4.total, "expect 2");
 console.log("  with Stone Reserve:", t5.total, "expect 3");
 
 // opponent-driven inflation
-const inflated = { players: [{ coins: 99, built: [], wonders: [], tokens: [] }, { coins: 99, built: ["quarry", "shelf_quarry"], wonders: [], tokens: [] }] };
+const inflated = twoCities([{ coins: 99, built: [], wonders: [], tokens: [] }, { coins: 99, built: ["quarry", "shelf_quarry"], wonders: [], tokens: [] }]);
 console.log("  opponent produces 3 stone:", E.cardCost(inflated, 0, E.CARD.aqueduct).total, "expect 15");
 
 // flexible producer should be spent on the priciest need
-const flex = { players: [{ coins: 99, built: ["caravansery"], wonders: [], tokens: [] }, { coins: 99, built: ["quarry", "quarry"], wonders: [], tokens: [] }] };
+const flex = twoCities([{ coins: 99, built: ["caravansery"], wonders: [], tokens: [] }, { coins: 99, built: ["quarry", "quarry"], wonders: [], tokens: [] }]);
 console.log("  Caravansery vs opp 2 stone, needs 3 stone:", E.cardCost(flex, 0, E.CARD.aqueduct).total, "expect 8");
 
 console.log("\n--- military zones ---");

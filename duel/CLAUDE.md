@@ -9,27 +9,32 @@ directory. Run everything from the repo root:
 
 ```
 npm install
-npm run dev      # local server; game is served at /duel/play/
-npm test         # all three suites, ~10s
-npm run build    # static output in build/duel/play/
+npm run dev        # local server; game is served at /duel/play/
+npm test           # all three suites, ~10s
+npm run typecheck  # tsc over the whole repo
+npm run build      # static output in build/duel/play/
 ```
+
+TypeScript throughout. Relative imports carry an explicit `.ts` extension, which is what
+lets Node run the suites directly off the source (it strips the types itself) with no
+build step or test runner in the way.
 
 ## Layout
 
 | File | Role |
 |---|---|
-| `src/engine.js` | All game logic. Pure, no React, no DOM. |
-| `src/theme.js` | Palette, resource colours, science symbol shapes. |
-| `src/net.js` | Two connection transports behind one interface. |
-| `src/DuelBoard.jsx` | Every component. The only file that touches React. |
-| `test/` | Three suites, run by `test/run.mjs`. |
+| `src/engine.ts` | All game logic, and the types the rest of the app shares. Pure, no React, no DOM. |
+| `src/theme.ts` | Palette, resource colours, science symbol shapes, and the domain unions. |
+| `src/net.ts` | Two connection transports behind one interface. |
+| `src/DuelBoard.tsx` | Every component. The only file that touches React. |
+| `test/` | Three suites, run by `test/run.ts`. |
 
 ## Invariants worth not breaking
 
-**The engine is pure.** Every function in `engine.js` takes state and returns new state.
+**The engine is pure.** Every function in `engine.ts` takes state and returns new state.
 No DOM, no network, no mutation of the argument (`clone` first). This is what makes the
 tests possible and what makes multiplayer a matter of shipping state rather than syncing
-events. If you find yourself wanting to import React into `engine.js`, the design has gone
+events. If you find yourself wanting to import React into `engine.ts`, the design has gone
 wrong somewhere else.
 
 **Derive, don't store.** `PlayerState` holds only `coins`, `built`, `wonders`, `tokens`.
@@ -53,7 +58,7 @@ complications: flexible producers that yield "one of these, your choice, each tu
 waive 2 resources *of your choice*; and per-resource prices driven by the opponent's brown
 and grey cards. It brute-forces the flexible assignments and greedily waives the priciest
 units, which is optimal here since units are independent. Seven hand-computed cases in
-`engine.test.mjs` cover it. Change this function and run the tests.
+`engine.test.ts` cover it. Change this function and run the tests.
 
 **The covering graph** in `buildSlots()` — which slot sits on which. Generated from row
 widths rather than hand-entered. Age III's middle rows are the awkward case: a row of 4
@@ -67,7 +72,7 @@ Verified by test: 4,000 random self-play games with no crashes or stalls, 51 ass
 wonder behaviour, 14 edge cases, scoring reconciled against a hand-totalled game.
 
 **Not verified: the card data itself.** The costs, names and chain links in the `CARDS`
-array at the top of `engine.js` are a reconstruction and have not been checked against a
+array at the top of `engine.ts` are a reconstruction and have not been checked against a
 physical copy. The engine is right; the numbers may not be. Only the Temple of Artemis cost
 was confirmed against an external source. Proofreading this is the highest-value hour
 available and doesn't require touching any logic.
@@ -78,7 +83,7 @@ array.
 
 ## Connection
 
-`net.js` exposes two transports that both produce `{ send, isOpen, role, close }`. Nothing
+`net.ts` exposes two transports that both produce `Link` — `{ send, isOpen, role, close }`. Nothing
 above that line knows which is in use.
 
 - **quick** — PeerJS brokers the introduction, so players exchange a 5-character code.
@@ -94,5 +99,5 @@ above that line knows which is in use.
 - **Reconnect.** State lives only in the two browsers. Close both tabs and the game is gone.
   Fix would be persisting state to `localStorage` on each move plus a rejoin handshake.
 - **TURN.** Behind carrier-grade NAT, no direct route exists and connection fails outright.
-  There's a commented slot in `ICE` in `net.js`; credentials are the only fix.
+  There's a commented slot in `ICE` in `net.ts`; credentials are the only fix.
 - Undo is local-history based and rewinds both players when used over a connection.

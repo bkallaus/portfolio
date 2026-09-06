@@ -1,4 +1,166 @@
-import { RES } from "./theme.js";
+import { RES } from "./theme.ts";
+import type { CardColor, Resource, ScienceSymbol } from "./theme.ts";
+
+/* ============================================================
+   MODEL
+   The state is a plain JSON tree — it has to be, since a move is
+   shipped over the wire verbatim and adopted wholesale by the other
+   peer. Nothing here is a class and nothing carries methods.
+   ============================================================ */
+export type Cost = Partial<Record<Resource, number>> & { coins?: number };
+export type Production = Partial<Record<Resource, number>>;
+
+export interface GuildRule {
+  colors?: CardColor[];
+  coin?: number;
+  vp?: number;
+  wonders?: boolean;
+  treasury?: boolean;
+}
+
+export interface Card {
+  id: string;
+  name: string;
+  /** 1-3, or 0 for a guild (which belongs to no single age). */
+  age: number;
+  color: CardColor;
+  cost: Cost;
+  vp: number;
+  shields: number;
+  prod?: Production;
+  prodChoice?: Resource[];
+  sci?: ScienceSymbol;
+  gainCoins?: number;
+  fixTrade?: Resource[];
+  chainFrom?: string;
+  coinsPer?: { colors: CardColor[]; n: number };
+  coinsPerWonder?: number;
+  guild?: GuildRule;
+}
+
+export interface Wonder {
+  id: string;
+  name: string;
+  cost: Cost;
+  vp: number;
+  text: string;
+  shields?: number;
+  gainCoins?: number;
+  oppLoses?: number;
+  again?: boolean;
+  destroy?: CardColor;
+  library?: boolean;
+  mausoleum?: boolean;
+  prodChoice?: Resource[];
+}
+
+export interface ProgressToken {
+  id: string;
+  name: string;
+  text: string;
+  coins?: number;
+  vp?: number;
+  sci?: ScienceSymbol;
+}
+
+export type Age = 1 | 2 | 3;
+export type Phase = "draft" | "play" | "over";
+
+export interface Slot {
+  id: number;
+  row: number;
+  col: number;
+  /** A card id, "?" for an undealt face-down slot, or null once taken. */
+  card: string | null;
+  up: boolean;
+  coveredBy: number[];
+}
+
+export interface WonderSlot {
+  id: string;
+  built: boolean;
+}
+
+export interface PlayerState {
+  coins: number;
+  built: string[];
+  wonders: WonderSlot[];
+  tokens: string[];
+}
+
+/* A mid-turn decision the reducer refuses to move past until it's resolved.
+   It lives in the state, not in React, so a refresh can't lose it. */
+export type Pending =
+  | { type: "progress"; player: number }
+  | { type: "destroy"; player: number; color: CardColor; again: boolean }
+  | { type: "library"; player: number; options: string[]; again: boolean }
+  | { type: "mausoleum"; player: number; again: boolean }
+  | { type: "first"; player: number; next: Age };
+
+export type WinReason = "military" | "science" | "points" | "tiebreak" | "draw";
+export interface Winner {
+  /** null on a draw. */
+  p: number | null;
+  by: WinReason;
+}
+
+export interface GameState {
+  phase: Phase;
+  names: string[];
+  players: PlayerState[];
+  conflict: number;
+  loot: { p0_2: boolean; p0_5: boolean; p1_2: boolean; p1_5: boolean };
+  board: string[];
+  box: string[];
+  discard: string[];
+  wondersBuilt: number;
+  turn: number;
+  first: number;
+  pending: Pending | null;
+  winner: Winner | null;
+  log: string[];
+  draftPool: string[];
+  draftStep: number;
+  draftAll: string[];
+  slots: Slot[];
+  deck: string[];
+  age: Age;
+  remaining: number;
+}
+
+/* Everything derived from a PlayerState, computed on demand. Deliberately
+   not stored — see the note about caching in the README. */
+export interface PlayerView {
+  p: PlayerState;
+  cards: Card[];
+  wonders: Wonder[];
+  prod: Production;
+  choices: Resource[][];
+  brownGrey: Production;
+  fixTrade: Set<Resource>;
+  shields: number;
+  sci: Partial<Record<ScienceSymbol, number>>;
+  has: Set<string>;
+  tok: Set<string>;
+}
+
+export interface CostBreakdown {
+  total: number;
+  trade: number;
+  chained: boolean;
+}
+
+export interface ScoreBreakdown {
+  military: number;
+  blue: number;
+  green: number;
+  yellow: number;
+  guild: number;
+  wonders: number;
+  tokens: number;
+  coins: number;
+  total: number;
+}
 
 /* ============================================================
    CARD DATA
@@ -8,11 +170,20 @@ import { RES } from "./theme.js";
    first serious game.
    cost: coins + resources.  chainFrom: id of card that makes this free.
    ============================================================ */
-const c = (id, name, age, color, cost, extra = {}) => ({
+type CardExtra = Omit<Partial<Card>, "id" | "name" | "age" | "color" | "cost">;
+
+const c = (
+  id: string,
+  name: string,
+  age: number,
+  color: CardColor,
+  cost: Cost,
+  extra: CardExtra = {},
+): Card => ({
   id, name, age, color, cost, vp: 0, shields: 0, ...extra,
 });
 
-const CARDS = [
+const CARDS: Card[] = [
   /* ---------- AGE I ---------- */
   c("lumber_yard", "Lumber Yard", 1, "brown", {}, { prod: { wood: 1 } }),
   c("logging_camp", "Logging Camp", 1, "brown", { coins: 1 }, { prod: { wood: 1 } }),
@@ -94,12 +265,12 @@ const CARDS = [
   c("builders_guild", "Builders Guild", 0, "purple", { stone: 2, clay: 1, glass: 2 }, { guild: { wonders: true, vp: 2 } }),
   c("moneylenders_guild", "Moneylenders Guild", 0, "purple", { stone: 2, wood: 2 }, { guild: { treasury: true } }),
 ];
-const CARD = Object.fromEntries(CARDS.map((x) => [x.id, x]));
+const CARD: Record<string, Card> = Object.fromEntries(CARDS.map((x) => [x.id, x]));
 
 /* ============================================================
    WONDERS
    ============================================================ */
-const WONDERS = [
+const WONDERS: Wonder[] = [
   { id: "appian_way", name: "The Appian Way", cost: { clay: 2, stone: 2, papyrus: 1 }, vp: 3, gainCoins: 3, oppLoses: 3, again: true, text: "+3 coins, opponent −3, play again" },
   { id: "circus_maximus", name: "Circus Maximus", cost: { stone: 2, wood: 1, glass: 1 }, vp: 3, shields: 1, destroy: "grey", text: "Destroy an opponent's grey card. 1 shield" },
   { id: "colossus", name: "The Colossus", cost: { clay: 3, glass: 1 }, vp: 3, shields: 2, text: "2 shields" },
@@ -113,12 +284,12 @@ const WONDERS = [
   { id: "statue_of_zeus", name: "The Statue of Zeus", cost: { wood: 1, stone: 1, clay: 1, papyrus: 2 }, vp: 3, shields: 1, destroy: "brown", text: "Destroy an opponent's brown card. 1 shield" },
   { id: "temple_of_artemis", name: "The Temple of Artemis", cost: { wood: 1, stone: 1, glass: 1, papyrus: 1 }, vp: 0, gainCoins: 12, again: true, text: "+12 coins, play again" },
 ];
-const WON = Object.fromEntries(WONDERS.map((w) => [w.id, w]));
+const WON: Record<string, Wonder> = Object.fromEntries(WONDERS.map((w) => [w.id, w]));
 
 /* ============================================================
    PROGRESS TOKENS
    ============================================================ */
-const TOKENS = [
+const TOKENS: ProgressToken[] = [
   { id: "agriculture", name: "Agriculture", text: "+6 coins now. Worth 4 VP.", coins: 6, vp: 4 },
   { id: "architecture", name: "Architecture", text: "Your future Wonders cost 2 fewer resources." },
   { id: "economy", name: "Economy", text: "You receive the coins your opponent spends on trade." },
@@ -130,26 +301,26 @@ const TOKENS = [
   { id: "theology", name: "Theology", text: "Your future Wonders all gain play again." },
   { id: "urbanism", name: "Urbanism", text: "+6 coins now. +4 coins each time you chain a card free.", coins: 6 },
 ];
-const TOK = Object.fromEntries(TOKENS.map((t) => [t.id, t]));
+const TOK: Record<string, ProgressToken> = Object.fromEntries(TOKENS.map((t) => [t.id, t]));
 
 /* ============================================================
    STRUCTURE LAYOUTS
    Lower rows sit on top of higher rows, so the bottom row is the
    first thing you can take. `up` lists the face-up row indices.
    ============================================================ */
-const LAYOUTS = {
+const LAYOUTS: Record<Age, { rows: number[]; up: number[] }> = {
   1: { rows: [2, 3, 4, 5, 6], up: [0, 2, 4] },
   2: { rows: [6, 5, 4, 3, 2], up: [0, 2, 4] },
   3: { rows: [2, 3, 4, 2, 4, 3, 2], up: [0, 2, 4, 6] },
 };
 
-function buildSlots(age) {
+function buildSlots(age: Age): Slot[] {
   const { rows, up } = LAYOUTS[age];
-  const slots = [];
-  const idx = [];
+  const slots: Slot[] = [];
+  const idx: number[][] = [];
   let n = 0;
   rows.forEach((len, r) => {
-    const ids = [];
+    const ids: number[] = [];
     for (let i = 0; i < len; i++) {
       ids.push(n);
       slots.push({ id: n, row: r, col: i, card: null, up: up.includes(r), coveredBy: [] });
@@ -157,7 +328,7 @@ function buildSlots(age) {
     }
     idx.push(ids);
   });
-  const cover = (upperRow, i, lowerIds) => {
+  const cover = (upperRow: number, i: number, lowerIds: (number | undefined)[]) => {
     lowerIds.forEach((lid) => {
       if (lid !== undefined) slots[idx[upperRow][i]].coveredBy.push(lid);
     });
@@ -174,9 +345,10 @@ function buildSlots(age) {
   return slots;
 }
 
-const isOpen = (slots, s) => s.card !== null && s.coveredBy.every((id) => slots[id].card === null);
+const isOpen = (slots: Slot[], s: Slot): boolean =>
+  s.card !== null && s.coveredBy.every((id) => slots[id].card === null);
 
-function refresh(slots) {
+function refresh(slots: Slot[]): Slot[] {
   slots.forEach((s) => { if (isOpen(slots, s)) s.up = true; });
   return slots;
 }
@@ -184,34 +356,36 @@ function refresh(slots) {
 /* ============================================================
    DERIVED PLAYER STATE
    ============================================================ */
-function view(st, i) {
+function view(st: GameState, i: number): PlayerView {
   const p = st.players[i];
   const cards = p.built.map((id) => CARD[id]);
   const wonders = p.wonders.filter((w) => w.built).map((w) => WON[w.id]);
   const toks = p.tokens.map((t) => TOK[t]);
 
-  const prod = {};
-  const choices = [];
+  const prod: Production = {};
+  const choices: Resource[][] = [];
   cards.forEach((k) => {
-    if (k.prod) for (const r in k.prod) prod[r] = (prod[r] || 0) + k.prod[r];
+    const kp = k.prod;
+    if (kp) (Object.keys(kp) as Resource[]).forEach((r) => { prod[r] = (prod[r] || 0) + (kp[r] || 0); });
     if (k.prodChoice) choices.push(k.prodChoice);
   });
   wonders.forEach((w) => { if (w.prodChoice) choices.push(w.prodChoice); });
 
-  const brownGrey = {};
+  const brownGrey: Production = {};
   cards.forEach((k) => {
-    if ((k.color === "brown" || k.color === "grey") && k.prod)
-      for (const r in k.prod) brownGrey[r] = (brownGrey[r] || 0) + k.prod[r];
+    const kp = k.prod;
+    if ((k.color === "brown" || k.color === "grey") && kp)
+      (Object.keys(kp) as Resource[]).forEach((r) => { brownGrey[r] = (brownGrey[r] || 0) + (kp[r] || 0); });
   });
 
-  const fixTrade = new Set();
+  const fixTrade = new Set<Resource>();
   cards.forEach((k) => k.fixTrade && k.fixTrade.forEach((r) => fixTrade.add(r)));
 
   let shields = 0;
   cards.forEach((k) => { shields += k.shields || 0; });
   wonders.forEach((w) => { shields += w.shields || 0; });
 
-  const sci = {};
+  const sci: Partial<Record<ScienceSymbol, number>> = {};
   cards.forEach((k) => { if (k.sci) sci[k.sci] = (sci[k.sci] || 0) + 1; });
   toks.forEach((t) => { if (t.sci) sci[t.sci] = (sci[t.sci] || 0) + 1; });
 
@@ -220,22 +394,22 @@ function view(st, i) {
   return { p, cards, wonders, prod, choices, brownGrey, fixTrade, shields, sci, has, tok };
 }
 
-const cartesian = (arrs) =>
-  arrs.reduce((acc, opts) => acc.flatMap((a) => opts.map((o) => [...a, o])), [[]]);
+const cartesian = <T,>(arrs: T[][]): T[][] =>
+  arrs.reduce<T[][]>((acc, opts) => acc.flatMap((a) => opts.map((o) => [...a, o])), [[]]);
 
-function price(me, opp, r) {
+function price(me: PlayerView, opp: PlayerView, r: Resource): number {
   if (me.fixTrade.has(r)) return 1;
   return 2 + (opp.brownGrey[r] || 0);
 }
 
 /* Cheapest coin cost to cover a resource requirement, choosing the best
    assignment for flexible producers and waiving the priciest units. */
-function resourceCost(me, opp, need, waivers) {
+function resourceCost(me: PlayerView, opp: PlayerView, need: Cost, waivers: number): number {
   let best = Infinity;
   for (const assign of cartesian(me.choices)) {
     const prod = { ...me.prod };
     assign.forEach((r) => { prod[r] = (prod[r] || 0) + 1; });
-    let units = [];
+    let units: Resource[] = [];
     RES.forEach((r) => {
       const short = Math.max(0, (need[r] || 0) - (prod[r] || 0));
       for (let k = 0; k < short; k++) units.push(r);
@@ -249,7 +423,7 @@ function resourceCost(me, opp, need, waivers) {
 }
 
 /* Returns { total, trade, chained } for building a card. */
-function cardCost(st, i, card) {
+function cardCost(st: GameState, i: number, card: Card): CostBreakdown {
   const me = view(st, i), opp = view(st, 1 - i);
   if (card.chainFrom && me.has.has(card.chainFrom)) return { total: 0, trade: 0, chained: true };
   const waivers = card.color === "blue" && me.tok.has("masonry") ? 2 : 0;
@@ -257,7 +431,7 @@ function cardCost(st, i, card) {
   return { total: trade + (card.cost.coins || 0), trade, chained: false };
 }
 
-function wonderCost(st, i, w) {
+function wonderCost(st: GameState, i: number, w: Wonder): CostBreakdown {
   const me = view(st, i), opp = view(st, 1 - i);
   const waivers = me.tok.has("architecture") ? 2 : 0;
   const trade = resourceCost(me, opp, w.cost, waivers);
@@ -267,9 +441,9 @@ function wonderCost(st, i, w) {
 /* ============================================================
    SETUP
    ============================================================ */
-const shuffle = (a) => { const x = [...a]; for (let i = x.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [x[i], x[j]] = [x[j], x[i]]; } return x; };
+const shuffle = <T,>(a: readonly T[]): T[] => { const x = [...a]; for (let i = x.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [x[i], x[j]] = [x[j], x[i]]; } return x; };
 
-function ageDeck(age) {
+function ageDeck(age: number): string[] {
   if (age < 3) return shuffle(CARDS.filter((k) => k.age === age).map((k) => k.id));
   const guilds = shuffle(CARDS.filter((k) => k.color === "purple").map((k) => k.id)).slice(0, 3);
   return shuffle([...CARDS.filter((k) => k.age === 3).map((k) => k.id), ...guilds]);
@@ -277,9 +451,9 @@ function ageDeck(age) {
 
 /* Lazy dealing: slots start empty and draw at reveal time, so no
    future card order exists anywhere to be peeked at. */
-const draw = (st) => st.deck.splice(Math.floor(Math.random() * st.deck.length), 1)[0];
+const draw = (st: GameState): string => st.deck.splice(Math.floor(Math.random() * st.deck.length), 1)[0];
 
-function dealAge(st, age) {
+function dealAge(st: GameState, age: Age): void {
   st.age = age;
   st.deck = ageDeck(age);
   st.slots = buildSlots(age);
@@ -291,7 +465,7 @@ function dealAge(st, age) {
   materialise(st);
 }
 
-function materialise(st) {
+function materialise(st: GameState): void {
   let again = true;
   while (again) {
     again = false;
@@ -305,8 +479,8 @@ function materialise(st) {
   }
 }
 
-function newGame(names) {
-  const st = {
+function newGame(names: string[]): GameState {
+  const st: GameState = {
     phase: "draft",
     names,
     players: [0, 1].map(() => ({ coins: 7, built: [], wonders: [], tokens: [] })),
@@ -321,7 +495,7 @@ function newGame(names) {
     winner: null,
     log: [],
     draftPool: [], draftStep: 0, draftAll: [],
-    slots: [], deck: [], age: 1,
+    slots: [], deck: [], age: 1, remaining: 0,
   };
   const toks = shuffle(TOKENS.map((t) => t.id));
   st.board = toks.slice(0, 5);
@@ -334,7 +508,7 @@ function newGame(names) {
 
 const DRAFT = [0, 1, 1, 0, 1, 0, 0, 1];
 
-function draftPick(st, id) {
+function draftPick(st: GameState, id: string): GameState {
   const seat = (DRAFT[st.draftStep] + st.first) % 2;
   st.players[seat].wonders.push({ id, built: false });
   st.draftPool = st.draftPool.filter((x) => x !== id);
@@ -352,15 +526,15 @@ function draftPick(st, id) {
 /* ============================================================
    ENGINE
    ============================================================ */
-const clone = (o) => JSON.parse(JSON.stringify(o));
+const clone = <T,>(o: T): T => JSON.parse(JSON.stringify(o)) as T;
 
 /* Economy captures only what was spent on trade, never a card's printed coin cost. */
-function pay(st, i, total, trade) {
+function pay(st: GameState, i: number, total: number, trade: number): void {
   st.players[i].coins = Math.max(0, st.players[i].coins - total);
   if (trade > 0 && view(st, 1 - i).tok.has("economy")) st.players[1 - i].coins += trade;
 }
 
-function addShields(st, i, n) {
+function addShields(st: GameState, i: number, n: number): void {
   if (n <= 0) return;
   const dir = i === 0 ? 1 : -1;
   st.conflict = Math.max(-9, Math.min(9, st.conflict + n * dir));
@@ -374,7 +548,7 @@ function addShields(st, i, n) {
 }
 
 /* Grant a token pick if the newly gained symbol completed a pair. */
-function maybePair(st, i, symbol) {
+function maybePair(st: GameState, i: number, symbol: ScienceSymbol | undefined): void {
   if (!symbol) return;
   const v = view(st, i);
   if (v.sci[symbol] === 2 && st.board.length) {
@@ -383,24 +557,26 @@ function maybePair(st, i, symbol) {
   if (Object.keys(v.sci).length >= 6) st.winner = { p: i, by: "science" };
 }
 
-function applyCardEffects(st, i, card, chained) {
+function applyCardEffects(st: GameState, i: number, card: Card, chained: boolean): void {
   const me = view(st, i);
   if (card.gainCoins) st.players[i].coins += card.gainCoins;
-  if (card.coinsPer) {
+  const cp = card.coinsPer;
+  if (cp) {
     const n = Math.max(
-      ...[0, 1].map((j) => st.players[j].built.filter((id) => card.coinsPer.colors.includes(CARD[id].color)).length)
+      ...[0, 1].map((j) => st.players[j].built.filter((id) => cp.colors.includes(CARD[id].color)).length)
     );
-    st.players[i].coins += n * card.coinsPer.n;
+    st.players[i].coins += n * cp.n;
   }
   if (card.coinsPerWonder) {
     const n = Math.max(...[0, 1].map((j) => st.players[j].wonders.filter((w) => w.built).length));
     st.players[i].coins += n * card.coinsPerWonder;
   }
-  if (card.guild && card.guild.coin) {
+  const gd = card.guild;
+  if (gd && gd.coin) {
     const n = Math.max(
-      ...[0, 1].map((j) => st.players[j].built.filter((id) => card.guild.colors.includes(CARD[id].color)).length)
+      ...[0, 1].map((j) => st.players[j].built.filter((id) => (gd.colors ?? []).includes(CARD[id].color)).length)
     );
-    st.players[i].coins += n * card.guild.coin;
+    st.players[i].coins += n * gd.coin;
   }
   let sh = card.shields || 0;
   if (sh && me.tok.has("strategy")) sh += 1;
@@ -409,30 +585,30 @@ function applyCardEffects(st, i, card, chained) {
   maybePair(st, i, card.sci);
 }
 
-function takeSlot(st, slotId) {
-  const s = st.slots.find((x) => x.id === slotId);
+function takeSlot(st: GameState, slotId: number): void {
+  const s = st.slots.find((x) => x.id === slotId)!;
   s.card = null;
   st.remaining--;
   materialise(st);
 }
 
-function endTurn(st, again) {
+function endTurn(st: GameState, again: boolean): GameState {
   if (st.winner) { st.phase = "over"; return st; }
   if (st.pending) return st;
   if (st.remaining === 0) {
     if (st.age === 3) { st.phase = "over"; st.winner = finalWinner(st); return st; }
     const behind = st.conflict > 0 ? 1 : st.conflict < 0 ? 0 : st.turn;
-    st.pending = { type: "first", player: behind, next: st.age + 1 };
+    st.pending = { type: "first", player: behind, next: (st.age + 1) as Age };
     return st;
   }
   if (!again) st.turn = 1 - st.turn;
   return st;
 }
 
-function actBuild(st, slotId) {
+function actBuild(st: GameState, slotId: number): GameState | null {
   const i = st.turn;
-  const s = st.slots.find((x) => x.id === slotId);
-  const card = CARD[s.card];
+  const s = st.slots.find((x) => x.id === slotId)!;
+  const card = CARD[s.card!];
   const cost = cardCost(st, i, card);
   if (cost.total > st.players[i].coins) return null;
   st = clone(st);
@@ -444,11 +620,11 @@ function actBuild(st, slotId) {
   return endTurn(st, false);
 }
 
-function actDiscard(st, slotId) {
+function actDiscard(st: GameState, slotId: number): GameState {
   const i = st.turn;
   st = clone(st);
-  const s = st.slots.find((x) => x.id === slotId);
-  const card = CARD[s.card];
+  const s = st.slots.find((x) => x.id === slotId)!;
+  const card = CARD[s.card!];
   const yellow = st.players[i].built.filter((id) => CARD[id].color === "yellow").length;
   st.players[i].coins += 2 + yellow;
   st.discard.push(card.id);
@@ -457,14 +633,14 @@ function actDiscard(st, slotId) {
   return endTurn(st, false);
 }
 
-function actWonder(st, slotId, wonderId) {
+function actWonder(st: GameState, slotId: number, wonderId: string): GameState | null {
   const i = st.turn;
   const w = WON[wonderId];
   const cost = wonderCost(st, i, w);
   if (cost.total > st.players[i].coins) return null;
   st = clone(st);
   pay(st, i, cost.total, cost.trade);
-  const slot = st.players[i].wonders.find((x) => x.id === wonderId);
+  const slot = st.players[i].wonders.find((x) => x.id === wonderId)!;
   slot.built = true;
   st.wondersBuilt++;
   takeSlot(st, slotId);
@@ -498,16 +674,17 @@ function actWonder(st, slotId, wonderId) {
   return endTurn(st, again && st.remaining > 0);
 }
 
-function resolve(st, choice) {
+function resolve(st: GameState, choice: string | number): GameState {
   st = clone(st);
-  const pd = st.pending;
+  const pd = st.pending!;
   const i = pd.player;
   st.pending = null;
 
   if (pd.type === "progress") {
-    st.board = st.board.filter((t) => t !== choice);
-    st.players[i].tokens.push(choice);
-    const t = TOK[choice];
+    const token = choice as string;
+    st.board = st.board.filter((t) => t !== token);
+    st.players[i].tokens.push(token);
+    const t = TOK[token];
     if (t.coins) st.players[i].coins += t.coins;
     st.log.push(`${st.names[i]} took ${t.name}.`);
     if (t.sci) maybePair(st, i, t.sci);
@@ -515,16 +692,18 @@ function resolve(st, choice) {
     return endTurn(st, false);
   }
   if (pd.type === "destroy") {
+    const cardId = choice as string;
     const arr = st.players[1 - i].built;
-    arr.splice(arr.indexOf(choice), 1);
-    st.discard.push(choice);
-    st.log.push(`${st.names[i]} destroyed ${CARD[choice].name}.`);
+    arr.splice(arr.indexOf(cardId), 1);
+    st.discard.push(cardId);
+    st.log.push(`${st.names[i]} destroyed ${CARD[cardId].name}.`);
     return endTurn(st, pd.again && st.remaining > 0);
   }
   if (pd.type === "library") {
-    st.box = st.box.filter((t) => t !== choice);
-    st.players[i].tokens.push(choice);
-    const t = TOK[choice];
+    const token = choice as string;
+    st.box = st.box.filter((t) => t !== token);
+    st.players[i].tokens.push(token);
+    const t = TOK[token];
     if (t.coins) st.players[i].coins += t.coins;
     st.log.push(`${st.names[i]} took ${t.name} from the archive.`);
     if (t.sci) maybePair(st, i, t.sci);
@@ -532,17 +711,19 @@ function resolve(st, choice) {
     return endTurn(st, pd.again && st.remaining > 0);
   }
   if (pd.type === "mausoleum") {
-    st.discard.splice(st.discard.indexOf(choice), 1);
-    st.players[i].built.push(choice);
-    applyCardEffects(st, i, CARD[choice], false);
-    st.log.push(`${st.names[i]} raised ${CARD[choice].name} from the discard.`);
+    const cardId = choice as string;
+    st.discard.splice(st.discard.indexOf(cardId), 1);
+    st.players[i].built.push(cardId);
+    applyCardEffects(st, i, CARD[cardId], false);
+    st.log.push(`${st.names[i]} raised ${CARD[cardId].name} from the discard.`);
     if (st.pending) return st;
     return endTurn(st, pd.again && st.remaining > 0);
   }
   if (pd.type === "first") {
-    st.turn = choice;
+    const seat = choice as number;
+    st.turn = seat;
     dealAge(st, pd.next);
-    st.log.push(`Age ${["", "I", "II", "III"][pd.next]} begins. ${st.names[choice]} starts.`);
+    st.log.push(`Age ${["", "I", "II", "III"][pd.next]} begins. ${st.names[seat]} starts.`);
     return st;
   }
   return st;
@@ -551,11 +732,11 @@ function resolve(st, choice) {
 /* ============================================================
    SCORING
    ============================================================ */
-const milVP = (d) => (d === 0 ? 0 : d <= 2 ? 2 : d <= 5 ? 5 : 10);
+const milVP = (d: number): number => (d === 0 ? 0 : d <= 2 ? 2 : d <= 5 ? 5 : 10);
 
-function score(st, i) {
+function score(st: GameState, i: number): ScoreBreakdown {
   const v = view(st, i);
-  const b = { military: 0, blue: 0, green: 0, yellow: 0, guild: 0, wonders: 0, tokens: 0, coins: 0 };
+  const b: Omit<ScoreBreakdown, "total"> = { military: 0, blue: 0, green: 0, yellow: 0, guild: 0, wonders: 0, tokens: 0, coins: 0 };
   const d = st.conflict;
   if ((i === 0 && d > 0) || (i === 1 && d < 0)) b.military = milVP(Math.abs(d));
   v.cards.forEach((k) => {
@@ -563,21 +744,20 @@ function score(st, i) {
     else if (k.color === "green") b.green += k.vp || 0;
     else if (k.color === "yellow") b.yellow += k.vp || 0;
     else if (k.color === "purple") {
-      const g = k.guild;
+      const g = k.guild!;
       if (g.treasury) b.guild += Math.floor(Math.max(st.players[0].coins, st.players[1].coins) / 3);
-      else if (g.wonders) b.guild += g.vp * Math.max(...[0, 1].map((j) => st.players[j].wonders.filter((w) => w.built).length));
-      else b.guild += g.vp * Math.max(...[0, 1].map((j) => st.players[j].built.filter((id) => g.colors.includes(CARD[id].color)).length));
+      else if (g.wonders) b.guild += (g.vp ?? 0) * Math.max(...[0, 1].map((j) => st.players[j].wonders.filter((w) => w.built).length));
+      else b.guild += (g.vp ?? 0) * Math.max(...[0, 1].map((j) => st.players[j].built.filter((id) => (g.colors ?? []).includes(CARD[id].color)).length));
     }
   });
   v.wonders.forEach((w) => { b.wonders += w.vp || 0; });
   v.p.tokens.forEach((t) => { b.tokens += TOK[t].vp || 0; });
   if (v.tok.has("mathematics")) b.tokens += 3 * v.p.tokens.length;
   b.coins = Math.floor(v.p.coins / 3);
-  b.total = Object.values(b).reduce((a, x) => a + x, 0);
-  return b;
+  return { ...b, total: Object.values(b).reduce((a, x) => a + x, 0) };
 }
 
-function finalWinner(st) {
+function finalWinner(st: GameState): Winner {
   const a = score(st, 0), b = score(st, 1);
   if (a.total !== b.total) return { p: a.total > b.total ? 0 : 1, by: "points" };
   if (a.blue !== b.blue) return { p: a.blue > b.blue ? 0 : 1, by: "tiebreak" };

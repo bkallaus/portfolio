@@ -1,3 +1,5 @@
+import type { GameState } from "./engine.ts";
+
 /* ============================================================
    CONNECTION
    Two transports behind one interface. Both carry game data directly
@@ -15,7 +17,52 @@
    A link object is { send, isOpen, role, close }. Everything above this
    line neither knows nor cares which transport produced it.
    ============================================================ */
-const ICE = {
+/* PeerJS arrives from a CDN at runtime rather than as a dependency, so the
+   handful of members actually used are declared here instead of pulling in
+   the package's types. */
+export interface PeerDataConnection {
+  open: boolean;
+  send: (data: unknown) => void;
+  close: () => void;
+  on: (event: string, cb: (arg: any) => void) => void;
+}
+
+export interface PeerInstance {
+  connect: (id: string, opts?: { reliable?: boolean }) => PeerDataConnection;
+  on: (event: string, cb: (arg: any) => void) => void;
+  close: () => void;
+}
+
+export interface PeerConstructor {
+  new (id: string, opts?: Record<string, unknown>): PeerInstance;
+  new (opts?: Record<string, unknown>): PeerInstance;
+}
+
+declare global {
+  interface Window {
+    Peer?: PeerConstructor;
+  }
+}
+
+export type Role = "host" | "guest";
+
+/* Everything above this line in the app neither knows nor cares which
+   transport produced one of these. */
+export interface Link {
+  send: (o: unknown) => void;
+  isOpen: () => boolean;
+  role: Role;
+  close: () => void;
+}
+
+export interface Handlers {
+  onState: (st: GameState) => void;
+  onOpen: (link: Link) => void;
+  onClose: () => void;
+  onError: (message: string) => void;
+}
+
+const ICE: RTCConfiguration = {
   iceServers: [
     { urls: "stun:stun.l.google.com:19302" },
     /* Behind carrier-grade NAT a direct route may not exist and you need a
@@ -27,12 +74,12 @@ const ICE = {
 
 const PEER_CDN = "https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js";
 const PREFIX = "7wd-";
-let peerLib;
+let peerLib: PeerConstructor | undefined;
 
-function loadPeer() {
+function loadPeer(): Promise<PeerConstructor> {
   if (peerLib) return Promise.resolve(peerLib);
   if (window.Peer) return Promise.resolve((peerLib = window.Peer));
-  return new Promise((res, rej) => {
+  return new Promise<PeerConstructor>((res, rej) => {
     const s = document.createElement("script");
     s.src = PEER_CDN;
     s.onload = () => (window.Peer ? res((peerLib = window.Peer)) : rej(new Error("no Peer")));
@@ -42,21 +89,21 @@ function loadPeer() {
   });
 }
 
-const newCode = () => Math.random().toString(36).slice(2, 7).toUpperCase();
+const newCode = (): string => Math.random().toString(36).slice(2, 7).toUpperCase();
 
 /* ---------- quick: PeerJS ---------- */
-function peerLink(conn, role) {
+function peerLink(conn: PeerDataConnection, role: Role): Link {
   return { send: (o) => conn.send(o), isOpen: () => conn.open, role, close: () => conn.close() };
 }
 
-function bindPeer(conn, role, h) {
+function bindPeer(conn: PeerDataConnection, role: Role, h: Handlers): void {
   conn.on("data", (m) => { if (m && m.t === "state") h.onState(m.st); });
   conn.on("open", () => h.onOpen(peerLink(conn, role)));
   conn.on("close", h.onClose);
   conn.on("error", h.onClose);
 }
 
-async function quickHost(h, onReady) {
+async function quickHost(h: Handlers, onReady: (code: string) => void): Promise<PeerInstance> {
   const Peer = await loadPeer();
   const code = newCode();
   const peer = new Peer(PREFIX + code, { config: ICE });
@@ -68,7 +115,7 @@ async function quickHost(h, onReady) {
   return peer;
 }
 
-async function quickJoin(code, h) {
+async function quickJoin(code: string, h: Handlers): Promise<PeerInstance> {
   const Peer = await loadPeer();
   const peer = new Peer({ config: ICE });
   await new Promise((res, rej) => {
@@ -84,11 +131,12 @@ async function quickJoin(code, h) {
 }
 
 /* ---------- manual: raw WebRTC, no third party ---------- */
-const pack = (d) => btoa(JSON.stringify({ type: d.type, sdp: d.sdp }));
-const unpack = (s) => JSON.parse(atob(s.replace(/\s/g, "")));
+const pack = (d: RTCSessionDescription | RTCSessionDescriptionInit): string =>
+  btoa(JSON.stringify({ type: d.type, sdp: d.sdp }));
+const unpack = (s: string): RTCSessionDescriptionInit => JSON.parse(atob(s.replace(/\s/g, "")));
 
-function gathered(pc) {
-  return new Promise((done) => {
+function gathered(pc: RTCPeerConnection): Promise<void> {
+  return new Promise<void>((done) => {
     if (pc.iceGatheringState === "complete") return done();
     const tick = () => {
       if (pc.iceGatheringState === "complete") {
@@ -97,12 +145,12 @@ function gathered(pc) {
       }
     };
     pc.addEventListener("icegatheringstatechange", tick);
-    setTimeout(done, 5000); // publish what we have rather than hang
+    setTimeout(() => done(), 5000); // publish what we have rather than hang
   });
 }
 
-function bindRaw(dc, role, h) {
-  const link = {
+function bindRaw(dc: RTCDataChannel, role: Role, h: Handlers): void {
+  const link: Link = {
     send: (o) => dc.send(JSON.stringify(o)),
     isOpen: () => dc.readyState === "open",
     role,
@@ -118,21 +166,21 @@ function bindRaw(dc, role, h) {
   if (dc.readyState === "open") h.onOpen(link);
 }
 
-async function manualHost(h) {
+async function manualHost(h: Handlers): Promise<{ pc: RTCPeerConnection; code: string }> {
   const pc = new RTCPeerConnection(ICE);
   bindRaw(pc.createDataChannel("duel", { ordered: true }), "host", h);
   await pc.setLocalDescription(await pc.createOffer());
   await gathered(pc);
-  return { pc, code: pack(pc.localDescription) };
+  return { pc, code: pack(pc.localDescription!) };
 }
 
-async function manualJoin(offer, h) {
+async function manualJoin(offer: string, h: Handlers): Promise<{ pc: RTCPeerConnection; code: string }> {
   const pc = new RTCPeerConnection(ICE);
   pc.ondatachannel = (e) => bindRaw(e.channel, "guest", h);
   await pc.setRemoteDescription(unpack(offer));
   await pc.setLocalDescription(await pc.createAnswer());
   await gathered(pc);
-  return { pc, code: pack(pc.localDescription) };
+  return { pc, code: pack(pc.localDescription!) };
 }
 
 export { ICE, loadPeer, quickHost, quickJoin, manualHost, manualJoin, pack, unpack };

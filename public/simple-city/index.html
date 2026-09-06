@@ -207,6 +207,44 @@
     ctx.globalAlpha = 1;
   }
 
+  function drawMoon() {
+    const W = window.innerWidth, H = window.innerHeight;
+    const mx = W * 0.82, my = H * 0.17, r = 26;
+    const halo = ctx.createRadialGradient(mx, my, r * 0.5, mx, my, r * 3);
+    halo.addColorStop(0, "rgba(226,235,255,0.35)");
+    halo.addColorStop(1, "rgba(226,235,255,0)");
+    ctx.fillStyle = halo;
+    ctx.beginPath(); ctx.arc(mx, my, r * 3, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#eef2ff";
+    ctx.beginPath(); ctx.arc(mx, my, r, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "rgba(190,200,225,0.5)";
+    for (const cr of [[-8, -6, 5], [7, 4, 4], [2, -10, 3]]) {
+      ctx.beginPath(); ctx.arc(mx + cr[0], my + cr[1], cr[2], 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  const clouds = [
+    { x: 0.15, y: 0.12, s: 1.0, spd: 0.0000018 },
+    { x: 0.55, y: 0.08, s: 0.7, spd: 0.0000026 },
+    { x: 0.78, y: 0.26, s: 0.85, spd: 0.0000015 },
+    { x: 0.35, y: 0.30, s: 0.6, spd: 0.0000032 },
+  ];
+  function drawClouds() {
+    const W = window.innerWidth, H = window.innerHeight;
+    ctx.save();
+    ctx.fillStyle = "rgba(150,165,205,0.10)";
+    for (const c of clouds) {
+      const px = (((c.x + nowMs * c.spd) % 1.2) - 0.1) * W;
+      const py = c.y * H, s = c.s;
+      for (const o of [[-34, 0, 26], [-8, -8, 30], [22, -2, 24], [46, 4, 20]]) {
+        ctx.beginPath();
+        ctx.ellipse(px + o[0] * s, py + o[1] * s, o[2] * s, o[2] * s * 0.6, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+
   function drawVignette() {
     const W = window.innerWidth, H = window.innerHeight;
     const g = ctx.createRadialGradient(W / 2, H * 0.52, H * 0.25, W / 2, H * 0.52, H * 0.9);
@@ -1032,6 +1070,8 @@
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
     drawStars();
+    drawMoon();
+    drawClouds();
 
     // World-space scene (auto-fitted)
     ctx.setTransform(DPR * VIEW.scale, 0, 0, DPR * VIEW.scale, DPR * VIEW.ox, DPR * VIEW.oy);

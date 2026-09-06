@@ -245,6 +245,25 @@
     ctx.restore();
   }
 
+  // Birds drifting across the sky (screen space)
+  const birds = [];
+  (function seedBirds() {
+    for (let i = 0; i < 6; i++) birds.push({ x: Math.random(), y: 0.1 + Math.random() * 0.28, spd: rand(0.02, 0.05) / 1000, ph: Math.random() * 6.3, s: rand(0.7, 1.2) });
+  })();
+  function drawBirds() {
+    const W = window.innerWidth, H = window.innerHeight;
+    ctx.strokeStyle = "rgba(210,220,240,0.55)"; ctx.lineWidth = 1.3;
+    for (const b of birds) {
+      const px = ((b.x + nowMs * b.spd) % 1.1) * W, py = b.y * H;
+      const flap = Math.sin(nowMs * 0.008 + b.ph) * 3 * b.s;
+      ctx.beginPath();
+      ctx.moveTo(px - 5 * b.s, py + flap);
+      ctx.lineTo(px, py - 2 * b.s);
+      ctx.lineTo(px + 5 * b.s, py + flap);
+      ctx.stroke();
+    }
+  }
+
   function drawVignette() {
     const W = window.innerWidth, H = window.innerHeight;
     const g = ctx.createRadialGradient(W / 2, H * 0.52, H * 0.25, W / 2, H * 0.52, H * 0.9);
@@ -616,6 +635,37 @@
 
     // The train, sitting on the beam
     drawVehicle({ gx, gy: MONO.gy, fx: 0.55, fy: 3.0, hgt: 30, lift: E - th, body: "#dfe6f2" });
+  }
+
+  // ---- Delivery drone (flies a slow loop above the city) ----
+  const DRONE = { cx: 8, cy: 5, rx: 6.5, ry: 4.5, ang: 0, spd: 0.0004, lift: 155 };
+  function updateDrone(dt) { DRONE.ang += DRONE.spd * dt; }
+  function drawDrone() {
+    const gx = DRONE.cx + Math.cos(DRONE.ang) * DRONE.rx;
+    const gy = DRONE.cy + Math.sin(DRONE.ang) * DRONE.ry;
+    const lift = DRONE.lift + Math.sin(nowMs * 0.003) * 6;
+    const g = isoToScreen(gx, gy);
+    const p = { x: g.x, y: g.y - lift };
+    // ground shadow
+    ctx.save(); ctx.translate(g.x, g.y); ctx.scale(1, 0.5);
+    ctx.fillStyle = "rgba(0,0,0,0.16)";
+    ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    // arms + rotor blur
+    ctx.strokeStyle = "#39415a"; ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.moveTo(p.x - 8, p.y - 3); ctx.lineTo(p.x + 8, p.y - 3); ctx.stroke();
+    ctx.fillStyle = "rgba(180,200,235,0.35)";
+    for (const dx of [-8, 8]) { ctx.beginPath(); ctx.ellipse(p.x + dx, p.y - 4, 5, 1.6, 0, 0, Math.PI * 2); ctx.fill(); }
+    // body
+    ctx.fillStyle = "#4a5268";
+    ctx.beginPath(); ctx.roundRect(p.x - 5, p.y - 3, 10, 5, 2); ctx.fill();
+    // package
+    ctx.fillStyle = "#b98a4f";
+    ctx.fillRect(p.x - 2.5, p.y + 2, 5, 4);
+    // blinking light
+    const blink = 0.5 + 0.5 * Math.sin(nowMs * 0.01);
+    ctx.save(); ctx.globalAlpha = 0.4 + blink * 0.6;
+    ctx.fillStyle = "#5fe0a0"; ctx.shadowColor = "#5fe0a0"; ctx.shadowBlur = 7;
+    ctx.beginPath(); ctx.arc(p.x, p.y + 7, 1.6, 0, Math.PI * 2); ctx.fill(); ctx.restore();
   }
 
   function updateMono(dt) {
@@ -1060,6 +1110,7 @@
     updateCars(dt);
     updateRiders(dt);
     updateDogs(dt);
+    updateDrone(dt);
 
     const W = window.innerWidth, H = window.innerHeight;
     // Screen-space backdrop
@@ -1072,6 +1123,7 @@
     drawStars();
     drawMoon();
     drawClouds();
+    drawBirds();
 
     // World-space scene (auto-fitted)
     ctx.setTransform(DPR * VIEW.scale, 0, 0, DPR * VIEW.scale, DPR * VIEW.ox, DPR * VIEW.oy);
@@ -1085,6 +1137,7 @@
     drawScene();
     drawMonorail();
     drawAllSigns();
+    drawDrone();
     drawBubbles();
 
     // Screen-space overlay

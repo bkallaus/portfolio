@@ -267,6 +267,38 @@
     ctx.closePath();
     ctx.fillStyle = shade(b.wall, 1.15);
     ctx.fill();
+
+    drawRoofProps(b);
+  }
+
+  // A small solid iso box (no windows) — used for rooftop equipment.
+  function drawSolidBox(gx, gy, fx, fy, h, lift, color) {
+    const bb = isoLift(gx, gy, lift), be = isoLift(gx + fx, gy, lift);
+    const bs = isoLift(gx + fx, gy + fy, lift), bw = isoLift(gx, gy + fy, lift);
+    const up = (p) => ({ x: p.x, y: p.y - h });
+    poly([bw, bs, up(bs), up(bw)], shade(color, 0.75));
+    poly([bs, be, up(be), up(bs)], shade(color, 0.95));
+    poly([up(bb), up(be), up(bs), up(bw)], shade(color, 1.2));
+  }
+
+  function drawAntenna(gx, gy, lift, h) {
+    const base = isoLift(gx, gy, lift), tip = { x: base.x, y: base.y - h };
+    ctx.strokeStyle = "#8894ad"; ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.moveTo(base.x, base.y); ctx.lineTo(tip.x, tip.y); ctx.stroke();
+    const blink = 0.5 + 0.5 * Math.sin(nowMs * 0.006 + gx * 3);
+    ctx.save();
+    ctx.globalAlpha = 0.4 + blink * 0.6;
+    ctx.fillStyle = "#ff5a5a"; ctx.shadowColor = "#ff5a5a"; ctx.shadowBlur = 8;
+    ctx.beginPath(); ctx.arc(tip.x, tip.y, 2.2, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawRoofProps(b) {
+    const L = b.hgt;
+    drawSolidBox(b.gx + 0.28, b.gy + 0.28, 0.4, 0.4, 9, L, "#4a5268");
+    drawSolidBox(b.gx + b.w - 0.68, b.gy + 0.5, 0.34, 0.5, 7, L, "#414a60");
+    if (b.hgt > 140) drawSolidBox(b.gx + b.w * 0.5 - 0.2, b.gy + b.h - 0.7, 0.42, 0.42, 15, L, "#39415a");
+    if (b.hgt > 205) drawAntenna(b.gx + b.w * 0.5, b.gy + 0.4, L, 28);
   }
 
   // Lit shopfront glow + striped awning near the bottom of a front wall

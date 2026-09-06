@@ -389,6 +389,15 @@
     ctx.fillStyle = shade(b.wall, 1.15);
     ctx.fill();
 
+    // atmospheric depth haze — buildings further back fade into the night
+    const haze = Math.max(0, Math.min(0.24, (8 - (b.gx + b.gy)) / 8 * 0.24));
+    if (haze > 0.01) {
+      const hz = `rgba(26,34,64,${haze})`;
+      poly([baseWest, baseSouth, topSouth, topWest], hz);
+      poly([baseSouth, baseEast, topEast, topSouth], hz);
+      poly([topBack, topEast, topSouth, topWest], hz);
+    }
+
     drawRoofProps(b);
   }
 

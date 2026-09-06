@@ -436,6 +436,67 @@
     ctx.fillRect(b.x - 9, b.y - 2, 18, 2);
   }
 
+  // ---- People (animated pedestrians) ----
+  const skinTones = ["#e6b98f", "#c98d63", "#8d5a3b", "#f0cba6"];
+  const shirtCols = ["#e05a5a", "#4f8de0", "#e0a84f", "#5fbf7a", "#b06fd0", "#e0e0e0", "#57c4c4"];
+  function rand(a, b) { return a + Math.random() * (b - a); }
+
+  const people = [];
+  (function seedPeople() {
+    // Short back-and-forth routes on plazas / sidewalks (avoid footprints).
+    const routes = [
+      [5.2, 8, 5.2, 12], [10, 7, 10, 12], [6, 6.2, 12, 6.2],
+      [1, 6.2, 4.5, 6.2], [5.4, 4, 5.4, 6.5], [7, 12.9, 12, 12.9],
+      [2, 12.9, 4.5, 12.9], [10, 9, 10, 5], [11, 6.2, 15, 6.2],
+      [12.5, 7.5, 12.5, 11],
+    ];
+    for (let i = 0; i < 22; i++) {
+      const r = routes[i % routes.length];
+      people.push({
+        ax: r[0], ay: r[1], bx: r[2], by: r[3],
+        t: Math.random(), dir: Math.random() < 0.5 ? 1 : -1,
+        spd: rand(0.15, 0.32) / 1000,
+        shirt: shirtCols[(Math.random() * shirtCols.length) | 0],
+        skin: skinTones[(Math.random() * skinTones.length) | 0],
+        ph: Math.random() * Math.PI * 2,
+      });
+    }
+  })();
+
+  function updatePeople(dt) {
+    for (const p of people) {
+      p.t += p.dir * p.spd * dt;
+      if (p.t > 1) { p.t = 1; p.dir = -1; }
+      if (p.t < 0) { p.t = 0; p.dir = 1; }
+    }
+  }
+
+  function personPos(p) {
+    return { gx: p.ax + (p.bx - p.ax) * p.t, gy: p.ay + (p.by - p.ay) * p.t };
+  }
+
+  function drawPerson(p, tmsec) {
+    const g = personPos(p);
+    const s = isoToScreen(g.gx, g.gy);
+    const bob = Math.abs(Math.sin(tmsecPhase(p, tmsec))) * 1.6;
+    // shadow
+    ctx.save(); ctx.translate(s.x, s.y); ctx.scale(1, 0.5);
+    ctx.fillStyle = "rgba(0,0,0,0.28)";
+    ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    // body
+    ctx.fillStyle = p.shirt;
+    ctx.beginPath();
+    ctx.roundRect(s.x - 2.4, s.y - 11 - bob, 4.8, 9, 2);
+    ctx.fill();
+    // head
+    ctx.fillStyle = p.skin;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y - 13 - bob, 2.6, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  function tmsecPhase(p, tmsec) { return p.ph + tmsec * 0.008; }
+
   // ---- Unified depth-sorted scene ----
   function drawScene() {
     const items = [];
@@ -443,6 +504,7 @@
     for (const t of trees)   items.push({ z: t[0] + t[1], draw: () => drawTree(t[0], t[1]) });
     for (const l of lamps)   items.push({ z: l[0] + l[1] - 0.01, draw: () => drawLamp(l[0], l[1]) });
     for (const bn of benches) items.push({ z: bn[0] + bn[1] - 0.02, draw: () => drawBench(bn[0], bn[1]) });
+    for (const p of people)  { const g = personPos(p); items.push({ z: g.gx + g.gy + 0.05, draw: () => drawPerson(p, nowMs) }); }
     items.push({
       z: TRAM.gx + TRAM.gy + 0.9,
       draw: () => drawVehicle({ gx: TRAM.gx, gy: TRAM.gy, fx: 2.6, fy: 0.7, hgt: 26, body: "#c9d2e0" }),
@@ -452,10 +514,13 @@
   }
 
   let last = performance.now();
+  let nowMs = last;
   function frame(now) {
+    nowMs = now;
     const dt = Math.min(50, now - last); last = now;
     updateTram(dt);
     updateMono(dt);
+    updatePeople(dt);
 
     const g = ctx.createLinearGradient(0, 0, 0, window.innerHeight);
     g.addColorStop(0, "#0a1024");

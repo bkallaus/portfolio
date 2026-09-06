@@ -715,6 +715,8 @@
   const lamps = [ [3.0, 11.7], [7.5, 11.7], [11.5, 11.7], [0.5, 11.7], [14.0, 11.7] ];
   const benches = [ [4.0, 12.0], [8.6, 12.0], [12.0, 12.0] ];
   const umbrellas = [ [1.1, 7.7, "#8bd66b"], [1.9, 7.7, "#7fd0ff"], [3.2, 8.5, "#5ad6f0"], [4.1, 8.5, "#ff9f6b"] ];
+  const kiosks = [ [7.2, 11.55], [12.7, 11.55] ];
+  const trashcans = [ [3.4, 11.85], [7.9, 11.85], [11.2, 11.85], [0.7, 11.4] ];
 
   function drawPond(p) {
     const c = isoToScreen(p.gx, p.gy);
@@ -852,6 +854,28 @@
     ctx.fillRect(b.x - 9, b.y - 6, 18, 4);
     ctx.fillStyle = "#474d5c";
     ctx.fillRect(b.x - 9, b.y - 2, 18, 2);
+  }
+
+  function drawKiosk(gx, gy) {
+    // booth + roof overhang
+    drawSolidBox(gx, gy, 0.5, 0.4, 24, 0, "#39415a");
+    drawSolidBox(gx - 0.08, gy - 0.08, 0.66, 0.56, 4, 24, "#2c3346");
+    // glowing ad panel on the front-right face
+    const s = isoLift(gx + 0.5, gy + 0.4, 20);
+    ctx.save();
+    ctx.shadowColor = "#7fd0ff"; ctx.shadowBlur = 10;
+    ctx.fillStyle = "rgba(140,210,255,0.85)";
+    ctx.fillRect(s.x - 3, s.y - 12, 8, 12);
+    ctx.restore();
+  }
+
+  function drawTrashCan(gx, gy) {
+    const b = isoToScreen(gx, gy);
+    ctx.fillStyle = "#3f4658";
+    ctx.fillRect(b.x - 2.4, b.y - 8, 4.8, 8);
+    ctx.save(); ctx.translate(b.x, b.y - 8); ctx.scale(1, 0.5);
+    ctx.fillStyle = "#4c5566"; ctx.beginPath(); ctx.arc(0, 0, 2.6, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
   }
 
   // ---- Cars on the cross street ----
@@ -1113,6 +1137,8 @@
     for (const l of lamps)   items.push({ z: l[0] + l[1] - 0.01, draw: () => drawLamp(l[0], l[1]) });
     for (const bn of benches) items.push({ z: bn[0] + bn[1] - 0.02, draw: () => drawBench(bn[0], bn[1]) });
     for (const u of umbrellas) items.push({ z: u[0] + u[1], draw: () => drawUmbrella(u[0], u[1], u[2]) });
+    for (const k of kiosks)  items.push({ z: k[0] + k[1] + 0.4, draw: () => drawKiosk(k[0], k[1]) });
+    for (const tc of trashcans) items.push({ z: tc[0] + tc[1] - 0.01, draw: () => drawTrashCan(tc[0], tc[1]) });
     for (const p of people)  { const g = personPos(p); items.push({ z: g.gx + g.gy + 0.05, draw: () => drawPerson(p, nowMs) }); }
     for (const c of cars)    items.push({ z: c.lane + c.gy + 0.3, draw: () => drawCar(c) });
     for (const r of riders)  { const g = { gx: r.ax+(r.bx-r.ax)*r.t, gy: r.ay+(r.by-r.ay)*r.t }; items.push({ z: g.gx + g.gy + 0.06, draw: () => drawRider(r) }); }

@@ -621,6 +621,51 @@
     ctx.fillRect(b.x - 9, b.y - 2, 18, 2);
   }
 
+  // ---- Cars on the cross street ----
+  const carCols = ["#d94f4f", "#4f79d9", "#e0b24f", "#5fb56f", "#d0d5df", "#9a5fd0"];
+  const cars = [];
+  (function seedCars() {
+    for (let i = 0; i < 6; i++) {
+      const dir = i % 2 === 0 ? 1 : -1;
+      cars.push({
+        lane: dir > 0 ? ROADV.gx - 0.15 : ROADV.gx + 0.15,
+        gy: rand(-1, 12), dir, spd: rand(0.9, 1.5) / 1000,
+        color: carCols[(Math.random() * carCols.length) | 0],
+        len: i === 5 ? 1.3 : 0.62,   // one longer bus
+      });
+    }
+  })();
+
+  function updateCars(dt) {
+    for (const c of cars) {
+      c.gy += c.dir * c.spd * dt;
+      if (c.dir > 0 && c.gy > 12.8) c.gy = -1.4;
+      if (c.dir < 0 && c.gy < -1.4) c.gy = 12.8;
+    }
+  }
+
+  function drawCar(c) {
+    // headlight pool in the travel direction
+    const hy = c.gy + c.dir * (c.len / 2 + 0.5);
+    const hp = isoToScreen(c.lane, hy);
+    const grd = ctx.createRadialGradient(hp.x, hp.y, 1, hp.x, hp.y, 26);
+    grd.addColorStop(0, "rgba(255,240,190,0.35)");
+    grd.addColorStop(1, "rgba(255,240,190,0)");
+    ctx.save(); ctx.translate(hp.x, hp.y); ctx.scale(1, 0.5);
+    ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(0, 0, 26, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+
+    drawVehicle({ gx: c.lane, gy: c.gy, fx: 0.30, fy: c.len, hgt: c.len > 1 ? 16 : 11, body: c.color });
+
+    // tail light
+    const ty = c.gy - c.dir * c.len / 2;
+    const tp = isoToScreen(c.lane, ty);
+    ctx.save();
+    ctx.fillStyle = "#ff5a5a"; ctx.shadowColor = "#ff5a5a"; ctx.shadowBlur = 5;
+    ctx.beginPath(); ctx.arc(tp.x, tp.y - 5, 1.6, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
   // ---- People (animated pedestrians) ----
   const skinTones = ["#e6b98f", "#c98d63", "#8d5a3b", "#f0cba6"];
   const shirtCols = ["#e05a5a", "#4f8de0", "#e0a84f", "#5fbf7a", "#b06fd0", "#e0e0e0", "#57c4c4"];
@@ -731,6 +776,7 @@
     for (const l of lamps)   items.push({ z: l[0] + l[1] - 0.01, draw: () => drawLamp(l[0], l[1]) });
     for (const bn of benches) items.push({ z: bn[0] + bn[1] - 0.02, draw: () => drawBench(bn[0], bn[1]) });
     for (const p of people)  { const g = personPos(p); items.push({ z: g.gx + g.gy + 0.05, draw: () => drawPerson(p, nowMs) }); }
+    for (const c of cars)    items.push({ z: c.lane + c.gy + 0.3, draw: () => drawCar(c) });
     items.push({
       z: TRAM.gx + TRAM.gy + 0.9,
       draw: () => drawVehicle({ gx: TRAM.gx, gy: TRAM.gy, fx: 2.6, fy: 0.7, hgt: 26, body: "#c9d2e0" }),
@@ -747,6 +793,7 @@
     updateTram(dt);
     updateMono(dt);
     updatePeople(dt);
+    updateCars(dt);
 
     const W = window.innerWidth, H = window.innerHeight;
     // Screen-space backdrop

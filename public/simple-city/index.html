@@ -144,6 +144,30 @@
     }
   }
 
+  function hexToRgb(hex) {
+    const n = parseInt(hex.slice(1), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+
+  // Neon glow pooling on the pavement in front of each storefront.
+  function drawGlowPools() {
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    for (const b of buildings) {
+      const c = isoToScreen(b.gx + b.w / 2, b.gy + b.h + 0.35);
+      const [r, g, bl] = hexToRgb(b.neon);
+      const R = Math.max(26, b.w * 26);
+      ctx.save(); ctx.translate(c.x, c.y); ctx.scale(1, 0.5);
+      const grd = ctx.createRadialGradient(0, 0, 2, 0, 0, R);
+      grd.addColorStop(0, `rgba(${r},${g},${bl},0.20)`);
+      grd.addColorStop(1, `rgba(${r},${g},${bl},0)`);
+      ctx.fillStyle = grd;
+      ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+
   // Soft contact shadows under each building.
   function drawShadows() {
     ctx.save();
@@ -1014,6 +1038,7 @@
     drawGround();
     drawLots();
     drawRoads();
+    drawGlowPools();
     drawPonds();
     drawShadows();
     drawRails();

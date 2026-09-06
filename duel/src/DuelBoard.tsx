@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { C, CARDCOL, RES, RESCOL, RESLET, SCI } from "./theme.ts";
+import { C, CARDCOL, FONT, G, RES, RESCOL, RESLET, SCI, SHADOW, pipFill, shade } from "./theme.ts";
 import type { CardColor, Resource, ScienceSymbol } from "./theme.ts";
 import {
   CARDS, CARD, WONDERS, WON, TOKENS, TOK, LAYOUTS,
@@ -33,18 +33,23 @@ interface LinkStep {
    SMALL VISUAL PARTS
    ============================================================ */
 const Pip = ({ r, size = 13 }: { r: Resource; size?: number }) => (
-  <span style={{
-    width: size, height: size, borderRadius: "50%", background: RESCOL[r],
+  <span title={r} style={{
+    width: size, height: size, borderRadius: "50%", background: pipFill(RESCOL[r]),
+    boxShadow: `0 0 0 1px ${shade(RESCOL[r], -40)}, 0 1px 1px rgba(0,0,0,.45), inset 0 -1px 2px rgba(0,0,0,.3)`,
     display: "inline-flex", alignItems: "center", justifyContent: "center",
-    fontSize: size * 0.62, fontWeight: 700, color: "#1a1a17", lineHeight: 1,
+    fontSize: size * 0.6, fontWeight: 800, color: "rgba(20,18,12,.82)", lineHeight: 1,
+    textShadow: "0 1px 0 rgba(255,255,255,.22)", flex: "0 0 auto",
   }}>{RESLET[r]}</span>
 );
 
 const Coin = ({ n, size = 14 }: { n: number; size?: number }) => (
   <span style={{
     minWidth: size, height: size, padding: "0 3px", borderRadius: size,
-    background: C.gold, color: "#2a2109", fontSize: size * 0.66, fontWeight: 700,
+    background: "radial-gradient(circle at 34% 26%, #f6dc9c 0%, #dcb15c 45%, #b98c39 100%)",
+    boxShadow: "0 0 0 1px #8f6a26, 0 1px 1px rgba(0,0,0,.45), inset 0 -1px 2px rgba(0,0,0,.25)",
+    color: "#2f2409", fontSize: size * 0.64, fontWeight: 800,
     display: "inline-flex", alignItems: "center", justifyContent: "center", lineHeight: 1,
+    textShadow: "0 1px 0 rgba(255,255,255,.3)", flex: "0 0 auto",
   }}>{n}</span>
 );
 
@@ -60,20 +65,38 @@ function SciMark({ k, size = 15 }: { k: ScienceSymbol; size?: number }) {
     cross: <path d={`M${h - 2},1 h4 v${h - 3} h${h - 3} v4 h-${h - 3} v${h - 3} h-4 v-${h - 3} h-${h - 3} v-4 h${h - 3} z`} fill={col} />,
     star: <polygon points={`${h},0 ${h * 1.25},${h * 0.7} ${s},${h * 0.75} ${h * 1.3},${h * 1.2} ${h * 1.55},${s} ${h},${h * 1.5} ${h * 0.45},${s} ${h * 0.7},${h * 1.2} 0,${h * 0.75} ${h * 0.75},${h * 0.7}`} fill={col} />,
   };
-  return <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`} style={{ display: "block" }}>{paths[shape]}</svg>;
+  return (
+    <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}
+      style={{ display: "block", filter: `drop-shadow(0 1px 1px rgba(0,0,0,.45))`, flex: "0 0 auto" }}>
+      {paths[shape]}
+    </svg>
+  );
 }
 
 const Shield = ({ n }: { n: number }) => (
   <span style={{ display: "inline-flex", alignItems: "center", gap: 2 }}>
-    <svg width="13" height="14" viewBox="0 0 13 14"><path d="M6.5 0 13 2.5v5C13 11 9.5 13.3 6.5 14 3.5 13.3 0 11 0 7.5v-5z" fill={C.blood} /></svg>
+    <svg width="13" height="14" viewBox="0 0 13 14" style={{ filter: "drop-shadow(0 1px 1px rgba(0,0,0,.5))", flex: "0 0 auto" }}>
+      <defs>
+        <linearGradient id="shieldG" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor={shade(C.blood, 12)} />
+          <stop offset="1" stopColor={shade(C.blood, -14)} />
+        </linearGradient>
+      </defs>
+      <path d="M6.5 0 13 2.5v5C13 11 9.5 13.3 6.5 14 3.5 13.3 0 11 0 7.5v-5z" fill="url(#shieldG)" />
+      <path d="M6.5 1.2 11.8 3.2v4.3c0 2.6-2.8 4.5-5.3 5.1z" fill="rgba(255,255,255,.12)" />
+    </svg>
     {n > 1 && <b style={{ fontSize: 11, color: C.blood }}>{n}</b>}
   </span>
 );
 
 const VP = ({ n }: { n: number }) => (
-  <span style={{
-    width: 17, height: 17, borderRadius: 3, background: CARDCOL.blue, color: "#fff",
+  <span title={`${n} victory points`} style={{
+    width: 17, height: 17, borderRadius: 3,
+    background: `linear-gradient(180deg, ${shade(CARDCOL.blue, 10)}, ${shade(CARDCOL.blue, -12)})`,
+    boxShadow: `0 0 0 1px ${shade(CARDCOL.blue, -26)}, 0 1px 1px rgba(0,0,0,.4)`,
+    color: "#fff", textShadow: "0 1px 1px rgba(0,0,0,.4)",
     fontSize: 11, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center",
+    flex: "0 0 auto",
   }}>{n}</span>
 );
 
@@ -90,6 +113,9 @@ function CostRow({ cost, size = 12 }: { cost: Cost; size?: number }) {
 /* ============================================================
    CARD FACES
    ============================================================ */
+/* Card banner height. Fixed, because the cost badge is positioned under it. */
+const HEAD = 24;
+
 interface CardFaceProps {
   card: Card;
   w?: number;
@@ -104,17 +130,36 @@ function CardFace({ card, w = 74, selected, dim, onClick, cost }: CardFaceProps)
   return (
     <button
       onClick={onClick}
+      title={card.name}
+      className={`duel-card${onClick ? " is-live" : ""}${selected ? " is-sel" : ""}`}
       style={{
-        width: w, height: w * 1.36, borderRadius: 6, padding: 0, cursor: onClick ? "pointer" : "default",
-        background: "#f2ede0", border: `2px solid ${selected ? C.gold : "rgba(0,0,0,.35)"}`,
-        boxShadow: selected ? `0 0 0 3px ${C.gold}55` : "0 2px 4px rgba(0,0,0,.4)",
-        opacity: dim ? 0.42 : 1, position: "relative", overflow: "hidden",
+        width: w, height: w * 1.36, borderRadius: 7, padding: 0, cursor: onClick ? "pointer" : "default",
+        background: G.card, border: `1px solid ${selected ? C.gold : "rgba(0,0,0,.5)"}`,
+        boxShadow: selected
+          ? `0 0 0 3px ${C.gold}66, 0 0 18px -2px ${C.gold}55, ${SHADOW.cardUp}`
+          : SHADOW.card,
+        opacity: dim ? 0.55 : 1, filter: dim ? "saturate(.55) brightness(.62)" : "none",
+        position: "relative", overflow: "hidden",
         display: "flex", flexDirection: "column", textAlign: "left",
-        transition: "opacity .15s, box-shadow .15s",
+        /* Filtering by colour is most of reading the board, so every card
+           carries a full-height tint of its own family behind the art. */
+        backgroundImage: `linear-gradient(180deg, ${col}22 0%, ${col}00 38%), ${G.card}`,
       }}
     >
-      <div style={{ background: col, padding: "3px 4px", minHeight: 22 }}>
-        <div style={{ fontSize: 8.5, fontWeight: 700, color: "#fff", lineHeight: 1.1, letterSpacing: .1 }}>
+      <div style={{
+        background: `linear-gradient(180deg, ${shade(col, 9)} 0%, ${col} 62%, ${shade(col, -12)} 100%)`,
+        padding: "3px 4px", height: HEAD, boxSizing: "border-box", flex: "0 0 auto",
+        display: "flex", alignItems: "center",
+        borderBottom: "1px solid rgba(0,0,0,.28)",
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,.22)",
+      }}>
+        <div style={{
+          fontSize: 8.5, fontWeight: 700, color: "#fff", lineHeight: 1.12, letterSpacing: .2,
+          textShadow: "0 1px 1px rgba(0,0,0,.45)",
+          /* Two lines fits every name in the deck; clamping keeps the banner a
+             fixed height so the cost badge below it never collides. */
+          display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+        }}>
           {card.name}
         </div>
       </div>
@@ -143,28 +188,54 @@ function CardFace({ card, w = 74, selected, dim, onClick, cost }: CardFaceProps)
           {card.guild.treasury ? "1 VP / 3 coins" : card.guild.wonders ? "2 VP / wonder" : `1 VP / ${(card.guild.colors ?? []).join("+")}`}
         </span>}
       </div>
-      <div style={{ padding: "2px 3px", borderTop: "1px solid #ddd6c4", minHeight: 18, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div style={{
+        padding: "2px 3px", minHeight: 18, display: "flex", alignItems: "center", justifyContent: "space-between",
+        borderTop: "1px solid rgba(120,104,66,.28)", background: "rgba(120,104,66,.09)",
+      }}>
         <CostRow cost={card.cost} size={11} />
-        {card.chainFrom && <span style={{ fontSize: 12, color: "#5a8a4a", lineHeight: 1 }}>⛓</span>}
+        {card.chainFrom && (
+          <span title={`Free if you own ${CARD[card.chainFrom].name}`}
+            style={{ fontSize: 12, color: "#4f7f40", lineHeight: 1, flex: "0 0 auto" }}>⛓</span>
+        )}
       </div>
       {cost && (
         <div style={{
-          position: "absolute", top: 22, right: 0,
-          background: cost.chained ? "#4d8c5c" : cost.affordable ? C.gold : C.blood,
+          position: "absolute", top: HEAD, right: 0,
+          background: cost.chained
+            ? "linear-gradient(180deg, #5aa06b, #3f7a4e)"
+            : cost.affordable ? G.gold : `linear-gradient(180deg, ${shade(C.blood, 8)}, ${shade(C.blood, -12)})`,
           color: cost.chained || !cost.affordable ? "#fff" : "#2a2109",
-          fontSize: 10, fontWeight: 700, padding: "1px 4px", borderRadius: "0 0 0 4px",
+          textShadow: cost.chained || !cost.affordable ? "0 1px 1px rgba(0,0,0,.4)" : "none",
+          fontSize: 10, fontWeight: 800, padding: "1px 5px", borderRadius: "0 0 0 5px",
+          boxShadow: "0 1px 3px rgba(0,0,0,.45)",
         }}>{cost.chained ? "free" : cost.total}</div>
       )}
     </button>
   );
 }
 
+/* The face-down back. A medallion rather than hatching, so a covered card
+   reads as a card at a glance instead of as a texture swatch. */
 const CardBack = ({ w = 74 }: { w?: number }) => (
   <div style={{
-    width: w, height: w * 1.36, borderRadius: 6,
-    background: `repeating-linear-gradient(45deg, #2f4a52, #2f4a52 5px, #35545d 5px, #35545d 10px)`,
-    border: "2px solid rgba(0,0,0,.35)", boxShadow: "0 2px 4px rgba(0,0,0,.4)",
-  }} />
+    width: w, height: w * 1.36, borderRadius: 7, position: "relative", overflow: "hidden",
+    background: `linear-gradient(160deg, #35555e 0%, #294249 55%, #1f333a 100%)`,
+    border: "1px solid rgba(0,0,0,.5)", boxShadow: SHADOW.card,
+  }}>
+    <div style={{
+      position: "absolute", inset: 4, borderRadius: 4,
+      border: `1px solid ${C.gold}30`,
+      background: `repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(255,255,255,.028) 6px, rgba(255,255,255,.028) 12px)`,
+    }} />
+    <svg viewBox="0 0 40 40" width="52%" style={{
+      position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", opacity: .5,
+    }}>
+      <circle cx="20" cy="20" r="15" fill="none" stroke={C.gold} strokeWidth="1.1" />
+      <circle cx="20" cy="20" r="10.5" fill="none" stroke={C.gold} strokeWidth=".7" opacity=".7" />
+      <path d="M20 7 L26 20 L20 33 L14 20 Z" fill={C.gold} opacity=".55" />
+      <circle cx="20" cy="20" r="2.6" fill={C.gold} opacity=".85" />
+    </svg>
+  </div>
 );
 
 /* ============================================================
@@ -181,15 +252,26 @@ function MilitaryTrack({ st }: { st: GameState }) {
       (v === -3 && st.loot.p0_2) || (v === -6 && st.loot.p0_5);
     cells.push(
       <div key={v} style={{
-        flex: 1, minWidth: 0, height: 24, position: "relative",
-        background: zone === "cap" ? C.blood : zone === "mid" ? C.panel2 : `rgba(184,69,60,${abs <= 2 ? .12 : abs <= 5 ? .24 : .4})`,
-        borderRight: v < 9 ? `1px solid ${C.line}` : "none",
+        flex: 1, minWidth: 0, height: 26, position: "relative",
+        background: zone === "cap"
+          ? `linear-gradient(180deg, ${shade(C.blood, 6)}, ${shade(C.blood, -16)})`
+          : zone === "mid"
+            ? `linear-gradient(180deg, ${C.panel2}, ${shade(C.panel2, -6)})`
+            : `linear-gradient(180deg, rgba(184,69,60,${abs <= 2 ? .14 : abs <= 5 ? .28 : .46}), rgba(184,69,60,${abs <= 2 ? .07 : abs <= 5 ? .16 : .3}))`,
+        borderRight: v < 9 ? `1px solid rgba(0,0,0,.32)` : "none",
         display: "flex", alignItems: "center", justifyContent: "center",
       }}>
-        {lootHere && <span style={{ fontSize: 9, color: C.gold, fontWeight: 700 }}>−{abs === 3 ? 2 : 5}</span>}
-        {here && <div style={{
-          position: "absolute", width: 16, height: 16, borderRadius: "50%",
-          background: C.ink, border: `2px solid ${C.board}`, boxShadow: "0 1px 3px rgba(0,0,0,.6)",
+        {lootHere && (
+          <span title={`Crossing here costs the loser ${abs === 3 ? 2 : 5} coins`} style={{
+            fontSize: 9, color: "#2f2409", fontWeight: 800, padding: "1px 4px", borderRadius: 8,
+            background: G.gold, boxShadow: "0 1px 2px rgba(0,0,0,.5)",
+          }}>−{abs === 3 ? 2 : 5}</span>
+        )}
+        {here && <div className="duel-pawn" style={{
+          position: "absolute", width: 17, height: 17, borderRadius: "50%",
+          background: "radial-gradient(circle at 34% 28%, #ffffff 0%, #ece7d8 45%, #b9b3a2 100%)",
+          border: `2px solid rgba(0,0,0,.55)`,
+          boxShadow: `0 2px 5px rgba(0,0,0,.7), 0 0 12px ${C.ink}55`,
         }} />}
       </div>
     );
@@ -197,11 +279,16 @@ function MilitaryTrack({ st }: { st: GameState }) {
   const lead = st.conflict === 0 ? null : st.conflict > 0 ? 0 : 1;
   return (
     <div>
-      <div style={{ display: "flex", borderRadius: 4, overflow: "hidden", border: `1px solid ${C.line}` }}>{cells}</div>
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: C.muted, marginTop: 3 }}>
-        <span>{st.names[0]}</span>
-        <span>{lead === null ? "even" : `${st.names[lead]} +${milVP(Math.abs(st.conflict))} VP`}</span>
-        <span>{st.names[1]}</span>
+      <div style={{
+        display: "flex", borderRadius: 6, overflow: "hidden",
+        border: `1px solid rgba(0,0,0,.5)`, boxShadow: SHADOW.sunk,
+      }}>{cells}</div>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: C.muted, marginTop: 4 }}>
+        <span style={{ letterSpacing: .3 }}>{st.names[0]}</span>
+        <span style={{ color: lead === null ? C.muted : C.gold, fontWeight: lead === null ? 400 : 600 }}>
+          {lead === null ? "even" : `${st.names[lead]} +${milVP(Math.abs(st.conflict))} VP`}
+        </span>
+        <span style={{ letterSpacing: .3 }}>{st.names[1]}</span>
       </div>
     </div>
   );
@@ -210,9 +297,12 @@ function MilitaryTrack({ st }: { st: GameState }) {
 function TokenChip({ id, onClick, small }: { id: string; onClick?: () => void; small?: boolean }) {
   const t = TOK[id];
   return (
-    <button onClick={onClick} title={t.text} style={{
-      background: "#3d5f4a", border: `1px solid #5c8a6d`, color: "#e4f0e6",
-      borderRadius: 4, padding: small ? "2px 5px" : "4px 7px", fontSize: small ? 9.5 : 11,
+    <button onClick={onClick} title={t.text} className={onClick ? "duel-chip is-live" : "duel-chip"} style={{
+      background: "linear-gradient(180deg, #477056 0%, #375c46 100%)",
+      border: `1px solid #5c8a6d`, color: "#e6f2e8",
+      borderRadius: 999, padding: small ? "2px 8px" : "4px 11px", fontSize: small ? 9.5 : 11,
+      fontWeight: 500, letterSpacing: .2,
+      boxShadow: "inset 0 1px 0 rgba(255,255,255,.13), 0 1px 3px rgba(0,0,0,.4)",
       cursor: onClick ? "pointer" : "default", display: "flex", alignItems: "center", gap: 4,
     }}>
       {t.sci && <SciMark k={t.sci} size={11} />}
@@ -225,16 +315,34 @@ function City({ st, i, me, compact }: { st: GameState; i: number; me?: boolean; 
   const v = view(st, i);
   const groups: CardColor[] = ["brown", "grey", "blue", "green", "yellow", "red", "purple"];
   const sc = score(st, i);
+  const active = st.turn === i && st.phase === "play";
   return (
-    <div style={{ background: C.panel, borderRadius: 8, padding: 10, border: `1px solid ${C.line}` }}>
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 8 }}>
-        <span style={{ fontWeight: 700, fontSize: 14, color: st.turn === i && st.phase === "play" ? C.gold : C.ink }}>
+    <div style={{
+      background: G.panel, borderRadius: 10, padding: 12,
+      border: `1px solid ${active ? `${C.gold}55` : C.line}`,
+      boxShadow: active ? `${SHADOW.panel}, 0 0 0 1px ${C.gold}22` : SHADOW.panel,
+      transition: "border-color .2s, box-shadow .2s",
+    }}>
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        marginBottom: 10, paddingBottom: 8, borderBottom: `1px solid ${C.line}88`,
+      }}>
+        <span style={{
+          fontFamily: FONT.display, fontWeight: 600, fontSize: 15, letterSpacing: .4,
+          color: active ? C.gold : C.ink, display: "flex", alignItems: "center", gap: 7,
+        }}>
+          {active && <span className="duel-pulse" style={{
+            width: 7, height: 7, borderRadius: "50%", background: C.gold,
+            boxShadow: `0 0 8px ${C.gold}`, flex: "0 0 auto",
+          }} />}
           {st.names[i]}{me ? " (you)" : ""}
         </span>
-        <span style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 12, color: C.muted }}>
-          <Coin n={v.p.coins} size={16} />
+        <span style={{ display: "flex", gap: 9, alignItems: "center", fontSize: 12, color: C.muted }}>
+          <Coin n={v.p.coins} size={17} />
           {v.shields > 0 && <Shield n={v.shields} />}
-          <span>{sc.total} VP</span>
+          <span style={{ color: C.ink, fontWeight: 600 }}>
+            {sc.total} <span style={{ color: C.muted, fontWeight: 400 }}>VP</span>
+          </span>
         </span>
       </div>
 
@@ -272,11 +380,16 @@ function City({ st, i, me, compact }: { st: GameState; i: number; me?: boolean; 
       <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 8 }}>
         {v.p.wonders.map((w, k) => (
           <div key={k} title={WON[w.id].text} style={{
-            fontSize: 9.5, padding: "3px 6px", borderRadius: 4,
-            background: w.built ? "#6a5a3a" : C.panel2,
-            border: `1px solid ${w.built ? C.gold : C.line}`,
-            color: w.built ? C.ink : C.muted,
-            textDecoration: w.built ? "none" : "none",
+            fontSize: 9.5, padding: "3px 7px", borderRadius: 5,
+            background: w.built
+              ? "linear-gradient(180deg, #7b6842 0%, #5d4e2f 100%)"
+              : G.panel2,
+            border: `1px solid ${w.built ? `${C.gold}99` : C.line}`,
+            color: w.built ? "#f4ecd8" : C.muted,
+            boxShadow: w.built
+              ? `inset 0 1px 0 rgba(255,255,255,.14), 0 0 10px -3px ${C.gold}77`
+              : "inset 0 1px 0 rgba(255,255,255,.05)",
+            display: "flex", alignItems: "center", gap: 5,
           }}>
             {WON[w.id].name}
             {!w.built && <span style={{ marginLeft: 4, opacity: .8 }}><CostRow cost={WON[w.id].cost} size={9} /></span>}
@@ -289,8 +402,16 @@ function City({ st, i, me, compact }: { st: GameState; i: number; me?: boolean; 
           const list = v.p.built.filter((id) => CARD[id].color === g);
           if (!list.length) return null;
           return (
-            <span key={g} style={{ display: "flex", gap: 2, alignItems: "center", background: "rgba(0,0,0,.2)", borderRadius: 4, padding: "2px 4px" }}>
-              <span style={{ width: 8, height: 8, borderRadius: 2, background: CARDCOL[g] }} />
+            <span key={g} style={{
+              display: "flex", gap: 4, alignItems: "center", borderRadius: 5, padding: "2px 6px",
+              background: `linear-gradient(180deg, ${CARDCOL[g]}22, rgba(0,0,0,.26))`,
+              border: `1px solid ${CARDCOL[g]}3a`,
+            }}>
+              <span style={{
+                width: 8, height: 8, borderRadius: 2, flex: "0 0 auto",
+                background: `linear-gradient(180deg, ${shade(CARDCOL[g], 10)}, ${shade(CARDCOL[g], -12)})`,
+                boxShadow: `0 0 0 1px rgba(0,0,0,.35)`,
+              }} />
               <span style={{ fontSize: 10, color: C.ink }}>{list.length}</span>
               {!compact && <span style={{ fontSize: 9, color: C.muted, maxWidth: 150, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {list.map((id) => CARD[id].name).join(", ")}
@@ -464,7 +585,10 @@ export default function DuelBoard() {
     const yours = mode === "local" || picker === seat;
     return (
       <Shell status={status}>
-        <h2 style={{ margin: "0 0 4px", fontSize: 18, color: C.ink, fontWeight: 600 }}>Choose wonders</h2>
+        <h2 style={{
+          margin: "0 0 4px", fontSize: 24, color: C.ink, fontWeight: 600,
+          fontFamily: FONT.display, letterSpacing: .5,
+        }}>Choose wonders</h2>
         <p style={{ margin: "0 0 14px", fontSize: 13, color: C.muted }}>
           {st.names[picker]} picks. One each, then two, then the last — and the order flips for the second set.
         </p>
@@ -473,23 +597,42 @@ export default function DuelBoard() {
             const w = WON[id];
             return (
               <button key={id} disabled={!yours} onClick={() => { const n = draftPick(clone(st), id); commit(n); }}
+                className={yours ? "duel-card is-live" : "duel-card"}
                 style={{
-                  width: 165, textAlign: "left", padding: 10, borderRadius: 8,
-                  background: C.panel, border: `1px solid ${C.line}`, color: C.ink,
-                  cursor: yours ? "pointer" : "default", opacity: yours ? 1 : .5,
+                  width: 172, textAlign: "left", padding: 12, borderRadius: 10,
+                  background: G.panel, color: C.ink,
+                  border: `1px solid ${C.line}`, borderTop: `2px solid ${C.gold}77`,
+                  boxShadow: SHADOW.panel,
+                  cursor: yours ? "pointer" : "default", opacity: yours ? 1 : .45,
+                  /* A button centres its content in the box; these sit in a row of
+                     equal-height cards, so the text has to start at the top. */
+                  display: "flex", flexDirection: "column", alignItems: "stretch",
                 }}>
-                <div style={{ fontWeight: 700, fontSize: 12.5, marginBottom: 6 }}>{w.name}</div>
-                <div style={{ marginBottom: 6 }}><CostRow cost={w.cost} /></div>
-                <div style={{ fontSize: 10.5, color: C.muted, lineHeight: 1.35 }}>{w.text}</div>
-                {w.vp > 0 && <div style={{ marginTop: 6 }}><VP n={w.vp} /></div>}
+                <div style={{
+                  fontFamily: FONT.display, fontWeight: 600, fontSize: 13.5, marginBottom: 8,
+                  letterSpacing: .3, lineHeight: 1.25, color: C.ink,
+                }}>{w.name}</div>
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 7, marginBottom: 8,
+                  paddingBottom: 8, borderBottom: `1px solid ${C.line}66`,
+                }}>
+                  <CostRow cost={w.cost} />
+                  {w.vp > 0 && <span style={{ marginLeft: "auto" }}><VP n={w.vp} /></span>}
+                </div>
+                <div style={{ fontSize: 10.5, color: C.muted, lineHeight: 1.45 }}>{w.text}</div>
               </button>
             );
           })}
         </div>
         <div style={{ display: "flex", gap: 12, marginTop: 18 }}>
           {[0, 1].map((j) => (
-            <div key={j} style={{ flex: 1, background: C.panel, borderRadius: 8, padding: 10, border: `1px solid ${C.line}` }}>
-              <b style={{ fontSize: 12, color: C.ink }}>{st.names[j]}</b>
+            <div key={j} style={{
+              flex: 1, background: G.panel, borderRadius: 10, padding: 12,
+              border: `1px solid ${C.line}`, boxShadow: SHADOW.panel,
+            }}>
+              <b style={{
+                fontFamily: FONT.display, fontSize: 13, color: C.ink, letterSpacing: .3,
+              }}>{st.names[j]}</b>
               <div style={{ fontSize: 11, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
                 {st.players[j].wonders.map((w) => WON[w.id].name).join(" · ") || "—"}
               </div>
@@ -559,7 +702,10 @@ export default function DuelBoard() {
 
     return (
       <Shell status={status}>
-        <h2 style={{ margin: "0 0 12px", fontSize: 17, color: C.ink, fontWeight: 600 }}>{title}</h2>
+        <h2 style={{
+          margin: "0 0 12px", fontSize: 21, color: C.ink, fontWeight: 600,
+          fontFamily: FONT.display, letterSpacing: .4,
+        }}>{title}</h2>
         {!yours && <p style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>Waiting for {st.names[pd.player]}…</p>}
         {options}
       </Shell>
@@ -574,14 +720,22 @@ export default function DuelBoard() {
     const label: Record<string, string> = { military: "Military", blue: "Civilian", green: "Science", yellow: "Commercial", guild: "Guilds", wonders: "Wonders", tokens: "Progress", coins: "Treasury" };
     return (
       <Shell status={status}>
-        <h2 style={{ margin: "0 0 4px", fontSize: 22, color: C.gold, fontWeight: 600 }}>
+        <h2 className="duel-fade" style={{
+          margin: "0 0 6px", fontSize: 38, color: C.gold, fontWeight: 700,
+          fontFamily: FONT.display, letterSpacing: 1,
+          textShadow: `0 0 34px ${C.gold}55`,
+        }}>
           {w.p === null ? "A shared victory" : `${st.names[w.p]} wins`}
         </h2>
         <p style={{ margin: "0 0 18px", fontSize: 13, color: C.muted }}>
           {w.by === "military" ? "Military supremacy." : w.by === "science" ? "Scientific supremacy — six symbols." :
             w.by === "tiebreak" ? "Level on points, decided on civilian buildings." : "Decided on points."}
         </p>
-        <table style={{ borderCollapse: "collapse", fontSize: 13, color: C.ink, minWidth: 280 }}>
+        <table style={{
+          borderCollapse: "collapse", fontSize: 13, color: C.ink, minWidth: 320,
+          background: G.panel, border: `1px solid ${C.line}`, borderRadius: 10,
+          boxShadow: SHADOW.panel, overflow: "hidden",
+        }}>
           <thead><tr>
             <th style={th}></th><th style={th}>{st.names[0]}</th><th style={th}>{st.names[1]}</th>
           </tr></thead>
@@ -612,16 +766,43 @@ export default function DuelBoard() {
 
   return (
     <Shell status={status}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, gap: 10, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 13, color: C.ink }}>
-          Age {["", "I", "II", "III"][st.age]} · {st.remaining} cards left
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        marginBottom: 10, gap: 10, flexWrap: "wrap",
+        background: G.panel, border: `1px solid ${C.line}`, borderRadius: 10,
+        padding: "8px 12px", boxShadow: SHADOW.panel,
+      }}>
+        <span style={{ fontSize: 13, color: C.muted, display: "flex", alignItems: "center", gap: 9 }}>
+          <b style={{
+            fontFamily: FONT.display, fontSize: 15, fontWeight: 700, color: C.gold, letterSpacing: 1,
+          }}>AGE {["", "I", "II", "III"][st.age]}</b>
+          <span style={{ width: 1, height: 13, background: C.line }} />
+          {st.remaining} cards left
         </span>
-        <span style={{ fontSize: 13, color: myTurn ? C.gold : C.muted, fontWeight: 600 }}>
+        <span style={{
+          fontSize: 13, color: myTurn ? C.gold : C.muted, fontWeight: 600,
+          display: "flex", alignItems: "center", gap: 7,
+        }}>
+          {myTurn && <span className="duel-pulse" style={{
+            width: 7, height: 7, borderRadius: "50%", background: C.gold,
+            boxShadow: `0 0 8px ${C.gold}`, flex: "0 0 auto",
+          }} />}
           {myTurn ? `${st.names[i]} to play` : `Waiting for ${st.names[i]}`}
         </span>
         <span style={{ display: "flex", gap: 6 }}>
           {mode === "direct" && (
-            <span style={{ fontSize: 11, color: linked() ? "#7fc48f" : C.blood, alignSelf: "center" }}>
+            <span style={{
+              fontSize: 10.5, alignSelf: "center", display: "flex", alignItems: "center", gap: 5,
+              color: linked() ? "#8fd0a0" : "#e08b84",
+              background: linked() ? "rgba(90,160,107,.14)" : "rgba(184,69,60,.16)",
+              border: `1px solid ${linked() ? "rgba(90,160,107,.4)" : "rgba(184,69,60,.45)"}`,
+              borderRadius: 999, padding: "3px 9px",
+            }}>
+              <span style={{
+                width: 6, height: 6, borderRadius: "50%", flex: "0 0 auto",
+                background: linked() ? "#8fd0a0" : "#e08b84",
+                boxShadow: `0 0 6px ${linked() ? "#8fd0a0" : "#e08b84"}`,
+              }} />
               {linked() ? "connected" : "disconnected"}
             </span>
           )}
@@ -631,7 +812,11 @@ export default function DuelBoard() {
 
       <div style={{ marginBottom: 10 }}><MilitaryTrack st={st} /></div>
 
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14, alignItems: "center" }}>
+        <span style={{
+          fontSize: 9.5, letterSpacing: 1.1, textTransform: "uppercase",
+          color: C.muted, opacity: .8, marginRight: 2,
+        }}>Progress</span>
         {st.board.map((t) => <TokenChip key={t} id={t} small />)}
         {!st.board.length && <span style={{ fontSize: 11, color: C.muted }}>all progress tokens claimed</span>}
       </div>
@@ -645,7 +830,7 @@ export default function DuelBoard() {
             return (
               <div key={r} style={{ display: "flex", gap: pinch ? 90 : 6, marginTop: r ? -22 : 0 }}>
                 {rowSlots.map((s) => {
-                  if (s.card === null) return <div key={s.id} style={{ width: 74, height: 100 }} />;
+                  if (s.card === null) return <div key={s.id} style={{ width: 74, height: 74 * 1.36 }} />;
                   if (!s.up || s.card === "?") return <CardBack key={s.id} />;
                   const card = CARD[s.card];
                   const open = isOpen(st.slots, s);
@@ -669,9 +854,20 @@ export default function DuelBoard() {
 
       {/* action bar */}
       {selCard && selCost && sel !== null && myTurn && (
-        <div style={{ background: C.panel, border: `1px solid ${C.gold}66`, borderRadius: 8, padding: 12, marginBottom: 12 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
-            <b style={{ fontSize: 14, color: C.ink }}>{selCard.name}</b>
+        <div className="duel-fade" style={{
+          background: G.panel, border: `1px solid ${C.gold}66`, borderRadius: 10,
+          padding: 14, marginBottom: 12,
+          boxShadow: `${SHADOW.panel}, 0 0 24px -12px ${C.gold}`,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 11, flexWrap: "wrap" }}>
+            <span style={{
+              width: 9, height: 9, borderRadius: 2, flex: "0 0 auto",
+              background: `linear-gradient(180deg, ${shade(CARDCOL[selCard.color], 10)}, ${shade(CARDCOL[selCard.color], -12)})`,
+              boxShadow: "0 0 0 1px rgba(0,0,0,.4)",
+            }} />
+            <b style={{ fontFamily: FONT.display, fontSize: 15, fontWeight: 600, color: C.ink, letterSpacing: .3 }}>
+              {selCard.name}
+            </b>
             <span style={{ fontSize: 12, color: C.muted }}>
               {selCost.chained ? "free by chain" : selCost.total === 0 ? "free" : `${selCost.total} coins`}
               {selCost.trade > 0 && ` (${selCost.trade} on trade)`}
@@ -723,7 +919,8 @@ export default function DuelBoard() {
 const Sec = ({ title, children, open }: { title: string; children: React.ReactNode; open?: boolean }) => (
   <details open={open} style={{ borderBottom: `1px solid ${C.line}` }}>
     <summary style={{
-      cursor: "pointer", padding: "11px 2px", fontSize: 13.5, fontWeight: 600,
+      cursor: "pointer", padding: "12px 2px", fontSize: 14, fontWeight: 600,
+      fontFamily: FONT.display, letterSpacing: .3,
       color: C.ink, listStyle: "revert",
     }}>{title}</summary>
     <div style={{ padding: "0 2px 14px", fontSize: 12.5, lineHeight: 1.65, color: C.muted }}>
@@ -765,24 +962,29 @@ function RulesPanel({ onClose }: { onClose: () => void }) {
     <div
       onClick={onClose}
       style={{
-        position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 90,
-        display: "flex", justifyContent: "flex-end",
+        position: "fixed", inset: 0, background: "rgba(6,12,14,.62)", zIndex: 90,
+        display: "flex", justifyContent: "flex-end", backdropFilter: "blur(2px)",
       }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: C.board, width: "min(460px, 100%)", height: "100%",
-          overflowY: "auto", padding: "0 16px 40px", borderLeft: `1px solid ${C.line}`,
-          boxShadow: "-8px 0 24px rgba(0,0,0,.4)",
+          background: `linear-gradient(180deg, #1e3036 0%, #16242a 100%)`,
+          width: "min(460px, 100%)", height: "100%",
+          overflowY: "auto", padding: "0 18px 40px",
+          borderLeft: `1px solid ${C.gold}44`,
+          boxShadow: "-14px 0 40px rgba(0,0,0,.55)",
         }}
       >
         <div style={{
-          position: "sticky", top: 0, background: C.board, paddingTop: 16, paddingBottom: 10,
+          position: "sticky", top: 0, background: "#1e3036", paddingTop: 16, paddingBottom: 11,
           display: "flex", justifyContent: "space-between", alignItems: "baseline",
           borderBottom: `1px solid ${C.line}`, zIndex: 2,
         }}>
-          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 600, color: C.ink }}>Rules</h2>
+          <h2 style={{
+            margin: 0, fontSize: 19, fontWeight: 600, color: C.ink,
+            fontFamily: FONT.display, letterSpacing: .5,
+          }}>Rules</h2>
           <button onClick={onClose} style={{ ...btnSm, padding: "4px 12px" }}>Close</button>
         </div>
 
@@ -953,30 +1155,95 @@ function RulesPanel({ onClose }: { onClose: () => void }) {
 /* ============================================================
    CHROME
    ============================================================ */
+/* Hover, focus and keyframes can't be expressed as inline style objects,
+   and those are exactly the states that make the board feel like it's made
+   of physical pieces. One stylesheet, mounted once by Shell. */
+const CSS = `
+.duel-card {
+  transition: transform .16s cubic-bezier(.2,.8,.3,1), box-shadow .16s, opacity .16s;
+  transform: translateZ(0);
+}
+.duel-card.is-live:hover  { transform: translateY(-5px) scale(1.025); box-shadow: ${SHADOW.cardUp}; z-index: 3; }
+.duel-card.is-live:active { transform: translateY(-1px) scale(1.005); }
+.duel-card.is-sel         { animation: duel-rise .18s cubic-bezier(.2,.8,.3,1); z-index: 4; }
+@keyframes duel-rise { from { transform: translateY(0) } to { transform: translateY(-4px) } }
+.duel-card.is-sel { transform: translateY(-4px); }
+
+.duel-chip { transition: filter .14s, transform .14s, box-shadow .14s; }
+.duel-chip.is-live:hover  { filter: brightness(1.16); transform: translateY(-1px); }
+.duel-chip.is-live:active { transform: translateY(0); }
+
+button { font-family: inherit; }
+button:not(:disabled) { transition: filter .14s, transform .1s, box-shadow .14s; }
+button:not(:disabled):hover  { filter: brightness(1.1); }
+button:not(:disabled):active { transform: translateY(1px); }
+button:focus-visible, summary:focus-visible, textarea:focus-visible, input:focus-visible {
+  outline: 2px solid ${C.gold}cc; outline-offset: 2px;
+}
+
+.duel-pulse { animation: duel-pulse 1.9s ease-in-out infinite; }
+@keyframes duel-pulse { 0%,100% { opacity: 1 } 50% { opacity: .35 } }
+
+.duel-pawn { animation: duel-drop .28s cubic-bezier(.2,.9,.3,1); }
+@keyframes duel-drop { from { transform: translateY(-7px); opacity: 0 } to { transform: none; opacity: 1 } }
+
+.duel-fade { animation: duel-fade .22s ease-out; }
+@keyframes duel-fade { from { opacity: 0; transform: translateY(-4px) } to { opacity: 1; transform: none } }
+
+/* The dark surfaces make the default light scrollbars shout. */
+* { scrollbar-width: thin; scrollbar-color: ${C.line} transparent; }
+*::-webkit-scrollbar { width: 9px; height: 9px; }
+*::-webkit-scrollbar-thumb { background: ${C.line}; border-radius: 9px; }
+*::-webkit-scrollbar-thumb:hover { background: ${C.muted}; }
+*::-webkit-scrollbar-track { background: transparent; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  .duel-card.is-live:hover { transform: none; }
+}
+`;
+
+const BoardStyle = () => <style>{CSS}</style>;
+
+
 const btn: React.CSSProperties = {
-  background: C.gold, color: "#2a2109", border: "none", borderRadius: 6,
-  padding: "8px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer",
+  background: G.gold, color: "#2a2109", border: "1px solid #a87f31", borderRadius: 7,
+  padding: "8px 15px", fontSize: 13, fontWeight: 700, cursor: "pointer", letterSpacing: .2,
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,.35), 0 2px 6px -1px rgba(0,0,0,.5)",
+  textShadow: "0 1px 0 rgba(255,255,255,.22)",
 };
-const btnSm: React.CSSProperties = { ...btn, background: C.panel2, color: C.ink, padding: "4px 10px", fontSize: 11.5 };
+const btnSm: React.CSSProperties = {
+  ...btn, background: G.panel2, color: C.ink, border: `1px solid ${C.line}`,
+  padding: "5px 11px", fontSize: 11.5, fontWeight: 600,
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,.07), 0 1px 3px rgba(0,0,0,.4)",
+  textShadow: "none",
+};
 const optBtn = (on: boolean): React.CSSProperties => ({
-  width: 190, textAlign: "left", padding: 10, borderRadius: 8,
-  background: C.panel, border: `1px solid ${C.line}`, color: C.ink,
+  width: 190, textAlign: "left", padding: 11, borderRadius: 9,
+  background: G.panel, border: `1px solid ${C.line}`, color: C.ink,
+  boxShadow: SHADOW.panel,
   cursor: on ? "pointer" : "default", opacity: on ? 1 : .5,
 });
-const th: React.CSSProperties = { textAlign: "right", padding: "4px 12px", fontSize: 11, color: C.muted, fontWeight: 600 };
-const td: React.CSSProperties = { textAlign: "right", padding: "4px 12px" };
+const th: React.CSSProperties = {
+  textAlign: "right", padding: "9px 16px", fontSize: 10.5, color: C.muted, fontWeight: 700,
+  letterSpacing: .8, textTransform: "uppercase", borderBottom: `1px solid ${C.line}`,
+};
+const td: React.CSSProperties = { textAlign: "right", padding: "6px 16px" };
 
 function Shell({ children, status }: { children: React.ReactNode; status?: string }) {
   const [rules, setRules] = useState(false);
   return (
     <div style={{
-      background: C.board, minHeight: "100vh", padding: 14, color: C.ink,
-      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif",
+      background: G.board, backgroundAttachment: "fixed", minHeight: "100vh",
+      padding: 14, color: C.ink, fontFamily: FONT.body,
     }}>
+      <BoardStyle />
       <div style={{ maxWidth: 1080, margin: "0 auto", paddingBottom: 56 }}>
-        {status && <div style={{
-          background: "#4a3a1e", border: `1px solid ${C.gold}55`, color: C.ink,
-          padding: "6px 10px", borderRadius: 6, fontSize: 12, marginBottom: 10,
+        {status && <div className="duel-fade" style={{
+          background: "linear-gradient(180deg, #55411f 0%, #402f16 100%)",
+          border: `1px solid ${C.gold}66`, color: "#f4e9cf",
+          padding: "8px 12px", borderRadius: 7, fontSize: 12, marginBottom: 10,
+          boxShadow: "0 4px 14px -6px rgba(0,0,0,.8)",
         }}>{status}</div>}
         {children}
       </div>
@@ -984,11 +1251,13 @@ function Shell({ children, status }: { children: React.ReactNode; status?: strin
       <button
         onClick={() => setRules(true)}
         aria-label="Open the rules"
+        className="duel-chip is-live"
         style={{
           position: "fixed", right: 16, bottom: 16, zIndex: 80,
-          background: C.panel2, color: C.ink, border: `1px solid ${C.line}`,
-          borderRadius: 20, padding: "8px 16px", fontSize: 12.5, fontWeight: 600,
-          cursor: "pointer", boxShadow: "0 3px 10px rgba(0,0,0,.45)",
+          background: G.panel2, color: C.ink, border: `1px solid ${C.line}`,
+          borderRadius: 999, padding: "9px 18px", fontSize: 12.5, fontWeight: 600,
+          cursor: "pointer",
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,.08), 0 6px 18px -4px rgba(0,0,0,.7)",
         }}
       >Rules</button>
 
@@ -1060,14 +1329,17 @@ function LinkScreen({ link, status, onAnswer, onCancel }: LinkScreenProps) {
       <Shell status={status}>
         <div style={{ maxWidth: 420, margin: "50px auto", textAlign: "center" }}>
           <p style={{ fontSize: 13, color: C.muted, margin: "0 0 18px" }}>
-            Give her this code. The board opens as soon as she joins.
+            Give your opponent this code. The board opens as soon as they join.
           </p>
           <div style={{
-            fontSize: 40, fontWeight: 700, letterSpacing: 6, color: C.gold,
-            fontFamily: "ui-monospace, monospace", padding: "18px 0",
-            background: C.panel, borderRadius: 10, border: `1px solid ${C.line}`,
+            fontSize: 44, fontWeight: 700, letterSpacing: 10, textIndent: 10, color: C.gold,
+            fontFamily: FONT.mono, padding: "22px 0",
+            background: G.panel, borderRadius: 12,
+            border: `1px solid ${C.gold}44`,
+            boxShadow: `${SHADOW.panel}, 0 0 40px -18px ${C.gold}`,
+            textShadow: `0 0 26px ${C.gold}66`,
           }}>{link.myCode}</div>
-          <p style={{ fontSize: 12, color: C.muted, marginTop: 18 }}>Waiting for her to join…</p>
+          <p style={{ fontSize: 12, color: C.muted, marginTop: 18 }}>Waiting for them to join…</p>
           <button onClick={onCancel} style={{ ...btnSm, marginTop: 20 }}>Cancel</button>
         </div>
       </Shell>
@@ -1078,12 +1350,14 @@ function LinkScreen({ link, status, onAnswer, onCancel }: LinkScreenProps) {
   return (
     <Shell status={status}>
       <div style={{ maxWidth: 460, margin: "30px auto" }}>
-        <h2 style={{ fontSize: 19, margin: "0 0 6px", fontWeight: 600 }}>
-          {host ? "Send her this" : "Send this back"}
+        <h2 style={{
+          fontFamily: FONT.display, fontSize: 22, margin: "0 0 6px", fontWeight: 600, letterSpacing: .4,
+        }}>
+          {host ? "Send them this" : "Send this back"}
         </h2>
         <p style={{ fontSize: 12.5, color: C.muted, margin: "0 0 20px", lineHeight: 1.55 }}>
           {host
-            ? "She pastes this into Join, sends you her reply code, and you paste that below."
+            ? "They paste this into Join, send you their reply code, and you paste that below."
             : "Paste this into the message thread. Once the host enters it, the board opens by itself."}
         </p>
 
@@ -1091,7 +1365,7 @@ function LinkScreen({ link, status, onAnswer, onCancel }: LinkScreenProps) {
 
         {host ? (
           <div style={{ marginTop: 20 }}>
-            <div style={{ fontSize: 12, color: C.muted, marginBottom: 6 }}>Her reply code</div>
+            <div style={{ fontSize: 12, color: C.muted, marginBottom: 6 }}>Their reply code</div>
             <textarea value={reply} onChange={(e) => setReply(e.target.value)}
               placeholder="Paste it here" style={area} />
             <button onClick={() => reply.trim() && onAnswer(reply)}
@@ -1126,24 +1400,50 @@ function Lobby({ onLocal, onQuickHost, onQuickJoin, onManualHost, onManualJoin, 
   const [joining, setJoining] = useState(false);
 
   const inp: React.CSSProperties = {
-    background: C.panel2, border: `1px solid ${C.line}`, color: C.ink,
-    borderRadius: 6, padding: "8px 10px", fontSize: 13, width: "100%", boxSizing: "border-box",
+    background: "#1b2c31", border: `1px solid ${C.line}`, color: C.ink,
+    borderRadius: 7, padding: "9px 11px", fontSize: 13, width: "100%", boxSizing: "border-box",
+    boxShadow: SHADOW.sunk, fontFamily: "inherit",
   };
   const tabBtn = (on: boolean): React.CSSProperties => ({
-    ...btnSm, background: on ? C.gold : C.panel2, color: on ? "#2a2109" : C.muted,
-    borderRadius: 5, padding: "5px 12px",
+    ...btnSm, background: on ? G.gold : "transparent",
+    color: on ? "#2a2109" : C.muted,
+    border: `1px solid ${on ? "#a87f31" : C.line}`,
+    borderRadius: 999, padding: "4px 13px",
+    boxShadow: on ? "inset 0 1px 0 rgba(255,255,255,.3)" : "none",
   });
 
   return (
     <Shell status={status}>
       <div style={{ maxWidth: 440, margin: "40px auto" }}>
-        <h1 style={{ fontSize: 26, margin: "0 0 6px", fontWeight: 600, letterSpacing: -0.3 }}>Duel</h1>
-        <p style={{ fontSize: 13, color: C.muted, margin: "0 0 26px", lineHeight: 1.5 }}>
-          Three ages, two cities. Win by military, by science, or on points.
-        </p>
+        <div className="duel-fade" style={{ textAlign: "center", marginBottom: 30 }}>
+          <svg viewBox="0 0 64 64" width="54" height="54" style={{ opacity: .9, marginBottom: 6 }}>
+            <circle cx="32" cy="32" r="25" fill="none" stroke={C.gold} strokeWidth="1.6" opacity=".55" />
+            <circle cx="32" cy="32" r="18" fill="none" stroke={C.gold} strokeWidth="1" opacity=".38" />
+            <path d="M32 10 L42 32 L32 54 L22 32 Z" fill={C.gold} opacity=".5" />
+            <circle cx="32" cy="32" r="4.4" fill={C.gold} opacity=".92" />
+          </svg>
+          <h1 style={{
+            fontFamily: FONT.display, fontSize: 46, margin: "0 0 8px", fontWeight: 700,
+            letterSpacing: 8, textIndent: 8, color: C.ink,
+            textShadow: `0 0 44px ${C.gold}44`,
+          }}>DUEL</h1>
+          <div style={{
+            width: 78, height: 1, margin: "0 auto 14px",
+            background: `linear-gradient(90deg, transparent, ${C.gold}, transparent)`,
+          }} />
+          <p style={{ fontSize: 13.5, color: C.muted, margin: 0, lineHeight: 1.6 }}>
+            Three ages, two cities. Win by military, by science, or on points.
+          </p>
+        </div>
 
-        <div style={{ background: C.panel, borderRadius: 8, padding: 16, border: `1px solid ${C.line}`, marginBottom: 14 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Same screen</div>
+        <div style={{
+          background: G.panel, borderRadius: 12, padding: 18,
+          border: `1px solid ${C.line}`, boxShadow: SHADOW.panel, marginBottom: 14,
+        }}>
+          <div style={{
+            fontFamily: FONT.display, fontSize: 14, fontWeight: 600, marginBottom: 12,
+            letterSpacing: .6, color: C.ink,
+          }}>Same screen</div>
           <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
             <input value={a} onChange={(e) => setA(e.target.value)} style={inp} />
             <input value={b} onChange={(e) => setB(e.target.value)} style={inp} />
@@ -1151,9 +1451,14 @@ function Lobby({ onLocal, onQuickHost, onQuickJoin, onManualHost, onManualJoin, 
           <button onClick={() => onLocal(a || "Player 1", b || "Player 2")} style={btn}>Start</button>
         </div>
 
-        <div style={{ background: C.panel, borderRadius: 8, padding: 16, border: `1px solid ${C.line}` }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, gap: 8 }}>
-            <span style={{ fontSize: 13, fontWeight: 600 }}>Separate devices</span>
+        <div style={{
+          background: G.panel, borderRadius: 12, padding: 18,
+          border: `1px solid ${C.line}`, boxShadow: SHADOW.panel,
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, gap: 8 }}>
+            <span style={{
+              fontFamily: FONT.display, fontSize: 14, fontWeight: 600, letterSpacing: .6, color: C.ink,
+            }}>Separate devices</span>
             {quick === "ready" && (
               <span style={{ display: "flex", gap: 5 }}>
                 <button onClick={() => setTab("code")} style={tabBtn(tab === "code")}>Code</button>
@@ -1172,7 +1477,7 @@ function Lobby({ onLocal, onQuickHost, onQuickJoin, onManualHost, onManualJoin, 
 
           <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
             <input value={a} onChange={(e) => setA(e.target.value)} style={inp} placeholder="Your name" />
-            <input value={b} onChange={(e) => setB(e.target.value)} style={inp} placeholder="Her name" />
+            <input value={b} onChange={(e) => setB(e.target.value)} style={inp} placeholder="Opponent's name" />
           </div>
 
           {quick === "ready" && tab === "code" ? (

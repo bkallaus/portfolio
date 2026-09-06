@@ -24,7 +24,7 @@ build step or test runner in the way.
 | File | Role |
 |---|---|
 | `src/engine.ts` | All game logic, and the types the rest of the app shares. Pure, no React, no DOM. |
-| `src/theme.ts` | Palette, resource colours, science symbol shapes, and the domain unions. |
+| `src/theme.ts` | Palette, resource colours, science symbol shapes, the domain unions, and the gradient/shadow tokens the board is skinned from. |
 | `src/net.ts` | Two connection transports behind one interface. |
 | `src/DuelBoard.tsx` | Every component. The only file that touches React. |
 | `test/` | Three suites, run by `test/run.ts`. |

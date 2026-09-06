@@ -273,12 +273,12 @@
 
   // A rounded, lit vehicle. fx/fy = footprint extent (tiles) along gx/gy.
   function drawVehicle(v) {
-    const fx = v.fx, fy = v.fy, H = v.hgt;
+    const fx = v.fx, fy = v.fy, H = v.hgt, lift = v.lift || 0;
     const g0 = { gx: v.gx - fx / 2, gy: v.gy - fy / 2 };
-    const baseBack  = isoToScreen(g0.gx,       g0.gy);
-    const baseEast  = isoToScreen(g0.gx + fx,  g0.gy);
-    const baseSouth = isoToScreen(g0.gx + fx,  g0.gy + fy);
-    const baseWest  = isoToScreen(g0.gx,       g0.gy + fy);
+    const baseBack  = isoLift(g0.gx,       g0.gy,       lift);
+    const baseEast  = isoLift(g0.gx + fx,  g0.gy,       lift);
+    const baseSouth = isoLift(g0.gx + fx,  g0.gy + fy,  lift);
+    const baseWest  = isoLift(g0.gx,       g0.gy + fy,  lift);
     const up = (p) => ({ x: p.x, y: p.y - H });
     const tBack = up(baseBack), tEast = up(baseEast), tSouth = up(baseSouth), tWest = up(baseWest);
 
@@ -319,6 +319,49 @@
     if (TRAM.gx > TRAM.gxMax) { TRAM.gx = TRAM.gxMax; TRAM.dir = -1; }
   }
 
+  // ---- Elevated monorail (right side, runs along gy at fixed gx) ----
+  const MONO = { gx: 15.3, gyMin: -1.5, gyMax: 10.5, E: 92, gy: 1.0, dir: 1, speed: 0.020 };
+
+  function isoLift(gx, gy, lift) {
+    const s = isoToScreen(gx, gy);
+    return { x: s.x, y: s.y - lift };
+  }
+
+  function drawMonorail() {
+    const { gx, gyMin, gyMax, E } = MONO;
+    const th = 12;   // beam thickness
+    const hw = 0.16; // beam half-width in tiles
+
+    // Support pillars
+    for (let gy = gyMin + 0.5; gy <= gyMax; gy += 1.6) {
+      const bl = isoToScreen(gx - 0.09, gy), br = isoToScreen(gx + 0.09, gy);
+      const tl = isoLift(gx - 0.09, gy, E - th), tr = isoLift(gx + 0.09, gy, E - th);
+      poly([bl, br, tr, tl], "#2b3247");
+      // cap
+      poly([isoLift(gx - 0.14, gy, E - th), isoLift(gx + 0.14, gy, E - th),
+            isoLift(gx + 0.14, gy, E - th - 4), isoLift(gx - 0.14, gy, E - th - 4)], "#39415c");
+    }
+
+    // Beam side (right) + top
+    poly([
+      isoLift(gx + hw, gyMin, E - th), isoLift(gx + hw, gyMax, E - th),
+      isoLift(gx + hw, gyMax, E),      isoLift(gx + hw, gyMin, E),
+    ], "#333b54");
+    poly([
+      isoLift(gx - hw, gyMin, E - th), isoLift(gx + hw, gyMin, E - th),
+      isoLift(gx + hw, gyMax, E - th), isoLift(gx - hw, gyMax, E - th),
+    ], "#454f70");
+
+    // The train, sitting on the beam
+    drawVehicle({ gx, gy: MONO.gy, fx: 0.55, fy: 3.0, hgt: 30, lift: E - th, body: "#dfe6f2" });
+  }
+
+  function updateMono(dt) {
+    MONO.gy += MONO.dir * MONO.speed * dt;
+    if (MONO.gy < MONO.gyMin + 0.5) { MONO.gy = MONO.gyMin + 0.5; MONO.dir = 1; }
+    if (MONO.gy > MONO.gyMax - 2.5) { MONO.gy = MONO.gyMax - 2.5; MONO.dir = -1; }
+  }
+
   // ---- Unified depth-sorted scene ----
   function drawScene() {
     const items = [];
@@ -335,6 +378,7 @@
   function frame(now) {
     const dt = Math.min(50, now - last); last = now;
     updateTram(dt);
+    updateMono(dt);
 
     const g = ctx.createLinearGradient(0, 0, 0, window.innerHeight);
     g.addColorStop(0, "#0a1024");
@@ -345,6 +389,7 @@
     drawGround();
     drawRails();
     drawScene();
+    drawMonorail();
     requestAnimationFrame(frame);
   }
 

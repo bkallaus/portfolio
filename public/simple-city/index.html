@@ -406,6 +406,18 @@
     ctx.fillStyle = shade(b.wall, 1.15);
     ctx.fill();
 
+    // crisp corner definition + warm roof rim light
+    ctx.strokeStyle = "rgba(10,14,26,0.35)"; ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(baseSouth.x, baseSouth.y); ctx.lineTo(topSouth.x, topSouth.y);
+    ctx.moveTo(baseEast.x, baseEast.y); ctx.lineTo(topEast.x, topEast.y);
+    ctx.moveTo(baseWest.x, baseWest.y); ctx.lineTo(topWest.x, topWest.y);
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(255,232,190,0.22)"; ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(topWest.x, topWest.y); ctx.lineTo(topBack.x, topBack.y); ctx.lineTo(topEast.x, topEast.y);
+    ctx.stroke();
+
     // atmospheric depth haze — buildings further back fade into the night
     const haze = Math.max(0, Math.min(0.24, (8 - (b.gx + b.gy)) / 8 * 0.24));
     if (haze > 0.01) {
@@ -1200,6 +1212,12 @@
     // Screen-space overlay
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     drawVignette();
+    // warm cozy colour grade
+    ctx.save();
+    ctx.globalCompositeOperation = "soft-light";
+    ctx.fillStyle = "rgba(255,170,80,0.10)";
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
     requestAnimationFrame(frame);
   }
 

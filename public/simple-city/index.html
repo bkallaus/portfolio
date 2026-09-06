@@ -1151,8 +1151,12 @@
     drawClouds();
     drawBirds();
 
-    // World-space scene (auto-fitted)
-    ctx.setTransform(DPR * VIEW.scale, 0, 0, DPR * VIEW.scale, DPR * VIEW.ox, DPR * VIEW.oy);
+    // World-space scene (auto-fitted, with a gentle breathing drift)
+    const breathe = 1 + Math.sin(nowMs * 0.0004) * 0.012;
+    const sc = VIEW.scale * breathe;
+    const oxp = VIEW.ox + Math.sin(nowMs * 0.0003) * 8;
+    const oyp = VIEW.oy + Math.cos(nowMs * 0.00035) * 6;
+    ctx.setTransform(DPR * sc, 0, 0, DPR * sc, DPR * oxp, DPR * oyp);
     drawGround();
     drawLots();
     drawRoads();

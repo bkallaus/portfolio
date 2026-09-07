@@ -33,11 +33,6 @@ export const applyTheme = (theme: Theme) => {
   document.documentElement.classList.toggle('dark', resolveTheme(theme) === 'dark');
 };
 
-// The View Transitions API isn't in TS 4.9's DOM lib yet.
-interface DocumentWithViewTransitions extends Document {
-  startViewTransition?: (callback: () => void) => { ready: Promise<void> };
-}
-
 const prefersReducedMotion = () =>
   typeof window.matchMedia === 'function' &&
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -98,7 +93,7 @@ type Point = { x: number; y: number };
  * API is unsupported, no origin is given, or the user prefers reduced motion.
  */
 export const setThemeAnimated = (theme: Theme, origin?: Point) => {
-  const startViewTransition = (document as DocumentWithViewTransitions).startViewTransition;
+  const startViewTransition = document.startViewTransition;
 
   if (!startViewTransition || !origin || prefersReducedMotion()) {
     setTheme(theme);

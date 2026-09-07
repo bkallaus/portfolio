@@ -1,6 +1,6 @@
 # ben.kallaus.me
 
-Every page on `ben.kallaus.me` lives here and ships as **one** GitHub Pages artifact.
+Every page on `ben.kallaus.me` lives here and ships as a single GitHub Pages artifact.
 
 ## Three invariants
 

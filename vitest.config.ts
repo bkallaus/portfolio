@@ -1,11 +1,6 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 
-/**
- * One test config for the whole site. Each app that has tests is a project, so its
- * setup files stay its own while the runner, environment and dependency versions are
- * shared with everything else.
- */
 export default defineConfig({
   plugins: [react()],
   test: {

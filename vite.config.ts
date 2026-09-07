@@ -10,23 +10,15 @@ const sites: Site[] = JSON.parse(
   readFileSync(path.join(import.meta.dirname, 'sites.json'), 'utf8'),
 );
 
-/**
- * One build, one entry per page. The folder name under apps/ is the URL segment;
- * scripts/build-all.mjs lays each emitted page down at that path. Because this is a
- * single build at base '/', every page shares one hashed asset graph — React and
- * friends are bundled once for the whole site rather than once per app.
- */
+// One entry per page, so the whole site shares one hashed asset graph.
 const input = Object.fromEntries(
   sites
     .filter((s) => s.type === 'vite')
     .map((s) => [s.slug, path.join(import.meta.dirname, 'apps', s.slug, 'index.html')]),
 );
 
-/**
- * Dev only. Production serves /quick/; the dev server would otherwise serve
- * /apps/quick/ because that is where the file lives. This rewrites the former to the
- * latter so the URL you develop against is the URL you ship.
- */
+// The dev server would serve /apps/quick/, since that is where the file lives.
+// Production serves /quick/. Rewrite so you develop against the URL you ship.
 function urlsMatchProduction(): Plugin {
   return {
     name: 'urls-match-production',

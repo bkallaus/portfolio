@@ -1,12 +1,5 @@
 #!/usr/bin/env node
-/**
- * Assembles every page of ben.kallaus.me into ./dist as one GitHub Pages artifact.
- *
- * One `vite build` produces every page-with-a-build in a single pass, so the whole
- * site shares one hashed asset graph. Vite emits each page under its source path
- * (dist/apps/<slug>/index.html); this script lays those down at the URL the folder
- * name declares, copies the pages that have no build, and injects the shared nav.
- */
+// Assembles every page of ben.kallaus.me into ./dist as one GitHub Pages artifact.
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -26,7 +19,6 @@ const run = (cmd, args, label) => {
   if (r.status !== 0) die(`${label} failed (exit ${r.status}). One broken page fails the whole site on purpose.`);
 };
 
-// --- manifest ---------------------------------------------------------------
 const sitesPath = path.join(root, 'sites.json');
 if (!fs.existsSync(sitesPath)) die('sites.json not found at repo root.');
 const sites = JSON.parse(fs.readFileSync(sitesPath, 'utf8'));
@@ -35,15 +27,13 @@ for (const s of sites) {
   if (!fs.existsSync(path.join(root, 'apps', s.slug))) die(`sites.json lists "${s.slug}" but apps/${s.slug} does not exist.`);
 }
 
-// --- clean ------------------------------------------------------------------
 fs.rmSync(dist, { recursive: true, force: true });
 fs.mkdirSync(dist, { recursive: true });
 
-// --- one build for every page that has one ----------------------------------
 console.log('[build-all] Building all pages in one pass ...');
 run(path.join(root, 'node_modules', '.bin', 'vite'), ['build'], 'vite build');
 
-// Vite emits pages at their source path. Move each to the URL its folder declares.
+// Vite emits each page at its source path; move it to the URL the folder declares.
 const emitted = path.join(dist, 'apps');
 for (const site of sites.filter((s) => s.type === 'vite')) {
   const from = path.join(emitted, site.slug);
@@ -67,7 +57,6 @@ for (const site of sites.filter((s) => s.type === 'vite')) {
   console.log(`[build-all]   ${site.slug} public/ -> ${site.slug === 'portfolio' ? 'dist/' : `dist/${site.slug}/`}`);
 }
 
-// --- pages with no build ----------------------------------------------------
 const SKIP = new Set(['.git', '.github', 'node_modules', 'package.json', 'package-lock.json']);
 for (const site of sites.filter((s) => s.type === 'static')) {
   fs.cpSync(path.join(root, 'apps', site.slug), path.join(dist, site.slug), {
@@ -77,16 +66,14 @@ for (const site of sites.filter((s) => s.type === 'static')) {
   console.log(`[build-all]   ${site.slug} -> dist/${site.slug}/ (copied, not built)`);
 }
 
-// --- shared nav -------------------------------------------------------------
 console.log('[build-all] Building shared nav ...');
 run(process.execPath, [path.join(root, 'packages', 'nav', 'build.mjs')], 'nav build');
 fs.cpSync(path.join(root, 'packages', 'nav', 'dist'), path.join(dist, '_nav'), { recursive: true });
 
-// --- repo-root public/ (carries CNAME) --------------------------------------
+// The repo-root public/ carries CNAME, which must land at the artifact root.
 const rootPublic = path.join(root, 'public');
 if (fs.existsSync(rootPublic)) fs.cpSync(rootPublic, dist, { recursive: true });
 
-// --- inject the nav ---------------------------------------------------------
 const noNav = new Set(sites.filter((s) => s.nav === false).map((s) => s.slug));
 const injected = {};
 const walk = (dir) => {
@@ -110,7 +97,6 @@ const walk = (dir) => {
 };
 walk(dist);
 
-// --- summary ----------------------------------------------------------------
 console.log('\n[build-all] Summary:');
 for (const site of sites) {
   const url = site.slug === 'portfolio' ? '/' : `/${site.slug}/`;

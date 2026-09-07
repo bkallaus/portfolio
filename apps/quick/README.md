@@ -22,7 +22,7 @@ This application calculates:
 ### Prerequisites
 
 *   Node.js installed
-*   npm or yarn
+*   npm
 
 ### Installation
 

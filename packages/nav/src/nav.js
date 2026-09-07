@@ -184,7 +184,7 @@ class SiteNav extends HTMLElement {
     });
     closeBtn.addEventListener("click", closeDrawer);
     backdrop.addEventListener("click", closeDrawer);
-    root.addEventListener("keydown", function (event) {
+    document.addEventListener("keydown", function (event) {
       if (event.key === "Escape" && self._open) {
         closeDrawer();
       }

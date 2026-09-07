@@ -25,14 +25,14 @@ jobs:
       - name: Build all apps
         run: node scripts/build-all.mjs
 
-      - name: Run musical-cards tests
-        run: npx vitest run --root apps/musical-cards
+      - name: Typecheck
+        run: npx tsc --noEmit
 
-      # apps/quick has 19 pre-existing test failures that predate the monorepo
-      # consolidation (verified identical on quick@main standalone: 7 failed files,
-      # 19 failed, 44 passed). Two causes: test files calling jest.fn() under vitest,
-      # and labels not associated with their form controls. Non-blocking until those
-      # are fixed, so they do not gate deploys — then drop continue-on-error.
+      - name: Run musical-cards tests
+        run: npx vitest run --project musical-cards
+
+      # 19 of quick's tests already failed before consolidation (identical on
+      # quick@main standalone). Drop continue-on-error once they are fixed.
       - name: Run quick tests (pre-existing failures, non-blocking)
         continue-on-error: true
-        run: npx vitest run --root apps/quick
+        run: npx vitest run --project quick

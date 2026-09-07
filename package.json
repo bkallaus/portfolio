@@ -2,6 +2,10 @@
   "name": "ben-kallaus-me",
   "version": "1.0.0",
   "private": true,
+  "packageManager": "npm@10.9.3",
+  "engines": {
+    "node": ">=24"
+  },
   "type": "module",
   "description": "Every page on ben.kallaus.me, in one repo, deployed as one GitHub Pages artifact.",
   "homepage": "https://ben.kallaus.me",
@@ -9,16 +13,12 @@
     "build": "node scripts/build-all.mjs",
     "build:nav": "node packages/nav/build.mjs",
     "preview": "vite preview --outDir dist",
-    "dev": "echo 'Pick an app: npm run dev:<slug>  (see AGENTS.md)' && exit 1",
-    "dev:portfolio": "vite apps/portfolio",
-    "dev:quick": "vite apps/quick",
-    "dev:musical-cards": "vite apps/musical-cards",
-    "dev:poke-search": "vite apps/poke-search",
-    "dev:battle-helper": "vite apps/battle-helper",
-    "test": "npm run test:musical-cards && npm run test:quick",
+    "dev": "vite",
+    "test": "vitest run",
     "lint": "eslint apps",
-    "test:musical-cards": "vitest run --root apps/musical-cards",
-    "test:quick": "vitest run --root apps/quick"
+    "test:musical-cards": "vitest run --project musical-cards",
+    "test:quick": "vitest run --project quick",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -47,7 +47,6 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
-    "@tailwindcss/postcss": "^4.3.3",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
@@ -57,7 +56,6 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
-    "autoprefixer": "^10.5.4",
     "esbuild": "^0.28.0",
     "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^7.0.1",
@@ -65,7 +63,6 @@
     "globals": "^17.4.0",
     "jest-canvas-mock": "^2.5.2",
     "jsdom": "^29.1.1",
-    "postcss": "^8.5.26",
     "prettier": "^3.2.5",
     "sass": "^1.42.1",
     "shadcn": "^4.17.0",

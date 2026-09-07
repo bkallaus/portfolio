@@ -13,7 +13,7 @@ const Experience: React.FC<ExperienceProps> = ({ resumeExperience, resumeBasicIn
 
   const experience = resumeExperience.map((work) => {
     return (
-      <div key={work.title} className="mb-8 p-6 border border-gray-200 rounded-lg shadow-sm bg-white hover:shadow-md transition-shadow">
+      <div key={`${work.company}-${work.title}`} className="mb-8 p-6 border border-gray-200 rounded-lg shadow-sm bg-white hover:shadow-md transition-shadow">
         <div className="flex flex-col md:flex-row justify-between items-start mb-4">
           <div>
             <h3 className="text-xl font-bold text-gray-800">{work.title}</h3>
@@ -22,11 +22,13 @@ const Experience: React.FC<ExperienceProps> = ({ resumeExperience, resumeBasicIn
           <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full mt-2 md:mt-0">{work.years}</span>
         </div>
 
-        <div className="flex flex-wrap gap-2 mt-4">
-          {work.technologies && work.technologies.map((tech, i) => (
-            <span key={i} className="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded">{tech}</span>
-          ))}
-        </div>
+        {work.technologies && work.technologies.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-4">
+            {work.technologies.map((tech, i) => (
+              <span key={i} className="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded">{tech}</span>
+            ))}
+          </div>
+        )}
       </div>
     );
   });

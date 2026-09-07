@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+import type React from 'react';
+import { useState, useRef } from 'react';
 import { Dex } from '@pkmn/dex';
 import { TypeGrid } from './TypeGrid';
 import { allSpecies, allTypes } from '../data';
@@ -13,7 +14,7 @@ export const TypeChartPanel = () => {
     const val = e.target.value;
     setDefendingSpecies(val);
     const speciesInfo = Dex.species.get(val);
-    if (speciesInfo && speciesInfo.exists) {
+    if (speciesInfo?.exists) {
       setDefendingTypes(speciesInfo.types);
     }
   };
@@ -44,7 +45,7 @@ export const TypeChartPanel = () => {
       multiplier = 0;
     } else {
       const eff = Dex.getEffectiveness(attackingType, p2Types);
-      multiplier = Math.pow(2, eff);
+      multiplier = 2 ** eff;
     }
     effText = multiplier === 0 ? "Immune (0x)" : multiplier === 1 ? "Neutral (1x)" : `${multiplier}x Effective`;
   }
@@ -80,7 +81,7 @@ export const TypeChartPanel = () => {
           {allTypes.map(t => {
             const isImmune = !Dex.getImmunity(attackingType, [t]);
             const eff = Dex.getEffectiveness(attackingType, [t]);
-            const multiplier = isImmune ? 0 : Math.pow(2, eff);
+            const multiplier = isImmune ? 0 : 2 ** eff;
 
             let bg = 'transparent';
             let color = 'var(--text-main)';

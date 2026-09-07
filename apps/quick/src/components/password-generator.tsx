@@ -1,5 +1,5 @@
 import CalculationContainer from "./container";
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -103,7 +103,7 @@ const PasswordGenerator = () => {
     }
 
     let generatedPassword = "";
-    if (window.crypto && window.crypto.getRandomValues) {
+    if (window.crypto?.getRandomValues) {
       const randomValues = new Uint32Array(length);
       window.crypto.getRandomValues(randomValues);
       for (let i = 0; i < length; i++) {

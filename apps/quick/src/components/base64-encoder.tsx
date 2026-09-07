@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import type React from "react";
+import { useState } from "react";
 import CalculationContainer from "./container";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
@@ -14,7 +15,7 @@ const Base64Encoder = () => {
     setError("");
     try {
       setBase64Text(btoa(value));
-    } catch (err) {
+    } catch (_err) {
       setError("Unable to encode: input contains invalid characters.");
     }
   };
@@ -25,7 +26,7 @@ const Base64Encoder = () => {
     setError("");
     try {
       setPlainText(atob(value));
-    } catch (err) {
+    } catch (_err) {
       setError("Unable to decode: invalid Base64 string.");
     }
   };

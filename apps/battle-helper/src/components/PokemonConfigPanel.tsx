@@ -1,6 +1,7 @@
-import React, { useState, useRef } from 'react';
+import type React from 'react';
+import { useState, useRef } from 'react';
 import { Dex } from '@pkmn/dex';
-import { PokemonConfig } from '../types';
+import type { PokemonConfig } from '../types';
 import { allSpecies, allNatures } from '../data';
 import { defaultEVs, defaultBoosts } from '../constants';
 
@@ -120,7 +121,7 @@ export const PokemonConfigPanel = ({ title, config, setConfig, isP2, onSave }: {
           Level (Currently: {config.level})
         </summary>
         <div style={{ marginTop: '0.5rem' }}>
-          <input type="number" aria-label="Pokemon Level" value={config.level} min={1} max={100} onChange={e => setConfig({ ...config, level: parseInt(e.target.value) || 50 })} style={{ width: '100%' }} />
+          <input type="number" aria-label="Pokemon Level" value={config.level} min={1} max={100} onChange={e => setConfig({ ...config, level: parseInt(e.target.value, 10) || 50 })} style={{ width: '100%' }} />
         </div>
       </details>
 

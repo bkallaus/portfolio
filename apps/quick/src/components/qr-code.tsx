@@ -1,4 +1,5 @@
-import React, { useState, useRef } from "react";
+import type React from "react";
+import { useState, useRef } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import CalculationContainer from "./container";
 import { Button } from "./ui/button";

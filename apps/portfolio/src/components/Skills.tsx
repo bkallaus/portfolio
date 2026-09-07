@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from "react";
+import type React from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ResumeBasicInfo, SharedSkills } from "../types";
+import type { ResumeBasicInfo, SharedSkills } from "../types";
 
 type SkillsProps = {
   sharedSkills: SharedSkills;
@@ -31,7 +32,7 @@ const Skills: React.FC<SkillsProps> = ({ sharedSkills, resumeBasicInfo }) => {
       if (activeCategory === 'All') return true;
       return categoryMap[skill.name] === activeCategory;
     });
-  }, [sharedSkills, activeCategory]);
+  }, [sharedSkills, activeCategory, categoryMap]);
 
   let sectionName = "Skills";
   if (resumeBasicInfo) {

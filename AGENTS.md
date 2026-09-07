@@ -42,7 +42,7 @@ half-built scratch project cannot leak into the public persona by forgetting a f
 ## TypeScript, not JavaScript
 
 New source is `.ts` / `.tsx`. This is not a style preference — the toolchain covers TypeScript
-and nothing else. `eslint.config.js` matches `**/*.{ts,tsx}`, and `tsconfig.json` sets
+and nothing else. `biome.json` scopes linting to `**/*.{ts,tsx}`, and `tsconfig.json` sets
 `checkJs: false`. A `.js` or `.jsx` file is therefore invisible to both `npm run lint` and
 `npm run typecheck`: it fails in a browser instead of in CI, which is the failure mode this repo
 is otherwise built to avoid. `allowJs` is on for the legacy files below, not as an invitation.
@@ -55,8 +55,8 @@ The exceptions are pre-existing and closed. Do not read them as precedent for a 
   verbatim, so it is the one place where the source *is* the artifact.
 - `packages/nav/src/nav.js` is a Vite entry now, so it *could* be `.ts` for free. That is the
   one conversion worth doing the next time someone opens the nav.
-- Files a tool loads directly stay JS: `eslint.config.js`, `apps/*/tailwind.config.js`, and
-  `scripts/record-walkthrough.mjs`.
+- Files a tool loads directly stay JS: `apps/*/tailwind.config.js` and
+  `scripts/record-walkthrough.mjs`. Linting is configured in `biome.json`, which is JSON.
 
 ## Adding a site
 
@@ -158,7 +158,10 @@ the committed lockfile is unaffected, which is what CI runs.
 ## Deploying
 
 Push to `master`, or run the workflow manually (`workflow_dispatch`). `deploy.yml` builds and
-publishes the artifact; `ci.yml` builds every page and runs the tests on PRs.
+publishes the artifact. Both workflows run the shared `checks.yml` first — lint, build,
+typecheck, unit tests, and the Playwright e2e suite — so `ci.yml` guards every PR and
+`deploy.yml` gates on the same checks before publishing. Nothing reaches production without
+passing the suite that guards PRs.
 
 The workflow owns the Pages configuration too: `configure-pages` runs with `enablement: true`,
 which switches the repo's Pages source from "Deploy from a branch" to "GitHub Actions" on the

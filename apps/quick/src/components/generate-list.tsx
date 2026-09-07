@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import type React from 'react';
+import { useState } from 'react';
 import CalculationContainer from './container';
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -42,11 +43,11 @@ const ShareableList = () => {
     }
   };
 
-  const handleRemoveItem = (id: string) => {
+  const _handleRemoveItem = (id: string) => {
     setItems(items.filter((item) => item.id !== id));
   };
 
-  const handleCopy = (text: string) => {
+  const _handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
   };
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -21,7 +21,7 @@ const generateSentence = () => {
   const numWords = Math.floor(Math.random() * 10) + 5; // 5-15 words
   const words = Array.from({ length: numWords }, getRandomWord);
   words[0] = words[0].charAt(0).toUpperCase() + words[0].slice(1);
-  return words.join(" ") + ".";
+  return `${words.join(" ")}.`;
 };
 
 const generateParagraph = () => {

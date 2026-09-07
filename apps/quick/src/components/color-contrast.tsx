@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import type React from "react";
+import { useState, useEffect } from "react";
 import CalculationContainer from "./container";
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
@@ -7,7 +8,7 @@ import { Input } from "./ui/input";
 const getLuminance = (r: number, g: number, b: number) => {
   const [rs, gs, bs] = [r, g, b].map(c => {
     c = c / 255;
-    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
   });
   return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
 };

@@ -1,4 +1,4 @@
-import React, { useState, ChangeEvent } from "react";
+import { useState, type ChangeEvent } from "react";
 import CalculationContainer from "./container";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -16,7 +16,7 @@ const PxToRem = () => {
     const numBase = parseFloat(newBase);
     const numPx = parseFloat(pxValue);
 
-    if (!isNaN(numBase) && numBase > 0 && !isNaN(numPx)) {
+    if (!Number.isNaN(numBase) && numBase > 0 && !Number.isNaN(numPx)) {
       setRemValue((numPx / numBase).toString());
     }
   };
@@ -28,7 +28,7 @@ const PxToRem = () => {
     const numPx = parseFloat(newPx);
     const numBase = parseFloat(baseSize);
 
-    if (!isNaN(numPx) && !isNaN(numBase) && numBase > 0) {
+    if (!Number.isNaN(numPx) && !Number.isNaN(numBase) && numBase > 0) {
       setRemValue((numPx / numBase).toString());
     } else {
       setRemValue("");
@@ -42,7 +42,7 @@ const PxToRem = () => {
     const numRem = parseFloat(newRem);
     const numBase = parseFloat(baseSize);
 
-    if (!isNaN(numRem) && !isNaN(numBase) && numBase > 0) {
+    if (!Number.isNaN(numRem) && !Number.isNaN(numBase) && numBase > 0) {
       setPxValue((numRem * numBase).toString());
     } else {
       setPxValue("");

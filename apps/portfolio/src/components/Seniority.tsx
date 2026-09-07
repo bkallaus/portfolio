@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { FaServer, FaUsers, FaRocket } from 'react-icons/fa';
 
 const Seniority = () => {

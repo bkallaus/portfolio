@@ -16,7 +16,7 @@ const here = import.meta.dirname;
 const repoRoot = path.resolve(here, "..", "..");
 const sitesJsonPath = path.join(repoRoot, "sites.json");
 const navCssPath = path.join(here, "src", "nav.css");
-const entryPath = path.join(here, "src", "nav.js");
+const entryPath = path.join(here, "src", "nav.ts");
 const outfile = path.join(here, "dist", "nav.js");
 
 if (!existsSync(sitesJsonPath)) {

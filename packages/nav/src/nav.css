@@ -2,6 +2,8 @@
   all: initial;
   position: fixed;
   inset: 0;
+  /* The drawer is a <dialog> in the top layer and needs no z-index at all.
+     This one is only so the floating button clears ordinary page content. */
   z-index: 2147483000;
   pointer-events: none;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -10,7 +12,6 @@
   --nav-muted: #6b7280;
   --nav-border: #e5e7eb;
   --nav-accent: #2563eb;
-  --nav-backdrop: rgba(0, 0, 0, 0.4);
   --nav-btn-bg: #111827;
   --nav-btn-fg: #ffffff;
 }
@@ -22,7 +23,6 @@
     --nav-muted: #9ca3af;
     --nav-border: #374151;
     --nav-accent: #60a5fa;
-    --nav-backdrop: rgba(0, 0, 0, 0.6);
     --nav-btn-bg: #f3f4f6;
     --nav-btn-fg: #111827;
   }
@@ -63,41 +63,71 @@
   outline-offset: 2px;
 }
 
-.backdrop {
-  position: absolute;
-  inset: 0;
-  background: var(--nav-backdrop);
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.2s ease;
-  pointer-events: none;
-}
-
-.backdrop.open {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-}
-
 .drawer {
-  position: absolute;
+  /* A <dialog> centres itself with auto margins and ships its own border,
+     padding and max-height; each is overridden here to seat it as a panel. */
+  position: fixed;
   top: 0;
   right: 0;
+  margin: 0;
+  border: none;
+  border-left: 1px solid var(--nav-border);
+  padding: 0;
   height: 100%;
+  max-height: 100%;
   width: min(320px, 86vw);
+  max-width: 86vw;
   background: var(--nav-bg);
   color: var(--nav-fg);
-  border-left: 1px solid var(--nav-border);
   box-shadow: -4px 0 20px rgba(0, 0, 0, 0.2);
-  transform: translateX(100%);
-  transition: transform 0.25s ease;
-  display: flex;
-  flex-direction: column;
+  overflow: hidden;
   pointer-events: auto;
+  transform: translateX(100%);
+  transition:
+    transform 0.25s ease,
+    overlay 0.25s ease allow-discrete,
+    display 0.25s ease allow-discrete;
 }
 
-.drawer.open {
+.drawer[open] {
+  /* [open] rather than a class, so the element's own state drives the styling. */
+  display: flex;
+  flex-direction: column;
   transform: translateX(0);
+}
+
+/* Without this the panel is already in place on the first frame and slides nowhere. */
+@starting-style {
+  .drawer[open] {
+    transform: translateX(100%);
+  }
+}
+
+.drawer::backdrop {
+  /* ::backdrop resolves custom properties against the originating element only
+     in newer engines, so these two colours stay literal. */
+  background: rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  transition:
+    opacity 0.2s ease,
+    overlay 0.2s ease allow-discrete,
+    display 0.2s ease allow-discrete;
+}
+
+.drawer[open]::backdrop {
+  opacity: 1;
+}
+
+@starting-style {
+  .drawer[open]::backdrop {
+    opacity: 0;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .drawer::backdrop {
+    background: rgba(0, 0, 0, 0.6);
+  }
 }
 
 .drawer-header {

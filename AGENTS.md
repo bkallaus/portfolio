@@ -11,6 +11,7 @@ them through the `.claude/skills` symlink; every other agent reads this table.
 | Skill | Use it when |
 | --- | --- |
 | `demo` | A PR needs a GIF of the change working. Records with Playwright, posts it as a PR comment, never commits the file. |
+| `no-comments` | Writing or reviewing code to enforce the rule that no comments are allowed in the codebase. |
 | `tdd` | Building a feature or fixing a bug test-first. |
 | `codebase-design` | Designing a module's interface, or another skill asks for the deep-module vocabulary. |
 | `improve-codebase-architecture` | Hunting for refactors that turn shallow modules into deep ones. |

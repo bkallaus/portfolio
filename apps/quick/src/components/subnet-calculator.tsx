@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Copy } from 'lucide-react';
 import { Label } from './ui/label';
 import { Input } from './ui/input';
@@ -19,7 +19,7 @@ const intToIp = (int: number): string => {
 // Helper function to convert IP string to integer
 const ipToInt = (ip: string): number => {
   const parts = ip.split('.').map(Number);
-  if (parts.length !== 4 || parts.some(p => isNaN(p) || p < 0 || p > 255)) return NaN;
+  if (parts.length !== 4 || parts.some(p => Number.isNaN(p) || p < 0 || p > 255)) return NaN;
   return (
     ((parts[0] << 24) |
     (parts[1] << 16) |
@@ -34,7 +34,7 @@ export default function SubnetCalculator() {
 
   const calculateSubnet = (ip: string, prefix: number) => {
     const ipInt = ipToInt(ip);
-    if (isNaN(ipInt)) return null;
+    if (Number.isNaN(ipInt)) return null;
 
     // A mask of 0 is a special case in JavaScript bitwise operations
     const maskInt = prefix === 0 ? 0 : (~0 << (32 - prefix)) >>> 0;
@@ -57,7 +57,7 @@ export default function SubnetCalculator() {
       lastHost = intToIp(broadcastInt);
     } else {
       // 2^(32 - prefix) - 2
-      hosts = Math.pow(2, 32 - prefix) - 2;
+      hosts = 2 ** (32 - prefix) - 2;
       firstHost = intToIp(networkInt + 1);
       lastHost = intToIp(broadcastInt - 1);
     }
@@ -72,7 +72,7 @@ export default function SubnetCalculator() {
     };
   };
 
-  const results = useMemo(() => calculateSubnet(ipAddress, cidr), [ipAddress, cidr]);
+  const results = useMemo(() => calculateSubnet(ipAddress, cidr), [ipAddress, cidr, calculateSubnet]);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -103,7 +103,7 @@ export default function SubnetCalculator() {
                 value={cidr}
                 onChange={(e) => {
                   const val = parseInt(e.target.value, 10);
-                  if (!isNaN(val) && val >= 0 && val <= 32) setCidr(val);
+                  if (!Number.isNaN(val) && val >= 0 && val <= 32) setCidr(val);
                 }}
                 className="w-20 font-mono text-center"
                 min={0}

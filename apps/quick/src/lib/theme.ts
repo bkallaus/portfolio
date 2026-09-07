@@ -41,7 +41,11 @@ const prefersReducedMotion = () =>
 // step with the others and with the pre-paint script in index.html.
 const listeners = new Set<() => void>();
 
-const emit = () => listeners.forEach((listener) => listener());
+const emit = () => {
+  listeners.forEach((listener) => {
+    listener();
+  });
+};
 
 const subscribe = (listener: () => void) => {
   listeners.add(listener);

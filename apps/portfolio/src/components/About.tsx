@@ -1,5 +1,5 @@
-import React from "react";
-import { ResumeBasicInfo, SharedBasicInfo } from "../types";
+import type React from "react";
+import type { ResumeBasicInfo, SharedBasicInfo } from "../types";
 
 type AboutProps = {
   resumeBasicInfo: ResumeBasicInfo;
@@ -7,13 +7,13 @@ type AboutProps = {
 }
 
 const About: React.FC<AboutProps> = ({ resumeBasicInfo, sharedBasicInfo }) => {
-  let about;
-  let hello;
-  let profilepic;
-  let sectionName;
+  let about: string | undefined;
+  let hello: string | undefined;
+  let profilepic: string | undefined;
+  let sectionName: string | undefined;
 
   if (sharedBasicInfo) {
-    profilepic = "images/" + sharedBasicInfo.image;
+    profilepic = `images/${sharedBasicInfo.image}`;
   }
   if (resumeBasicInfo) {
     sectionName = resumeBasicInfo.section_name.about;

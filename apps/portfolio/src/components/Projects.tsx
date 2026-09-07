@@ -1,5 +1,6 @@
-import React, { useState } from "react";
-import { Project, ResumeBasicInfo } from "../types";
+import type React from "react";
+import { useState } from "react";
+import type { Project, ResumeBasicInfo } from "../types";
 
 type ProjectsProps = {
   resumeProjects?: Project[];

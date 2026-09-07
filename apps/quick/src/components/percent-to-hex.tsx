@@ -16,7 +16,7 @@ const PercentToHex = () => {
 
     let hex = "";
     if (base10 < 16) {
-      hex = "0" + base10.toString(16).toUpperCase();
+      hex = `0${base10.toString(16).toUpperCase()}`;
     } else {
       hex = base10.toString(16).toUpperCase();
     }
@@ -31,7 +31,7 @@ const PercentToHex = () => {
 
     let hex = "";
     if (base10 < 16) {
-      hex = "0" + percent.toString(16).toUpperCase();
+      hex = `0${percent.toString(16).toUpperCase()}`;
     } else {
       hex = percent.toString(16).toUpperCase();
     }

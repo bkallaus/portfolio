@@ -34,7 +34,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.27.0",
-    "lucide-react": "^1.39.0",
+    "lucide-react": "^1.42.0",
     "qrcode.react": "^4.2.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",

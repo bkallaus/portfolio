@@ -29,13 +29,6 @@ symlinked into it), so a skill can move between global and repo scope unchanged.
 | --- | --- |
 | `demo` | A PR needs a GIF of the change actually working. Records with Playwright, posts to the PR as a comment, never commits the file. |
 
-**Three.js** — reference for `simple-city`, which is Three.js r128 + GSAP loaded from a CDN
-with no build step:
-
-`threejs-fundamentals` · `threejs-geometry` · `threejs-materials` · `threejs-textures` ·
-`threejs-lighting` · `threejs-shaders` · `threejs-animation` · `threejs-interaction` ·
-`threejs-loaders` · `threejs-postprocessing`
-
 **Vendored** — third-party, copied in rather than installed, so agents without the author's
 global install still get them. Update by re-copying from source; do not edit in place, or
 the next update silently reverts your change.

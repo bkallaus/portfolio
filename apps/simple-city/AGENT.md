@@ -49,4 +49,4 @@ The game logic is centralized in `main.js` and follows a simple loop:
 -   **No Build Step**: Edit files and refresh `index.html` in browser.
 -   **Asset Generation**: All textures are generated procedurally on canvas in `TextureFactory`. To add visual variety, modify `TextureFactory` or `createBuildingMesh`.
 -   **Global Scope**: Most meaningful objects (`scene`, `city`, `gameState`) are in the global scope of `main.js`.
--   **Skill Check**: Always check the `.agents/skills` directory at the repo root for relevant skills before starting a task. The `threejs-*` skills there are the ones for this project.
+-   **Skill Check**: Always check the `.agents/skills` directory at the repo root for relevant skills before starting a task.

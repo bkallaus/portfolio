@@ -15,7 +15,6 @@ them through the `.claude/skills` symlink; every other agent reads this table.
 | `codebase-design` | Designing a module's interface, or another skill asks for the deep-module vocabulary. |
 | `improve-codebase-architecture` | Hunting for refactors that turn shallow modules into deep ones. |
 | `design-taste-frontend` | Building or redesigning a landing page or portfolio UI that should not look templated. |
-| `threejs-*` | Working on `simple-city` — ten skills covering geometry, materials, textures, lighting, shaders, animation, interaction, loaders, post-processing, and fundamentals. |
 
 `.agents/skills/README.md` covers where each came from and how to add one.
 

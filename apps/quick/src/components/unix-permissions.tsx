@@ -91,14 +91,18 @@ const UnixPermissions = () => {
           {['owner', 'group', 'public'].map((entityStr) => {
              const entity = entityStr as Entity;
              return (
-               <div key={entity} className="flex-1 min-w-[100px] flex flex-col gap-2">
-                 <strong className="capitalize">{entity}</strong>
+               <div
+                 key={entity}
+                 role="group"
+                 aria-labelledby={`${entity}-heading`}
+                 className="flex-1 min-w-[100px] flex flex-col gap-2"
+               >
+                 <strong id={`${entity}-heading`} className="capitalize">{entity}</strong>
                  <div className="flex items-center gap-2">
                    <Checkbox
                      id={`${entity}-read`}
                      checked={permissions[entity].read}
                      onCheckedChange={() => handleCheckboxChange(entity, 'read')}
-                     aria-label={`${entity} read`}
                    />
                    <Label htmlFor={`${entity}-read`}>Read (4)</Label>
                  </div>
@@ -107,7 +111,6 @@ const UnixPermissions = () => {
                      id={`${entity}-write`}
                      checked={permissions[entity].write}
                      onCheckedChange={() => handleCheckboxChange(entity, 'write')}
-                     aria-label={`${entity} write`}
                    />
                    <Label htmlFor={`${entity}-write`}>Write (2)</Label>
                  </div>
@@ -116,7 +119,6 @@ const UnixPermissions = () => {
                      id={`${entity}-execute`}
                      checked={permissions[entity].execute}
                      onCheckedChange={() => handleCheckboxChange(entity, 'execute')}
-                     aria-label={`${entity} execute`}
                    />
                    <Label htmlFor={`${entity}-execute`}>Execute (1)</Label>
                  </div>
@@ -127,8 +129,9 @@ const UnixPermissions = () => {
 
         <div className="flex gap-4 flex-wrap items-end">
           <div className="flex flex-col gap-2 flex-1 min-w-[120px]">
-            <Label>Octal</Label>
+            <Label htmlFor="octal">Octal</Label>
             <Input
+              id="octal"
               type="text"
               value={octalValue}
               onChange={handleOctalChange}
@@ -137,8 +140,9 @@ const UnixPermissions = () => {
             />
           </div>
           <div className="flex flex-col gap-2 flex-1 min-w-[120px]">
-            <Label>Symbolic</Label>
+            <Label htmlFor="symbolic">Symbolic</Label>
             <Input
+              id="symbolic"
               type="text"
               value={getSymbolic(permissions)}
               readOnly

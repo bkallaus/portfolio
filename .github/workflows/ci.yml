@@ -23,14 +23,10 @@ jobs:
         run: npm ci
 
       - name: Build all apps
-        run: node scripts/build-all.mjs
+        run: npm run build
 
       - name: Typecheck
         run: npx tsc --noEmit
 
-      - name: Run musical-cards tests
-        run: npx vitest run --project musical-cards
-
-      - name: Run quick tests (pre-existing failures, non-blocking)
-        continue-on-error: true
-        run: npx vitest run --project quick
+      - name: Run tests
+        run: npm test

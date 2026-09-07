@@ -1,7 +1,14 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import UnixPermissions from './unix-permissions';
+
+// Every column shows the same three labels ("Read (4)"...), so a checkbox is only
+// identifiable via its group. That is exactly how a screen reader reads it too.
+const checkbox = (entity: string, permission: RegExp) =>
+  within(screen.getByRole('group', { name: new RegExp(entity, 'i') })).getByRole('checkbox', {
+    name: permission,
+  });
 
 describe('UnixPermissions Component', () => {
   it('renders with default 644 permissions', () => {
@@ -13,9 +20,9 @@ describe('UnixPermissions Component', () => {
     const symbolicInput = screen.getByLabelText(/Symbolic/i);
     expect(symbolicInput).toHaveValue('rw-r--r--');
 
-    const ownerRead = screen.getByRole('checkbox', { name: 'owner read' });
-    const ownerWrite = screen.getByRole('checkbox', { name: 'owner write' });
-    const ownerExecute = screen.getByRole('checkbox', { name: 'owner execute' });
+    const ownerRead = checkbox('owner', /read/i);
+    const ownerWrite = checkbox('owner', /write/i);
+    const ownerExecute = checkbox('owner', /execute/i);
 
     expect(ownerRead).toBeChecked();
     expect(ownerWrite).toBeChecked();
@@ -25,7 +32,7 @@ describe('UnixPermissions Component', () => {
   it('updates octal and symbolic when checkboxes change', () => {
     render(<UnixPermissions />);
 
-    const ownerExecute = screen.getByRole('checkbox', { name: 'owner execute' });
+    const ownerExecute = checkbox('owner', /execute/i);
     fireEvent.click(ownerExecute); // 644 -> 744
 
     const octalInput = screen.getByLabelText(/Octal/i);
@@ -44,7 +51,7 @@ describe('UnixPermissions Component', () => {
     const symbolicInput = screen.getByLabelText(/Symbolic/i);
     expect(symbolicInput).toHaveValue('rwxr-xr-x');
 
-    const groupExecute = screen.getByRole('checkbox', { name: 'group execute' });
+    const groupExecute = checkbox('group', /execute/i);
     expect(groupExecute).toBeChecked();
   });
 

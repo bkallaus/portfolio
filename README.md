@@ -34,7 +34,7 @@ committed lockfile and is unaffected.
 | Command | What it does |
 | --- | --- |
 | `npm run dev` | Dev server for all pages at production URLs |
-| `npm run build` | Assemble the full site into `dist/` (this is the whole deploy) |
+| `npm run build` | `vite build` — the whole site into `dist/`, and the whole deploy |
 | `npm run preview` | Serve the assembled `dist/` — the only way to check the shared nav |
 | `npm test` | Vitest across every project |
 | `npm run test:quick` / `test:musical-cards` | One project's tests |
@@ -47,15 +47,17 @@ committed lockfile and is unaffected.
 apps build against one version of everything (React 19, Vite 8, TypeScript 5.9), so an upgrade
 for one app is an upgrade for all of them — which is what CI exists to catch.
 
-**One Vite build.** `vite.config.ts` declares one Rollup entry per app, so the whole site
-shares a single hashed asset graph. `scripts/build-all.mjs` then drives the assembly: run the
-build, move each page from its source path to its URL segment, copy per-app `public/` dirs,
-copy static apps verbatim, build the shared nav into `dist/_nav/`, copy the root `public/`
-(which carries `CNAME`) to the artifact root, and inject the nav `<script>` into every HTML
-file it produced. One app failing fails the whole build on purpose.
+**One Vite build, and nothing around it.** `npm run build` is `vite build`. `vite.config.ts`
+declares one Rollup entry per app plus one for the nav, so the whole site shares a single
+hashed asset graph. Three small plugins do the rest: `html-at-url-segment` renames each emitted
+page from its source path to its URL segment, `nav-at-fixed-path` injects the nav `<script>`
+and pins that one chunk to an unhashed `/_nav/nav.js`, and the root `public/` (which carries
+`CNAME`, each page's assets under `public/<slug>/`, and any static page) is copied verbatim to
+the artifact root. One app failing fails the whole build on purpose.
 
-**The folder name under `apps/` is the URL segment.** `apps/quick` serves `/quick/`. There is
-no router and no redirect config — URLs resolve by static file lookup against the assembled
+**A page's directory name is its URL segment.** `apps/quick` serves `/quick/`, and a static
+page like `public/simple-city/` serves `/simple-city/`. There is no router and no redirect
+config — URLs resolve by static file lookup against the assembled
 `dist/`. `apps/portfolio` is the one exception: it is the hub and serves `/`.
 
 **`sites.json` drives the nav and hub grid, not serving.** A wrong row makes the nav wrong; it
@@ -63,24 +65,28 @@ cannot 404 anything. Each row carries a `slug`, a `type` (`"vite"` or `"static"`
 optional `tier` that defaults to `experiment` — you opt *in* to the featured showcase, so an
 unfinished project can't leak into the public persona by forgetting a flag.
 
-**The nav is a framework-agnostic web component** (`packages/nav/`), injected at assembly time
+**The nav is a framework-agnostic web component** (`packages/nav/`), injected at build time
 rather than imported per app. It has to be: `simple-city` is plain HTML, and the apps disagree
 on styling (Tailwind v4, styled-components, hand-rolled CSS). Shadow DOM keeps that isolation
 in both directions.
 
 ## Adding a site
 
-1. `mkdir apps/<slug>` — the slug is the URL, so pick it deliberately.
-2. Add the source. Vite apps need an `index.html` at the app root; static sites just need their
-   files. No per-app Vite config — the root config picks the app up from `sites.json`.
+1. Pick the slug — it is the URL and the directory name, so pick it deliberately.
+2. Add the source. A Vite app is `apps/<slug>/index.html` plus `src/`; a static page is
+   `public/<slug>/` and its files, copied verbatim. No per-app Vite config — the root config
+   picks the app up from `sites.json`. Static assets go under `public/<slug>/`.
 3. Add a row to `sites.json`. Omit `tier` unless you're deliberately promoting it to `featured`
    (which needs a `blurb`) or hiding it (`"hidden"` — the page still serves).
-4. Put any new dependencies in the root `package.json` and `npm install` at the root.
-5. `npm run build`, then confirm in the assembled output: `dist/<slug>/index.html` exists, its
+4. Put any new dependencies in the root `package.json` and `npm install --legacy-peer-deps` at
+   the root.
+5. A static page needs the nav `<script>` pasted into its own `</body>` — Vite only injects
+   into pages it parses.
+6. `npm run build`, then confirm in the assembled output: `dist/<slug>/index.html` exists, its
    asset URLs resolve (they point at the shared `/assets/` root, not `/<slug>/assets/` — every
    page shares one hashed asset graph), and the nav `<script>` landed before `</body>`.
 
-Step 5 matters — a green build alone doesn't prove it. A page that builds cleanly can still
+Step 6 matters — a green build alone doesn't prove it. `npm run test:e2e` is the real check. A page that builds cleanly can still
 404 every asset in production.
 
 ## Deploying

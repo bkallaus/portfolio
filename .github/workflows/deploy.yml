@@ -32,7 +32,7 @@ jobs:
         run: npm ci
 
       - name: Build all apps
-        run: node scripts/build-all.mjs
+        run: npm run build
 
       # enablement: true switches the repo's Pages source off the old gh-pages
       # branch to GitHub Actions. Idempotent once set.

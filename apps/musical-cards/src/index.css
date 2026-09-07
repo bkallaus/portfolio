@@ -1,0 +1,69 @@
+:root {
+  /* Core Palette */
+  --primary: #00254d;
+  --primary-container: #003b73;
+  --secondary: #006a62;
+  --secondary-container: #9cf1e6;
+  --tertiary: #3d1e00;
+  --accent-container: #f68a00;
+  
+  /* Backgrounds & Surfaces */
+  --background: #f7f9fb;
+  --surface: #f7f9fb;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f2f4f6;
+  --surface-container: #eceef0;
+  --surface-container-high: #e6e8ea;
+  --surface-container-highest: #e0e2e4;
+
+  /* On Colors */
+  --on-surface: #191c1e;
+  --on-surface-variant: #434750;
+  --on-primary: #ffffff;
+  --outline: #737781;
+  --outline-variant: rgba(115, 119, 129, 0.2);
+
+  /* Typography */
+  --font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-family);
+  background-color: var(--background);
+  color: var(--on-surface);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--primary);
+  letter-spacing: -0.01em;
+}
+
+h1 {
+  font-size: 3.5rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  letter-spacing: -0.02em;
+}
+
+h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+button {
+  font-family: var(--font-family);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}

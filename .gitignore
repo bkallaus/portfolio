@@ -33,3 +33,8 @@ packages/nav/dist
 
 # git worktrees created by tooling
 .claude/worktrees/
+
+# playwright
+/test-results
+/playwright-report
+/walkthrough

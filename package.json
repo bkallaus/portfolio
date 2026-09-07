@@ -18,7 +18,9 @@
     "lint": "eslint apps",
     "test:musical-cards": "vitest run --project musical-cards",
     "test:quick": "vitest run --project quick",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:e2e": "playwright test",
+    "walkthrough": "node scripts/record-walkthrough.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -47,6 +49,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",

@@ -1,0 +1,54 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--pure-white);
+  border: 1px solid var(--oat-border);
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: var(--clay-shadow);
+  gap: 12px;
+  color: var(--clay-black); /* override inherited color from sections */
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.card:hover {
+  background-color: var(--oat-light);
+  border-color: var(--warm-charcoal);
+  transform: translateY(-2px);
+  box-shadow: var(--clay-shadow-hover, 0 6px 12px rgba(0,0,0,0.1));
+}
+
+.label {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.16px;
+  text-align: center;
+  text-transform: capitalize;
+  width: 100%;
+}
+
+.active {
+  background-color: var(--swatch-matcha-600);
+  color: var(--pure-white);
+  border-color: var(--swatch-matcha-800);
+  border-style: solid;
+}
+
+.active:hover {
+  background-color: var(--swatch-matcha-800);
+  border-color: var(--swatch-matcha-800);
+}
+
+.excluded {
+  background-color: var(--swatch-pomegranate-400);
+  color: var(--pure-white);
+  border-color: var(--swatch-pomegranate-600);
+  border-style: solid;
+}
+
+.excluded:hover {
+  background-color: var(--swatch-pomegranate-600);
+  border-color: var(--swatch-pomegranate-600);
+}

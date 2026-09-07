@@ -1,0 +1,25 @@
+PR Title: feat: Match-3 Cluster Logic
+
+The Problem Solved: The game indiscriminately upgraded neighboring buildings (via `triggerGrowth`) instead of requiring 3+ identical buildings to merge. This implements a proper BFS flood-fill algorithm (`resolveMerges`) with visual convergence animations that aligns the core game loop with true Match-3 mechanics as depicted conceptually by game intent.
+
+Visuals:
+- Screenshot comparison available in `verification_match3_after.png` showing the successful merging of 3 Tier 1 buildings into a Tier 2 building.
+
+Implementation Journey:
+- Replaced `triggerGrowth` with `resolveMerges`.
+- Implemented BFS flood-fill to detect clusters of adjacent, identical-tier buildings.
+- Grouped clusters >= 3 into asynchronous GSAP animations that pull into a focal point.
+- Upgraded the focal point to tier+1 and cleaned up the other grid cells.
+- Hooked `resolveMerges` into `gameTick` and the pointerdown listener.
+
+Tradeoffs & Assumptions:
+- Path 2 was chosen: Animated Async Cluster Resolution.
+- Assumption: The UI and grid updates should wait (`gameState.isBusy`) until the visual convergence (GSAP animation) is complete to prevent desyncs during rapid user clicks.
+- I chose not to introduce external queue management, using the simple async `onComplete` counters inside `resolveMerges` as a minimalist approach suited for a vanilla JS environment without build steps.
+
+Testing Instructions:
+1. Open `index.html` in a browser.
+2. Place 3 red Tier 1 buildings next to each other.
+3. Observe them pull into the last clicked tile and transform into a teal Tier 2 building.
+
+Action Item: gh pr create --title "feat: Match-3 Cluster Logic" --body-file pr_manifest.log --base main

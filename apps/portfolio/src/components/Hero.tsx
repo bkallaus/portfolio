@@ -15,7 +15,7 @@ const Hero: React.FC<HeroProps> = ({ headerData }) => {
             {/* Background decoration */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
                 <iframe
-                    src="https://ben.kallaus.me/simple-city"
+                    src="/simple-city/"
                     title="Simple City Visualization"
                     className="w-full h-full border-0"
                 />

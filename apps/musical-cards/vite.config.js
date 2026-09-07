@@ -1,12 +1,11 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
+import sharedConfig from '../../vite.shared';
 
-export default defineConfig({
-  plugins: [react()],
-  base: '/musical-cards/',
-  test: {
-    environment: 'jsdom',
-    setupFiles: ['./src/jest-setup.js', './src/setupTests.jsx'],
-    globals: true,
+export default sharedConfig(import.meta.dirname, {
+  extra: {
+    test: {
+      environment: 'jsdom',
+      setupFiles: ['./src/jest-setup.js', './src/setupTests.jsx'],
+      globals: true,
+    },
   },
 });

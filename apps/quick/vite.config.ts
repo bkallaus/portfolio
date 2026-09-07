@@ -1,15 +1,3 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
-import path from 'path'
+import sharedConfig from '../../vite.shared';
 
-// https://vitejs.dev/config/
-export default defineConfig({
-  base: '/quick/',
-  plugins: [react(), tailwindcss()],
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
-  },
-})
+export default sharedConfig(import.meta.dirname, { tailwind: true });

@@ -7,10 +7,12 @@ vi.useFakeTimers();
 
 // Mock Tone.js
 vi.mock('tone', () => ({
-  Synth: vi.fn().mockImplementation(() => ({
-    toDestination: vi.fn().mockReturnThis(),
-    triggerAttackRelease: vi.fn(),
-  })),
+  Synth: vi.fn().mockImplementation(function Synth() {
+    return {
+      toDestination: vi.fn().mockReturnThis(),
+      triggerAttackRelease: vi.fn(),
+    };
+  }),
   now: vi.fn(),
   Destination: {
       volume: {

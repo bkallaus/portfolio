@@ -1,8 +1,3 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import sharedConfig from '../../vite.shared';
 
-// https://vite.dev/config/
-export default defineConfig({
-  plugins: [react()],
-  base: '/poke-search/',
-})
+export default sharedConfig(import.meta.dirname);

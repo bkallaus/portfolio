@@ -1,7 +1,3 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
+import sharedConfig from '../../vite.shared';
 
-export default defineConfig({
-  plugins: [react()],
-  base: '/battle-helper/',
-});
+export default sharedConfig(import.meta.dirname);

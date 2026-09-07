@@ -6,7 +6,7 @@ import App from './App';
 // Mock Tone.js because it requires Web Audio API which is not fully supported in JSDOM
 vi.mock('tone', () => {
   return {
-    Synth: vi.fn().mockImplementation(() => {
+    Synth: vi.fn().mockImplementation(function Synth() {
       return {
         toDestination: vi.fn().mockReturnThis(),
         triggerAttackRelease: vi.fn(),

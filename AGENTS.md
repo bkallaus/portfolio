@@ -2,6 +2,23 @@
 
 Every page on `ben.kallaus.me` lives here and ships as a single GitHub Pages artifact.
 
+## Agent skills
+
+Reusable instructions live in `.agents/skills/`, one directory per skill, each with a
+`SKILL.md`. Read the one that matches before starting that kind of work. Claude Code finds
+them through the `.claude/skills` symlink; every other agent reads this table.
+
+| Skill | Use it when |
+| --- | --- |
+| `demo` | A PR needs a GIF of the change working. Records with Playwright, posts it as a PR comment, never commits the file. |
+| `tdd` | Building a feature or fixing a bug test-first. |
+| `codebase-design` | Designing a module's interface, or another skill asks for the deep-module vocabulary. |
+| `improve-codebase-architecture` | Hunting for refactors that turn shallow modules into deep ones. |
+| `design-taste-frontend` | Building or redesigning a landing page or portfolio UI that should not look templated. |
+| `threejs-*` | Working on `simple-city` — ten skills covering geometry, materials, textures, lighting, shaders, animation, interaction, loaders, post-processing, and fundamentals. |
+
+`.agents/skills/README.md` covers where each came from and how to add one.
+
 ## Three invariants
 
 Break any of these and the site breaks in a way local dev will not show you.

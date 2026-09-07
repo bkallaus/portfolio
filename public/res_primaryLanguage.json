@@ -57,6 +57,56 @@
       ]
     }
   ],
+  "experimental_projects": [
+    {
+      "title": "Poke Search",
+      "description": "Interactive Pokemon search and query tool",
+      "images": [],
+      "url": "https://ben.kallaus.me/poke-search",
+      "technologies": [
+        {
+          "class": "devicon-react-original",
+          "name": "React"
+        },
+        {
+          "class": "devicon-typescript-plain",
+          "name": "TypeScript"
+        }
+      ]
+    },
+    {
+      "title": "Battle Helper",
+      "description": "Pokemon battle calculator and type matchups",
+      "images": [],
+      "url": "https://ben.kallaus.me/battle-helper",
+      "technologies": [
+        {
+          "class": "devicon-react-original",
+          "name": "React"
+        },
+        {
+          "class": "devicon-typescript-plain",
+          "name": "TypeScript"
+        }
+      ]
+    },
+    {
+      "title": "Simple City",
+      "description": "Interactive 3D city canvas web app",
+      "images": [],
+      "url": "https://ben.kallaus.me/simple-city",
+      "technologies": [
+        {
+          "class": "devicon-html5-plain",
+          "name": "HTML5"
+        },
+        {
+          "class": "devicon-javascript-plain",
+          "name": "JavaScript"
+        }
+      ]
+    }
+  ],
   "experience": [
     {
       "company": "Tractor Zoom",

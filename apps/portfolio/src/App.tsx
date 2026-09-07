@@ -53,6 +53,7 @@ export const App = () => {
       <Seniority />
       <Projects
         resumeProjects={resumeData.projects}
+        experimentalProjects={resumeData.experimental_projects}
         resumeBasicInfo={resumeData.basic_info}
       />
       <Skills
@@ -67,6 +68,5 @@ export const App = () => {
     </div>
   );
 }
-
 
 export default App;

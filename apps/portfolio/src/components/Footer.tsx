@@ -6,11 +6,13 @@ type FooterProps = {
 }
 
 const Footer: React.FC<FooterProps> = ({ sharedBasicInfo }) => {
+  const name = sharedBasicInfo?.name || "Ben Kallaus";
+
   return (
     <footer className="bg-gray-800 text-white py-8">
       <div className="container mx-auto px-4 text-center">
         <div className="mb-4">
-          <h3 className="text-xl font-bold">Ben Kallaus</h3>
+          <h3 className="text-xl font-bold">{name}</h3>
         </div>
         <div className="text-sm text-gray-400">
           <p>

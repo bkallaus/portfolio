@@ -15,7 +15,7 @@
     "preview": "vite preview --outDir dist",
     "dev": "vite",
     "test": "vitest run",
-    "lint": "eslint apps",
+    "lint": "eslint apps packages",
     "test:musical-cards": "vitest run --project musical-cards",
     "test:quick": "vitest run --project quick",
     "typecheck": "tsc --noEmit",

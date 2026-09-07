@@ -44,7 +44,7 @@ test.describe('the shared nav', () => {
       await expect(button).toBeVisible();
 
       await button.click();
-      await expect(page.locator('.drawer.open')).toBeVisible();
+      await expect(page.locator('.drawer[open]')).toBeVisible();
 
       // Featured pages carry a blurb; experiments are collapsed behind a count.
       const featured = sites.filter((s) => (s.tier ?? 'experiment') === 'featured');
@@ -56,8 +56,20 @@ test.describe('the shared nav', () => {
       await expect(page.locator('.current-item')).toContainText(site.title);
       await expect(page.locator(`.site-link[href="${urlFor(site.slug)}"]`)).toHaveCount(0);
 
+      // showModal() makes the page behind the drawer inert, so tabbing can never
+      // land outside it. The hand-rolled drawer this replaced had no such trap.
+      for (let i = 0; i < 12; i++) await page.keyboard.press('Tab');
+      const trapped = await page.evaluate(() => {
+        const nav = document.querySelector('site-nav');
+        return nav?.shadowRoot?.contains(nav.shadowRoot.activeElement) ?? false;
+      });
+      expect(trapped, 'focus escaped the modal drawer').toBe(true);
+
       await page.keyboard.press('Escape');
-      await expect(page.locator('.drawer.open')).toBeHidden();
+      await expect(page.locator('.drawer[open]')).toBeHidden();
+
+      // Closing by any route hands focus back to the trigger.
+      await expect(button).toBeFocused();
     });
   }
 });
@@ -66,7 +78,7 @@ test('the nav stays out of the iframed hero on the hub', async ({ page }) => {
   await page.goto('/', { waitUntil: 'networkidle' });
   const frame = page.frameLocator('iframe').first();
   const navInsideFrame = frame.locator('.nav-btn');
-  // simple-city is iframed into the portfolio's hero; nav.js guards on window.top
+  // simple-city is iframed into the portfolio's hero; nav.ts guards on window.top
   // so a button must never appear inside it.
   await expect(navInsideFrame).toHaveCount(0);
 });

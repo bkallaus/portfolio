@@ -98,5 +98,11 @@ the committed lockfile is unaffected, which is what CI runs.
 
 ## Deploying
 
-Push to `master`. `deploy.yml` builds and publishes the artifact; `ci.yml` builds every app
-and runs the tests on PRs. Nothing deploys from a `gh-pages` branch anymore.
+Push to `master`, or run the workflow manually (`workflow_dispatch`). `deploy.yml` builds and
+publishes the artifact; `ci.yml` builds every page and runs the tests on PRs.
+
+The workflow owns the Pages configuration too: `configure-pages` runs with `enablement: true`,
+which switches the repo's Pages source from "Deploy from a branch" to "GitHub Actions" on the
+first run. Nothing deploys from a `gh-pages` branch anymore, and no one has to set that in
+Settings by hand. If the run logs a permissions error on that step, flip it once at
+Settings → Pages → Source → GitHub Actions and it will stay put.

@@ -34,8 +34,13 @@ jobs:
       - name: Build all apps
         run: node scripts/build-all.mjs
 
+      # enablement: true switches the repo's Pages source from "Deploy from a
+      # branch" (the old gh-pages flow) to "GitHub Actions", so this workflow is
+      # what serves the site. It is idempotent once set.
       - name: Setup Pages
         uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

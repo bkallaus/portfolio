@@ -6,12 +6,12 @@ import ShareableList from './generate-list';
 // Mock clipboard writeText
 Object.assign(navigator, {
   clipboard: {
-    writeText: jest.fn(),
+    writeText: vi.fn(),
   },
 });
 
 // Mock window.history.pushState
-const pushStateMock = jest.fn();
+const pushStateMock = vi.fn();
 // window.history is usually writable or we can spy on it
 Object.defineProperty(window, 'history', {
   value: {
@@ -34,7 +34,7 @@ const setLocationSearch = (search: string) => {
 
 describe('GenerateList', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     setLocationSearch('');
   });
 

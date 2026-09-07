@@ -55,8 +55,9 @@ const PxToRem = () => {
         <h4 className="w-full text-center mb-0 text-xl font-semibold">Px to Rem Converter</h4>
         <div className="flex gap-4 items-end w-full flex-wrap mt-4">
           <div className="flex flex-col gap-2 flex-1 min-w-[100px]">
-            <Label>Base Size (px)</Label>
+            <Label htmlFor="base-size">Base Size (px)</Label>
             <Input
+              id="base-size"
               type="number"
               value={baseSize}
               onChange={handleBaseSizeChange}
@@ -64,8 +65,9 @@ const PxToRem = () => {
             />
           </div>
           <div className="flex flex-col gap-2 flex-1 min-w-[120px]">
-            <Label>Pixels (px)</Label>
+            <Label htmlFor="pixels">Pixels (px)</Label>
             <Input
+              id="pixels"
               type="number"
               value={pxValue}
               onChange={handlePxChange}
@@ -73,8 +75,9 @@ const PxToRem = () => {
             />
           </div>
           <div className="flex flex-col gap-2 flex-1 min-w-[120px]">
-            <Label>Rem (rem)</Label>
+            <Label htmlFor="rem">Rem (rem)</Label>
             <Input
+              id="rem"
               type="number"
               value={remValue}
               onChange={handleRemChange}

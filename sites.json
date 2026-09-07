@@ -36,10 +36,6 @@
     "slug": "simple-city",
     "type": "static",
     "tier": "experiment",
-    "title": "Simple City",
-    "exclude": [
-      "GOAL.png",
-      "verification_*.png"
-    ]
+    "title": "Simple City"
   }
 ]

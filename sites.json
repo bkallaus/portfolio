@@ -1,0 +1,41 @@
+[
+  {
+    "slug": "portfolio",
+    "type": "vite",
+    "tier": "featured",
+    "title": "Portfolio",
+    "blurb": "About, experience, and what I've been building"
+  },
+  {
+    "slug": "quick",
+    "type": "vite",
+    "tier": "featured",
+    "title": "Quick",
+    "blurb": "Dev utilities \u2014 converters, generators, encoders"
+  },
+  {
+    "slug": "musical-cards",
+    "type": "vite",
+    "tier": "featured",
+    "title": "Musical Cards",
+    "blurb": "Sight-reading practice with generated staves"
+  },
+  {
+    "slug": "poke-search",
+    "type": "vite",
+    "tier": "experiment",
+    "title": "Poke Search"
+  },
+  {
+    "slug": "battle-helper",
+    "type": "vite",
+    "tier": "experiment",
+    "title": "Battle Helper"
+  },
+  {
+    "slug": "simple-city",
+    "type": "static",
+    "tier": "experiment",
+    "title": "Simple City"
+  }
+]

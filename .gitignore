@@ -22,3 +22,19 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 node_modules
+
+# monorepo build output
+/dist
+# stale per-app output from before the single build. Nothing writes these now, but
+# Tailwind v4 auto-detects content by walking everything not ignored, so a stray
+# multi-MB bundle here stalls the build.
+apps/*/dist
+packages/nav/dist
+
+# git worktrees created by tooling
+.claude/worktrees/
+
+# playwright
+/test-results
+/playwright-report
+/walkthrough

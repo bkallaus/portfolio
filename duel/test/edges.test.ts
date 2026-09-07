@@ -7,7 +7,7 @@ const t=(n: string,c: unknown,g?: unknown)=>(c?ok:bad).push(n+(c?"":`  → got $
 const must=(st: E.GameState|null): E.GameState=>{ if(!st) throw new Error("expected a legal move"); return st; };
 
 function rig(w0: string[],w1: string[]=["pyramids"],tok: string[]=[]): E.GameState{
-  let st=E.newGame(["A","B"]); st.phase="play";
+  const st=E.newGame(["A","B"]); st.phase="play";
   st.players[0].wonders=w0.map(id=>({id,built:false}));
   st.players[1].wonders=w1.map(id=>({id,built:false}));
   st.players[0].tokens=tok; st.players[0].coins=99; st.players[1].coins=99;
@@ -21,7 +21,7 @@ const open=(st: E.GameState): number=>st.slots.filter(s=>s.card&&E.isOpen(st.slo
 
 /* --- play again on the final card of an age is lost --- */
 {
-  let st=rig(["sphinx"]);
+  const st=rig(["sphinx"]);
   // strip the board down to a single remaining card
   st.slots.forEach(s=>{s.card=null;});
   const last=st.slots[st.slots.length-1]; last.card="lumber_yard"; last.up=true;
@@ -33,7 +33,7 @@ const open=(st: E.GameState): number=>st.slots.filter(s=>s.card&&E.isOpen(st.slo
 
 /* --- play again mid-age lets the same player act twice --- */
 {
-  let st=rig(["sphinx","colossus"]);
+  const st=rig(["sphinx","colossus"]);
   const a=must(E.actWonder(st,open(st),"sphinx"));
   t("after Sphinx it is still A's turn", a.turn===0, a.turn);
   const b=must(E.actWonder(a,open(a),"colossus"));
@@ -44,7 +44,7 @@ const open=(st: E.GameState): number=>st.slots.filter(s=>s.card&&E.isOpen(st.slo
 
 /* --- Economy captures wonder trade spending --- */
 {
-  let st=rig(["pyramids"]);
+  const st=rig(["pyramids"]);
   st.players[1].tokens=["economy"];
   st.players[1].coins=0;
   const cost=E.wonderCost(st,0,E.WON.pyramids).total;
@@ -55,7 +55,7 @@ const open=(st: E.GameState): number=>st.slots.filter(s=>s.card&&E.isOpen(st.slo
 
 /* --- Architecture + partial production --- */
 {
-  let st=rig(["pyramids"],["colossus"],["architecture"]);
+  const st=rig(["pyramids"],["colossus"],["architecture"]);
   st.players[0].built=["quarry","quarry"];       // 2 of the 3 stone
   const c=E.wonderCost(st,0,E.WON.pyramids);
   t("Architecture waives the remaining stone and papyrus", c.total===0, c.total);
@@ -63,7 +63,7 @@ const open=(st: E.GameState): number=>st.slots.filter(s=>s.card&&E.isOpen(st.slo
 
 /* --- Architecture waives the priciest units, not the first --- */
 {
-  let st=rig(["temple_of_artemis"],["colossus"],["architecture"]);
+  const st=rig(["temple_of_artemis"],["colossus"],["architecture"]);
   st.players[1].built=["sawmill","brickyard","shelf_quarry"];  // opponent inflates wood/clay/stone
   // needs wood, stone, glass, papyrus. wood=4, stone=4, glass=2, papyrus=2 → waive the two 4s
   const c=E.wonderCost(st,0,E.WON.temple_of_artemis);
@@ -72,13 +72,13 @@ const open=(st: E.GameState): number=>st.slots.filter(s=>s.card&&E.isOpen(st.slo
 
 /* --- destroy interrupt on the final card of an age --- */
 {
-  let st=rig(["circus_maximus"]);
+  const st=rig(["circus_maximus"]);
   st.players[1].built=["glassworks"];
   st.slots.forEach(s=>{s.card=null;});
   const last=st.slots[st.slots.length-1]; last.card="lumber_yard"; last.up=true;
   st.remaining=1;
   const a=must(E.actWonder(st,last.id,"circus_maximus"));
-  t("destroy still resolves when the age is ending", a.pending!.type==="destroy", a.pending);
+  t("destroy still resolves when the age is ending", a.pending?.type==="destroy", a.pending);
   const b=E.resolve(a,"glassworks");
   t("age transition happens after the interrupt clears",
     b.pending && b.pending.type==="first", b.pending);
@@ -86,16 +86,16 @@ const open=(st: E.GameState): number=>st.slots.filter(s=>s.card&&E.isOpen(st.slo
 
 /* --- a wonder that both wins militarily and has a destroy effect --- */
 {
-  let st=rig(["circus_maximus"]);
+  const st=rig(["circus_maximus"]);
   st.conflict=8; st.players[1].built=["glassworks"];
   const a=must(E.actWonder(st,open(st),"circus_maximus"));
   t("military win outranks the destroy prompt",
-    a.phase==="over" && a.winner!.by==="military" && !a.pending, {phase:a.phase,pend:a.pending});
+    a.phase==="over" && a.winner?.by==="military" && !a.pending, {phase:a.phase,pend:a.pending});
 }
 
 /* --- looting tokens fire once, in the right direction --- */
 {
-  let st=rig(["colossus"]); st.conflict=2; st.players[1].coins=10;
+  const st=rig(["colossus"]); st.conflict=2; st.players[1].coins=10;
   const a=must(E.actWonder(st,open(st),"colossus"));   // → +4, crosses 3
   t("crossing zone 3 loots the opponent for 2", a.players[1].coins===8, a.players[1].coins);
   t("that looting token is spent", a.loot.p1_2===false, a.loot);
@@ -104,10 +104,10 @@ const open=(st: E.GameState): number=>st.slots.filter(s=>s.card&&E.isOpen(st.slo
 
 /* --- wonder production is usable immediately --- */
 {
-  let st=rig(["great_lighthouse"]);
+  const st=rig(["great_lighthouse"]);
   st.players[0].built=["lumber_yard","stone_pit","press"];
-  const a=must(E.actWonder(st,open(st),"great_lighthouse"));
-  const before=E.cardCost(st,0,E.CARD.baths).total;      // needs 1 stone, already has it → 0
+  const _a=must(E.actWonder(st,open(st),"great_lighthouse"));
+  const _before=E.cardCost(st,0,E.CARD.baths).total;      // needs 1 stone, already has it → 0
   st.players[0].built=[];
   const bare=E.cardCost(st,0,E.CARD.baths).total;
   const a2=must(E.actWonder(st,open(st),"great_lighthouse"));
@@ -116,4 +116,9 @@ const open=(st: E.GameState): number=>st.slots.filter(s=>s.card&&E.isOpen(st.slo
 }
 
 console.log(`PASS ${ok.length}`);
-if(bad.length){console.log(`\nFAIL ${bad.length}`);bad.forEach(b=>console.log("  ✗ "+b));}else console.log("No failures.");
+if (bad.length) {
+  console.log(`\nFAIL ${bad.length}`);
+  bad.forEach((b) => {
+    console.log(`  ✗ ${b}`);
+  });
+} else console.log("No failures.");

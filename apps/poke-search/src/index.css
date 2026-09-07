@@ -1,0 +1,132 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap');
+
+:root {
+  /* Colors */
+  --clay-black: #000000;
+  --pure-white: #ffffff;
+  --warm-cream: #faf9f7;
+  
+  /* Swatches */
+  --swatch-matcha-300: #84e7a5;
+  --swatch-matcha-600: #078a52;
+  --swatch-matcha-800: #02492a;
+  
+  --swatch-slushie-500: #3bd3fd;
+  --swatch-slushie-800: #0089ad;
+  
+  --swatch-lemon-400: #f8cc65;
+  --swatch-lemon-500: #fbbd41;
+  --swatch-lemon-700: #d08a11;
+  --swatch-lemon-800: #9d6a09;
+  
+  --swatch-ube-300: #c1b0ff;
+  --swatch-ube-800: #43089f;
+  --swatch-ube-900: #32037d;
+  
+  --swatch-pomegranate-400: #fc7981;
+  --swatch-pomegranate-600: #e25b64;
+  --swatch-blueberry-800: #01418d;
+
+  /* Neutrals */
+  --warm-silver: #9f9b93;
+  --warm-charcoal: #55534e;
+  --dark-charcoal: #333333;
+  
+  /* Borders */
+  --oat-border: #dad4c8;
+  --oat-light: #eee9df;
+  --cool-border: #e6e8ec;
+  --dark-border: #525a69;
+  
+  /* System */
+  --focus-ring: rgb(20, 110, 245) solid 2px;
+  
+  /* Shadows */
+  --clay-shadow: rgba(0,0,0,0.1) 0px 1px 1px, rgba(0,0,0,0.04) 0px -1px 1px inset, rgba(0,0,0,0.05) 0px -0.5px 1px;
+  --clay-shadow-hover: rgb(0,0,0) -3px 3px;
+
+  /* Fonts */
+  --font-primary: 'Roobert', 'Outfit', Arial, sans-serif;
+  --font-mono: 'Space Mono', monospace;
+
+  /* Global Settings */
+  font-family: var(--font-primary);
+  font-feature-settings: "ss03", "ss10", "ss11", "ss12";
+  background-color: var(--warm-cream);
+  color: var(--clay-black);
+  
+  line-height: 1.5;
+  font-weight: 400;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  font-feature-settings: "ss01", "ss03", "ss10", "ss11", "ss12";
+}
+
+h1 {
+  font-size: clamp(3rem, 5vw, 5rem);
+  line-height: 1.00;
+  letter-spacing: -3.2px;
+}
+
+h2 {
+  font-size: clamp(2rem, 3.5vw, 2.75rem);
+  line-height: 1.10;
+  letter-spacing: -1.32px;
+}
+
+h3 {
+  font-size: 2rem;
+  line-height: 1.10;
+  letter-spacing: -0.64px;
+}
+
+button {
+  font-family: var(--font-primary);
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  outline: none;
+}
+
+button:focus-visible {
+  outline: var(--focus-ring);
+}
+
+/* Clay Button Utility - can be inherited or used directly */
+.clay-btn {
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: -0.16px;
+  padding: 6.4px 12.8px;
+  border-radius: 12px;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.clay-btn:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: var(--clay-shadow-hover);
+}
+
+.clay-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

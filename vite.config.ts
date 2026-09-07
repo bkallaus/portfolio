@@ -1,24 +1,72 @@
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
-import path from 'path';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+
+type Site = { slug: string; type: 'vite' | 'static' };
+
+const here = import.meta.dirname;
+const sites: Site[] = JSON.parse(readFileSync(path.join(here, 'sites.json'), 'utf8'));
+
+const input = Object.fromEntries(
+  sites
+    .filter((s) => s.type === 'vite')
+    .map((s) => [s.slug, path.join(here, 'apps', s.slug, 'index.html')])
+);
+
+function htmlAtUrlSegment(): Plugin {
+  return {
+    name: 'html-at-url-segment',
+    enforce: 'post',
+    generateBundle(_options, bundle) {
+      for (const output of Object.values(bundle)) {
+        const match = /^apps\/([^/]+)\/(.*\.html)$/.exec(output.fileName);
+        if (!match) continue;
+        const [, slug, rest] = match;
+        output.fileName = slug === 'portfolio' ? rest : `${slug}/${rest}`;
+      }
+    },
+  };
+}
+
+function urlsMatchProduction(): Plugin {
+  const built = sites.filter((s) => s.type === 'vite' && s.slug !== 'portfolio');
+  return {
+    name: 'urls-match-production',
+    apply: 'serve',
+    configureServer(server) {
+      server.middlewares.use((req, _res, next) => {
+        const url = req.url ?? '/';
+        for (const site of built) {
+          if (url === `/${site.slug}` || url.startsWith(`/${site.slug}/`)) {
+            req.url = `/apps/${site.slug}${url.slice(site.slug.length + 1)}`;
+            return next();
+          }
+        }
+        if (url === '/' || url === '/index.html') req.url = '/apps/portfolio/index.html';
+        next();
+      });
+    },
+  };
+}
 
 export default defineConfig({
-  plugins: [
-    react(),
-    tailwindcss(),
-  ],
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
+  plugins: [react(), tailwindcss(), htmlAtUrlSegment(), urlsMatchProduction()],
+  define: {
+    __SITES__: JSON.stringify(sites),
   },
   build: {
-    outDir: 'build',
+    outDir: 'dist',
+    emptyOutDir: true,
     rollupOptions: {
-      input: {
-        main: path.resolve(__dirname, 'index.html'),
-        duel: path.resolve(__dirname, 'duel/play/index.html'),
+      // The Duel game is a standalone page living under the portfolio's
+      // /duel/ write-up, at /duel/play/. It isn't a sites.json app of its
+      // own, so it rides along as an extra input; its output path keeps the
+      // duel/play/ prefix and deploys at /duel/play/.
+      input: { ...input, 'duel-play': path.join(here, 'duel', 'play', 'index.html') },
+      output: {
+        entryFileNames: 'assets/[name]-[hash].js',
       },
     },
   },

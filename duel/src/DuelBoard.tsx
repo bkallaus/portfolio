@@ -461,8 +461,8 @@ export default function DuelBoard() {
   const push = (next: GameState) => {
     if (mode !== "direct") return;
     if (!linked()) { setStatus("Connection dropped. Re-link to carry on."); return; }
-    try { chan.current!.send({ t: "state", st: next }); }
-    catch (e) { setStatus("Couldn't send that move — the connection may have dropped."); }
+    try { chan.current?.send({ t: "state", st: next }); }
+    catch (_e) { setStatus("Couldn't send that move — the connection may have dropped."); }
   };
 
   const handlers: Handlers = {
@@ -482,7 +482,7 @@ export default function DuelBoard() {
   };
 
   const abort = (msg?: string) => {
-    if (peer.current) { try { peer.current.close(); } catch (e) {} peer.current = null; }
+    if (peer.current) { try { peer.current.close(); } catch (_e) {} peer.current = null; }
     setLink(null); setMode(null); setStatus(msg || "");
   };
 
@@ -513,7 +513,7 @@ export default function DuelBoard() {
           /* Only the manual transport ever shows a reply box, so this is
              always the raw connection rather than a PeerJS handle. */
           try { await (peer.current as RTCPeerConnection).setRemoteDescription(unpack(answer)); setStatus("Connecting…"); }
-          catch (e) { setStatus("That reply code didn't parse. Copy the whole thing and try again."); }
+          catch (_e) { setStatus("That reply code didn't parse. Copy the whole thing and try again."); }
         }}
         onCancel={() => abort()}
       />
@@ -529,14 +529,14 @@ export default function DuelBoard() {
       try {
         peer.current = await quickHost(handlers, (code) =>
           setLink({ how: "quick", role: "host", step: "share", myCode: code }));
-      } catch (e) { abort("Couldn't reach the broker. Try swapping codes manually instead."); }
+      } catch (_e) { abort("Couldn't reach the broker. Try swapping codes manually instead."); }
     };
 
     const startQuickJoin = async (code: string) => {
       setMode("direct"); setSeat(1);
       setLink({ how: "quick", role: "guest", step: "working" });
       try { peer.current = await quickJoin(code, handlers); }
-      catch (e) { abort("Couldn't reach the broker. Try swapping codes manually instead."); }
+      catch (_e) { abort("Couldn't reach the broker. Try swapping codes manually instead."); }
     };
 
     const startManualHost = async (a: string, b: string) => {
@@ -548,7 +548,7 @@ export default function DuelBoard() {
         const { pc, code } = await manualHost(handlers);
         peer.current = pc;
         setLink({ how: "manual", role: "host", step: "share", myCode: code });
-      } catch (e) { abort("Couldn't start a direct connection here."); }
+      } catch (_e) { abort("Couldn't start a direct connection here."); }
     };
 
     const startManualJoin = async (offer: string) => {
@@ -559,7 +559,7 @@ export default function DuelBoard() {
         const { pc, code } = await manualJoin(offer, handlers);
         peer.current = pc;
         setLink({ how: "manual", role: "guest", step: "share", myCode: code });
-      } catch (e) { abort("That invite code didn't parse. Copy the whole thing and try again."); }
+      } catch (_e) { abort("That invite code didn't parse. Copy the whole thing and try again."); }
     };
 
     return (
@@ -576,8 +576,8 @@ export default function DuelBoard() {
   }
 
   const i = st.turn;
-  const opp = 1 - i;
-  const meView = view(st, i);
+  const _opp = 1 - i;
+  const _meView = view(st, i);
 
   /* ---------- draft ---------- */
   if (st.phase === "draft") {
@@ -758,7 +758,7 @@ export default function DuelBoard() {
 
   /* ---------- main board ---------- */
   const selSlot = sel !== null ? st.slots.find((s) => s.id === sel) : null;
-  const selCard = selSlot && selSlot.card ? CARD[selSlot.card] : null;
+  const selCard = selSlot?.card ? CARD[selSlot.card] : null;
   const selCost = selCard ? cardCost(st, i, selCard) : null;
   const yellowN = st.players[i].built.filter((id) => CARD[id].color === "yellow").length;
   const rows = LAYOUTS[st.age].rows;
@@ -824,7 +824,7 @@ export default function DuelBoard() {
       {/* structure */}
       <div style={{ overflowX: "auto", padding: "4px 0 12px" }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, minWidth: maxRow * 80 }}>
-          {rows.map((len, r) => {
+          {rows.map((_len, r) => {
             const rowSlots = st.slots.filter((s) => s.row === r);
             const pinch = st.age === 3 && r === 3;
             return (
@@ -1083,9 +1083,9 @@ function RulesPanel({ onClose }: { onClose: () => void }) {
           <div style={{ marginTop: 8 }}>
             {guilds.map((g) => (
               <Row key={g.id} head={g.name.replace(" Guild", "")}>
-                {g.guild!.treasury ? "1 VP per 3 coins in the richest treasury"
-                  : g.guild!.wonders ? "2 VP per Wonder built by whoever has the most"
-                  : `1 coin and 1 VP per ${(g.guild!.colors ?? []).join(" or ")} card`}
+                {g.guild?.treasury ? "1 VP per 3 coins in the richest treasury"
+                  : g.guild?.wonders ? "2 VP per Wonder built by whoever has the most"
+                  : `1 coin and 1 VP per ${(g.guild?.colors ?? []).join(" or ")} card`}
               </Row>
             ))}
           </div>

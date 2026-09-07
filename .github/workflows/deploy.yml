@@ -3,14 +3,24 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - main
       - master
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
 
 jobs:
-  build-and-deploy:
+  checks:
+    uses: ./.github/workflows/checks.yml
+
+  build:
+    needs: checks
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -19,25 +29,37 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version-file: '.nvmrc'
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Typecheck
-        run: npm run typecheck
-
-      - name: Run Duel tests
-        run: npm test
-
-      - name: Build
+      - name: Build all apps
         run: npm run build
 
-      - name: Deploy
-        uses: JamesIves/github-pages-deploy-action@v4
+      # enablement: true switches the repo's Pages source off the old gh-pages
+      # branch to GitHub Actions. Idempotent once set.
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
         with:
-          folder: build
-          branch: gh-pages
-          clean: true
-          cname: ben.kallaus.me
+          enablement: true
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+  deploy:
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

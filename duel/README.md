@@ -10,9 +10,9 @@ directory. Run everything from the repo root:
 ```
 npm install
 npm run dev        # local server; game is served at /duel/play/
-npm test           # all three suites, ~10s
+npm run test:duel  # all three suites, ~10s
 npm run typecheck  # tsc over the whole repo
-npm run build      # static output in build/duel/play/
+npm run build      # static output in dist/duel/play/
 ```
 
 TypeScript throughout. Relative imports carry an explicit `.ts` extension, which is what

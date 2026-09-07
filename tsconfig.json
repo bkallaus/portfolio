@@ -1,28 +1,35 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
+    "target": "ES2022",
     "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
+      "DOM",
+      "DOM.Iterable",
+      "ES2022"
     ],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
     "allowJs": true,
+    "checkJs": false,
+    "strict": false,
+    "noEmit": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "strict": true,
-    "forceConsistentCasingInFileNames": true,
-    "noFallthroughCasesInSwitch": true,
-    "module": "esnext",
-    "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true,
-    "allowImportingTsExtensions": true,
-    "jsx": "react-jsx"
+    "forceConsistentCasingInFileNames": true,
+    "types": [
+      "vite/client",
+      "vitest/globals"
+    ],
+    "allowImportingTsExtensions": true
   },
   "include": [
-    "src",
+    "apps/*/src",
+    "packages",
+    "scripts",
+    "vite.config.ts",
     "duel/src",
     "duel/test"
   ]

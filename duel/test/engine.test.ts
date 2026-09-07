@@ -5,11 +5,13 @@ import * as E from "../src/engine.ts";
 const twoCities = (players: E.PlayerState[]): E.GameState => ({ players }) as unknown as E.GameState;
 
 /* ---------- structural checks ---------- */
-let fails: string[] = [];
+const fails: string[] = [];
 const expectOpen: Record<E.Age, number> = { 1: 6, 2: 2, 3: 2 };
 for (const age of [1, 2, 3] as E.Age[]) {
   const slots = E.buildSlots(age);
-  slots.forEach((s) => (s.card = "x"));
+  slots.forEach((s) => {
+    s.card = "x";
+  });
   const open = slots.filter((s) => E.isOpen(slots, s)).length;
   if (open !== expectOpen[age]) fails.push(`Age ${age}: ${open} open at start, expected ${expectOpen[age]}`);
   if (slots.length !== 20) fails.push(`Age ${age}: ${slots.length} slots, expected 20`);
@@ -30,7 +32,7 @@ for (const age of [1, 2, 3] as E.Age[]) {
 /* ---------- deck sanity ---------- */
 for (const age of [1, 2, 3]) {
   const n = E.CARDS.filter((k) => k.age === age).length;
-  console.log(`Age ${age} deck: ${n} cards${age === 3 ? " + 3 of 7 guilds = " + (n + 3) : ""}`);
+  console.log(`Age ${age} deck: ${n} cards${age === 3 ? ` + 3 of 7 guilds = ${n + 3}` : ""}`);
   if ((age === 3 ? n + 3 : n) < 20) fails.push(`Age ${age} deck too small to deal 20`);
 }
 const chainTargets = E.CARDS.filter((k) => k.chainFrom);
@@ -46,7 +48,7 @@ if (Object.keys(sciCount).length < 6) fails.push("fewer than 6 distinct symbols 
 
 /* ---------- random self-play ---------- */
 const pick = <T,>(a: T[]): T => a[Math.floor(Math.random() * a.length)];
-let wins: Record<E.WinReason, number> = { military: 0, science: 0, points: 0, tiebreak: 0, draw: 0 };
+const wins: Record<E.WinReason, number> = { military: 0, science: 0, points: 0, tiebreak: 0, draw: 0 };
 let totals: number[] = [], turnCounts: number[] = [], errors = 0, stuck = 0;
 
 for (let g = 0; g < 4000; g++) {
@@ -64,7 +66,7 @@ for (let g = 0; g < 4000; g++) {
         else if (pd.type === "destroy") opts = st.players[1 - pd.player].built.filter((id) => E.CARD[id].color === pd.color);
         else if (pd.type === "mausoleum") opts = st.discard;
         else if (pd.type === "first") opts = [0, 1];
-        if (!opts || !opts.length) { fails.push(`pending ${pd.type} with no options`); break; }
+        if (!opts?.length) { fails.push(`pending ${pd.type} with no options`); break; }
         st = E.resolve(st, pick(opts));
         continue;
       }
@@ -86,8 +88,8 @@ for (let g = 0; g < 4000; g++) {
     if (guard >= 400) { stuck++; continue; }
     if (st.phase !== "over") { stuck++; continue; }
     turnCounts.push(guard);
-    wins[st.winner!.by]++;
-    if (st.winner!.by !== "military" && st.winner!.by !== "science") {
+    wins[st.winner?.by]++;
+    if (st.winner?.by !== "military" && st.winner?.by !== "science") {
       totals.push(E.score(st, 0).total, E.score(st, 1).total);
     }
     // wonders built must never exceed 7
@@ -95,7 +97,7 @@ for (let g = 0; g < 4000; g++) {
     if (built > 7) fails.push(`${built} wonders built — cap broken`);
   } catch (e) {
     errors++;
-    if (errors <= 3) console.log("CRASH:", (e as Error).message, "\n", (e as Error).stack!.split("\n")[1]);
+    if (errors <= 3) console.log("CRASH:", (e as Error).message, "\n", (e as Error).stack?.split("\n")[1]);
   }
 }
 
@@ -128,7 +130,9 @@ const flex = twoCities([{ coins: 99, built: ["caravansery"], wonders: [], tokens
 console.log("  Caravansery vs opp 2 stone, needs 3 stone:", E.cardCost(flex, 0, E.CARD.aqueduct).total, "expect 8");
 
 console.log("\n--- military zones ---");
-[0, 1, 2, 3, 5, 6, 8].forEach((d) => process.stdout.write(`${d}:${E.milVP(d)}  `));
+[0, 1, 2, 3, 5, 6, 8].forEach((d) => {
+  process.stdout.write(`${d}:${E.milVP(d)}  `);
+});
 console.log("\nexpect 0:0 1:2 2:2 3:5 5:5 6:10 8:10");
 
-console.log("\n" + (fails.length ? "FAILURES:\n" + fails.slice(0, 20).map((f) => " - " + f).join("\n") : "All structural checks passed."));
+console.log(`\n${fails.length ? `FAILURES:\n${fails.slice(0, 20).map((f) => ` - ${f}`).join("\n")}` : "All structural checks passed."}`);

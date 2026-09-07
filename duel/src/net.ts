@@ -78,11 +78,21 @@ let peerLib: PeerConstructor | undefined;
 
 function loadPeer(): Promise<PeerConstructor> {
   if (peerLib) return Promise.resolve(peerLib);
-  if (window.Peer) return Promise.resolve((peerLib = window.Peer));
+  if (window.Peer) {
+    peerLib = window.Peer;
+    return Promise.resolve(peerLib);
+  }
   return new Promise<PeerConstructor>((res, rej) => {
     const s = document.createElement("script");
     s.src = PEER_CDN;
-    s.onload = () => (window.Peer ? res((peerLib = window.Peer)) : rej(new Error("no Peer")));
+    s.onload = () => {
+      if (window.Peer) {
+        peerLib = window.Peer;
+        res(peerLib);
+      } else {
+        rej(new Error("no Peer"));
+      }
+    };
     s.onerror = () => rej(new Error("cdn blocked"));
     document.head.appendChild(s);
     setTimeout(() => rej(new Error("timeout")), 8000);
@@ -158,7 +168,7 @@ function bindRaw(dc: RTCDataChannel, role: Role, h: Handlers): void {
   };
   dc.onmessage = (e) => {
     try { const m = JSON.parse(e.data); if (m.t === "state") h.onState(m.st); }
-    catch (err) { /* ignore malformed frames */ }
+    catch (_err) { /* ignore malformed frames */ }
   };
   dc.onopen = () => h.onOpen(link);
   dc.onclose = h.onClose;

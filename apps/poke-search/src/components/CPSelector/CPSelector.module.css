@@ -1,0 +1,105 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--pure-white);
+  border: 1px dashed var(--oat-border);
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: var(--clay-shadow);
+  gap: 20px;
+  grid-column: 1 / -1;
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.16px;
+  color: var(--clay-black);
+}
+
+.presets {
+  display: flex;
+  gap: 12px;
+}
+
+.presetBtn {
+  flex: 1;
+  background-color: var(--warm-cream);
+  border: 1px solid var(--oat-border);
+  color: var(--clay-black);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.presetBtn .league {
+  font-size: 0.88rem;
+  color: var(--warm-silver);
+}
+
+.presetBtn .cp {
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+
+.presetBtn:hover {
+  background-color: var(--swatch-slushie-500);
+  border-color: var(--swatch-slushie-500);
+  color: var(--clay-black);
+}
+
+.presetBtn:hover .league {
+  color: var(--clay-black);
+}
+
+.customSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-top: 1px solid var(--oat-light);
+  padding-top: 16px;
+}
+
+.inputRow {
+  display: flex;
+  gap: 8px;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--oat-border);
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  outline: none;
+  background-color: var(--warm-cream);
+}
+
+.input:focus {
+  border-color: var(--swatch-slushie-800);
+  box-shadow: 0 0 0 2px rgba(10, 137, 173, 0.2);
+}
+
+.actionBtn {
+  width: 48px;
+  background-color: var(--pure-white);
+  border: 1px solid var(--oat-border);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.25rem;
+}
+
+.actionBtn.btnPlus:hover {
+  background-color: var(--swatch-slushie-500);
+  border-color: var(--swatch-slushie-500);
+}
+
+.actionBtn.btnMinus:hover {
+  background-color: var(--swatch-pomegranate-400);
+  color: var(--pure-white);
+  border-color: var(--swatch-pomegranate-400);
+}

@@ -379,7 +379,11 @@ function view(st: GameState, i: number): PlayerView {
   });
 
   const fixTrade = new Set<Resource>();
-  cards.forEach((k) => k.fixTrade && k.fixTrade.forEach((r) => fixTrade.add(r)));
+  cards.forEach((k) => {
+    k.fixTrade?.forEach((r) => {
+      fixTrade.add(r);
+    });
+  });
 
   let shields = 0;
   cards.forEach((k) => { shields += k.shields || 0; });
@@ -572,7 +576,7 @@ function applyCardEffects(st: GameState, i: number, card: Card, chained: boolean
     st.players[i].coins += n * card.coinsPerWonder;
   }
   const gd = card.guild;
-  if (gd && gd.coin) {
+  if (gd?.coin) {
     const n = Math.max(
       ...[0, 1].map((j) => st.players[j].built.filter((id) => (gd.colors ?? []).includes(CARD[id].color)).length)
     );

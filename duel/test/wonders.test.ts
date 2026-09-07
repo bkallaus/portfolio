@@ -15,7 +15,7 @@ const twoCities = (players: E.PlayerState[]): E.GameState => ({ players }) as un
 
 /* Build a play-phase game with chosen wonders and full pockets. */
 function rig(wonders0: string[], wonders1: string[] = ["pyramids"], tokens0: string[] = []): E.GameState {
-  let st = E.newGame(["A", "B"]);
+  const st = E.newGame(["A", "B"]);
   st.phase = "play";
   st.players[0].wonders = wonders0.map((id) => ({ id, built: false }));
   st.players[1].wonders = wonders1.map((id) => ({ id, built: false }));
@@ -35,13 +35,13 @@ const openSlot = (st: E.GameState): number => st.slots.filter((s) => s.card && E
 /* ---------- 1. every wonder builds without crashing ---------- */
 for (const w of E.WONDERS) {
   try {
-    let st = rig([w.id]);
+    const st = rig([w.id]);
     st.players[1].built = ["glassworks", "lumber_yard"];   // targets for destroy effects
     st.discard = ["altar"];                                 // target for Mausoleum
     const after = E.actWonder(st, openSlot(st), w.id);
     if (!after) { t(`${w.name} builds`, false, "returned null"); continue; }
     const built = after.players[0].wonders.find((x) => x.id === w.id);
-    t(`${w.name} builds`, built && built.built, built);
+    t(`${w.name} builds`, built?.built, built);
   } catch (e) { t(`${w.name} builds`, false, (e as Error).message); }
 }
 
@@ -197,7 +197,9 @@ for (const id of ["sphinx", "hanging_gardens", "temple_of_artemis", "appian_way"
 /* ---------- 11. wonder scoring ---------- */
 {
   const st = rig(["pyramids", "sphinx"]);
-  st.players[0].wonders.forEach((w) => (w.built = true));
+  st.players[0].wonders.forEach((w) => {
+    w.built = true;
+  });
   t("built wonders score (9+6)", E.score(st, 0).wonders === 15, E.score(st, 0).wonders);
   const st2 = rig(["pyramids", "sphinx"]);
   st2.players[0].wonders[0].built = true;
@@ -210,7 +212,7 @@ for (const id of ["sphinx", "hanging_gardens", "temple_of_artemis", "appian_way"
   const slot = openSlot(st);
   const a = must(E.actWonder(st, slot, "pyramids"));
   t("wonder cost is deducted (8 for 3 stone + 1 papyrus)", a.players[0].coins === 12, a.players[0].coins);
-  t("the card used is consumed", a.slots.find((s) => s.id === slot)!.card === null, "still there");
+  t("the card used is consumed", a.slots.find((s) => s.id === slot)?.card === null, "still there");
   t("remaining count drops", a.remaining === 19, a.remaining);
   t("card used for a wonder does NOT enter the city", a.players[0].built.length === 0, a.players[0].built);
   t("card used for a wonder does NOT enter the discard", a.discard.length === 0, a.discard);
@@ -221,5 +223,9 @@ for (const id of ["sphinx", "hanging_gardens", "temple_of_artemis", "appian_way"
 }
 
 console.log(`PASS ${ok.length}`);
-if (bad.length) { console.log(`\nFAIL ${bad.length}`); bad.forEach((b) => console.log("  ✗ " + b)); }
-else console.log("No failures.");
+if (bad.length) {
+  console.log(`\nFAIL ${bad.length}`);
+  bad.forEach((b) => {
+    console.log(`  ✗ ${b}`);
+  });
+} else console.log("No failures.");

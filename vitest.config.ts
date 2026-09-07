@@ -25,6 +25,16 @@ export default defineConfig({
           setupFiles: ['./vitest.setup.ts'],
         },
       },
+      {
+        plugins: [react()],
+        test: {
+          name: 'portfolio',
+          root: 'apps/portfolio',
+          environment: 'jsdom',
+          globals: true,
+          setupFiles: ['./src/setupTests.ts'],
+        },
+      },
     ],
   },
 });

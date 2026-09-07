@@ -109,9 +109,16 @@
   ],
   "experience": [
     {
+      "company": "Claimable",
+      "title": "Senior Software Engineer",
+      "years": "08/31/2024 - present",
+      "mainTech": [],
+      "technologies": []
+    },
+    {
       "company": "Tractor Zoom",
       "title": "Lead Software Developer",
-      "years": "05/2021 - present",
+      "years": "05/2021 - 08/2024",
       "mainTech": [
         ""
       ],

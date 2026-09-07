@@ -13,7 +13,7 @@ const Experience: React.FC<ExperienceProps> = ({ resumeExperience, resumeBasicIn
 
   const experience = resumeExperience.map((work) => {
     return (
-      <div key={work.title} className="mb-8 p-6 border border-gray-200 rounded-lg shadow-sm bg-white hover:shadow-md transition-shadow">
+      <div key={`${work.company}-${work.title}`} className="mb-8 p-6 border border-gray-200 rounded-lg shadow-sm bg-white hover:shadow-md transition-shadow">
         <div className="flex flex-col md:flex-row justify-between items-start mb-4">
           <div>
             <h3 className="text-xl font-bold text-gray-800">{work.title}</h3>

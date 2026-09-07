@@ -11,7 +11,7 @@
     "type": "vite",
     "tier": "featured",
     "title": "Quick",
-    "blurb": "Dev utilities — converters, generators, encoders"
+    "blurb": "Dev utilities \u2014 converters, generators, encoders"
   },
   {
     "slug": "musical-cards",
@@ -36,6 +36,10 @@
     "slug": "simple-city",
     "type": "static",
     "tier": "experiment",
-    "title": "Simple City"
+    "title": "Simple City",
+    "exclude": [
+      "GOAL.png",
+      "verification_*.png"
+    ]
   }
 ]

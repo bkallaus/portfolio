@@ -2,7 +2,12 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { FaVolumeUp, FaVolumeMute } from "react-icons/fa";
 import { Destination, gainToDb } from 'tone';
-import useLocalStorage from "use-local-storage";
+import useLocalStorageModule from "use-local-storage";
+
+// use-local-storage is CJS. Vite 5 handed back the function directly; Vite 8 hands
+// back the module object, so unwrap .default when it is there. Calling the object
+// threw during render, which unmounted the whole tree and left the page blank.
+const useLocalStorage = useLocalStorageModule.default ?? useLocalStorageModule;
 
 const Container = styled.div`
     position: relative;

@@ -57,13 +57,29 @@ for (const site of sites.filter((s) => s.type === 'vite')) {
   console.log(`[build-all]   ${site.slug} public/ -> ${site.slug === 'portfolio' ? 'dist/' : `dist/${site.slug}/`}`);
 }
 
+// A page with no build step is copied verbatim, so it needs to be told what is
+// source and what is workshop litter. Anything matched here is never published:
+// dotfiles and dot-directories, docs, scripts, and logs. A page can name more in
+// its sites.json entry via `exclude`, which takes plain names or * globs.
 const SKIP = new Set(['.git', '.github', 'node_modules', 'package.json', 'package-lock.json']);
+const DENY = [/^\./, /\.md$/i, /\.py$/i, /\.log$/i];
+const globToRe = (g) => new RegExp('^' + g.split('*').map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$', 'i');
+
 for (const site of sites.filter((s) => s.type === 'static')) {
-  fs.cpSync(path.join(root, 'apps', site.slug), path.join(dist, site.slug), {
+  const extra = (site.exclude ?? []).map(globToRe);
+  const from = path.join(root, 'apps', site.slug);
+  let skipped = 0;
+  fs.cpSync(from, path.join(dist, site.slug), {
     recursive: true,
-    filter: (src) => !SKIP.has(path.basename(src)),
+    filter: (src) => {
+      if (src === from) return true;
+      const name = path.basename(src);
+      const publish = !SKIP.has(name) && !DENY.some((re) => re.test(name)) && !extra.some((re) => re.test(name));
+      if (!publish) skipped += 1;
+      return publish;
+    },
   });
-  console.log(`[build-all]   ${site.slug} -> dist/${site.slug}/ (copied, not built)`);
+  console.log(`[build-all]   ${site.slug} -> dist/${site.slug}/ (copied, not built; ${skipped} paths withheld)`);
 }
 
 console.log('[build-all] Building shared nav ...');

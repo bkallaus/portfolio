@@ -1,8 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react'
-import * as VexFlow from 'vexflow'
-
-const VF = VexFlow.Flow || VexFlow
-const { Formatter, Renderer, Stave, StaveNote } = VF
+import { Formatter, Renderer, Stave, StaveNote } from 'vexflow'
 const clefAndTimeWidth = 60;
 
 // Colors from Design System

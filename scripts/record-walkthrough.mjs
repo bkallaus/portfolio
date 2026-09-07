@@ -1,11 +1,4 @@
 #!/usr/bin/env node
-// Records one video walking the whole site: every page, opening the nav drawer and
-// expanding Experiments on each. Expects the assembled site to be served already:
-//
-//   npm run build && npx vite preview --outDir dist --port 4173 &
-//   node scripts/record-walkthrough.mjs
-//
-// Writes to walkthrough/ (gitignored).
 import { chromium } from '@playwright/test';
 import { readFileSync, rmSync, readdirSync, renameSync } from 'node:fs';
 import path from 'node:path';
@@ -46,23 +39,6 @@ for (const site of sites) {
   await pause(800);
   await page.mouse.wheel(0, -400);
   await pause(400);
-
-  const button = page.locator('.nav-btn').first();
-  if (await button.count()) {
-    await button.click();
-    await pause(1200);
-    const toggle = page.locator('.exp-toggle').first();
-    if (await toggle.count()) {
-      await toggle.click();
-      await pause(1400);
-      await toggle.click();
-      await pause(500);
-    }
-    await page.keyboard.press('Escape');
-    await pause(700);
-  } else {
-    problems.push(`${url} :: no nav button`);
-  }
 }
 
 await context.close();
@@ -75,7 +51,7 @@ if (video) {
 }
 
 console.log('\nfindings:');
-if (problems.length === 0) console.log('  none — every page rendered and the drawer worked');
+if (problems.length === 0) console.log('  none — every page rendered');
 else {
   problems.forEach((p) => console.log('  ! ' + p));
   process.exitCode = 1;

@@ -2,7 +2,7 @@
 
 A web application to help users learn to read music and improve their ear training.
 
-**Live Demo:** [https://bkallaus.github.io/musical-cards](https://bkallaus.github.io/musical-cards)
+**Live Demo:** [https://ben.kallaus.me/musical-cards/](https://ben.kallaus.me/musical-cards/)
 
 ## Features
 

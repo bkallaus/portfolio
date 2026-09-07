@@ -31,8 +31,6 @@ jobs:
       - name: Run musical-cards tests
         run: npx vitest run --project musical-cards
 
-      # 19 of quick's tests already failed before consolidation (identical on
-      # quick@main standalone). Drop continue-on-error once they are fixed.
       - name: Run quick tests (pre-existing failures, non-blocking)
         continue-on-error: true
         run: npx vitest run --project quick

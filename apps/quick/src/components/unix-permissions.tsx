@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import type React from 'react';
+import { useState } from 'react';
 import CalculationContainer from './container';
 import { Checkbox } from "./ui/checkbox";
 import { Label } from "./ui/label";

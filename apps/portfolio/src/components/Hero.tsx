@@ -1,6 +1,6 @@
-import React from 'react';
+import type React from 'react';
 import { useTypewriter } from '../hooks/useTypewriter';
-import { SharedBasicInfo } from '../types';
+import type { SharedBasicInfo } from '../types';
 
 interface HeroProps {
     headerData: SharedBasicInfo;

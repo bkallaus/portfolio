@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import type React from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -19,14 +20,14 @@ const UrlParser: React.FC = () => {
     // Add protocol if missing so we can still parse it as a URL if they just type "google.com"
     let urlToParse = value;
     if (!/^https?:\/\//i.test(value)) {
-        urlToParse = 'http://' + value;
+        urlToParse = `http://${value}`;
     }
 
     try {
       const url = new URL(urlToParse);
       setParsedUrl(url);
       setError('');
-    } catch (e) {
+    } catch (_e) {
       setParsedUrl(null);
       setError('Invalid URL format');
     }

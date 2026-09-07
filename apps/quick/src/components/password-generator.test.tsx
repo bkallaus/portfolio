@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { vi, describe, beforeEach, afterEach, test, expect } from 'vitest';
@@ -108,7 +108,7 @@ describe('PasswordGenerator', () => {
     expect(screen.getByText('History (Last 30 Days)')).toBeInTheDocument();
 
     // We should have the current password in the main output, and two in history (most recent first)
-    const historyInputs = screen.getAllByRole('textbox').filter(el => el !== output2);
+    const _historyInputs = screen.getAllByRole('textbox').filter(el => el !== output2);
     // screen.getAllByRole('textbox') gets all text inputs.
     // 0 is the main Generated Password input. The rest are history.
     const allInputs = screen.getAllByRole('textbox');

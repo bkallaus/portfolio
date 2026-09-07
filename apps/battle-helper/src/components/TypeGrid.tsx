@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Dex } from '@pkmn/dex';
 import { allTypes } from '../data';
 
@@ -27,7 +27,7 @@ export const TypeGrid = () => {
               {allTypes.map(def => {
                 const eff = Dex.getEffectiveness(atk, [def]);
                 const isImmune = !Dex.getImmunity(atk, [def]);
-                const multiplier = isImmune ? 0 : Math.pow(2, eff);
+                const multiplier = isImmune ? 0 : 2 ** eff;
 
                 let bg = 'transparent';
                 let color = 'var(--text-main)';

@@ -1,5 +1,5 @@
-import React from "react";
-import { SharedBasicInfo } from "../types";
+import type React from "react";
+import type { SharedBasicInfo } from "../types";
 
 type FooterProps = {
   sharedBasicInfo?: SharedBasicInfo;

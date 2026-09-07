@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import CalculationContainer from "./container";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -19,7 +19,7 @@ const TimestampConverter = () => {
     }
 
     const tsNum = Number(tsStr);
-    if (isNaN(tsNum)) {
+    if (Number.isNaN(tsNum)) {
       setLocalTime("Invalid timestamp");
       setUtcTime("Invalid timestamp");
       return;
@@ -34,7 +34,7 @@ const TimestampConverter = () => {
 
     const date = new Date(ms);
 
-    if (isNaN(date.getTime())) {
+    if (Number.isNaN(date.getTime())) {
       setLocalTime("Invalid date");
       setUtcTime("Invalid date");
       return;

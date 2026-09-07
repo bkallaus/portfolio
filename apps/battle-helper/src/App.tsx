@@ -1,8 +1,9 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import type React from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Dex } from '@pkmn/dex';
 import { calculate, Pokemon, Move } from '@smogon/calc';
 
-import { PokemonConfig } from './types';
+import type { PokemonConfig } from './types';
 import { defaultP1, defaultP2 } from './constants';
 import { allMoves } from './data';
 import { PokemonConfigPanel } from './components/PokemonConfigPanel';
@@ -104,10 +105,12 @@ const App: React.FC = () => {
       const getMovesForSpecies = async (speciesId: string) => {
         try {
           const learnset = await Dex.learnsets.get(speciesId);
-          if (learnset && learnset.learnset) {
-            Object.keys(learnset.learnset).forEach(m => learnableMoves.add(m));
+          if (learnset?.learnset) {
+            Object.keys(learnset.learnset).forEach(m => {
+              learnableMoves.add(m);
+            });
           }
-        } catch (e) {
+        } catch (_e) {
           // Ignore
         }
       };
@@ -171,7 +174,7 @@ const App: React.FC = () => {
               multiplier = 0;
             } else {
               const eff = Dex.getEffectiveness(pkmnMove.type, p2Types);
-              multiplier = Math.pow(2, eff);
+              multiplier = 2 ** eff;
             }
             effText = multiplier === 0 ? "Immune (0x)" : multiplier === 1 ? "Neutral (1x)" : `${multiplier}x Effective`;
           }
@@ -194,7 +197,7 @@ const App: React.FC = () => {
           let maxDamage = 0;
           try {
              maxDamage = result.range()[1];
-          } catch(e) {
+          } catch(_e) {
              if (Array.isArray(result.damage)) {
                maxDamage = Math.max(...(result.damage as number[]));
              } else if (typeof result.damage === 'number') {
@@ -231,13 +234,13 @@ const App: React.FC = () => {
             multiplier,
             maxDamage
           };
-        } catch (e) {
+        } catch (_e) {
           return null;
         }
       });
       
       return (results.filter(r => r !== null) as any[]).sort((a, b) => b.maxDamage - a.maxDamage);
-    } catch (e) {
+    } catch (_e) {
       return [];
     }
   }, [p1Config, p2Config, p1Learnset]);
@@ -246,7 +249,7 @@ const App: React.FC = () => {
   const displayedResults = useMemo(() => {
     const coreMoves = (p1Config.moves || []).filter(m => m);
     
-    let coreResults = damageResults.filter(r => coreMoves.includes(r.move));
+    const coreResults = damageResults.filter(r => coreMoves.includes(r.move));
     let otherResults = damageResults.filter(r => !coreMoves.includes(r.move));
     
     if (moveFilter) {
@@ -348,7 +351,7 @@ const App: React.FC = () => {
                   <span className="damage-move-name" style={{ fontSize: '1.2rem' }}>{result.move}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  {result.koStr && result.koStr.toLowerCase().includes('ohko') && (
+                  {result.koStr?.toLowerCase().includes('ohko') && (
                     <span style={{
                       backgroundColor: result.koStr.toLowerCase().includes('guaranteed ohko') ? '#dae8be' : '#f3f4f5',
                       padding: '0.25rem 0.5rem',
@@ -437,7 +440,7 @@ const App: React.FC = () => {
                   <div className="team-drawer-item-info">
                     <span style={{ fontWeight: 'bold' }}>{pokemon.species || '(No Species)'}</span>
                     <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Lvl {pokemon.level}</span>
-                    {pokemon.moves && pokemon.moves.some(m => m) && (
+                    {pokemon.moves?.some(m => m) && (
                       <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                         {pokemon.moves.filter(m => m).map((m, i) => (
                           <span key={i} style={{ background: '#f3f4f5', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border)' }}>{m}</span>

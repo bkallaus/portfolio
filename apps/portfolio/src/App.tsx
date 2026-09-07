@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Navbar from "./components/Navbar";
 import Hero from "./components/Hero";
 import Seniority from "./components/Seniority";
@@ -7,7 +7,7 @@ import About from "./components/About";
 import Experience from "./components/Experience";
 import Projects from "./components/Projects";
 import Skills from "./components/Skills";
-import { PortfolioSharedData, ResumeData } from "./types";
+import type { PortfolioSharedData, ResumeData } from "./types";
 
 export const App = () => {
   const [sharedData, setSharedBasicInfo] = useState<PortfolioSharedData>({} as PortfolioSharedData);

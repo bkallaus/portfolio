@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Menu, X } from 'lucide-react';
 import { Button } from './ui/button';
 import ThemeToggle from './theme-toggle';

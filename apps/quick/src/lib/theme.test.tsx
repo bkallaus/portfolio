@@ -22,7 +22,9 @@ const mockMatchMedia = (matches: boolean) => {
   return {
     emit: (next: boolean) => {
       mql.matches = next;
-      listeners.forEach((cb) => cb());
+      listeners.forEach((cb) => {
+        cb();
+      });
     },
   };
 };

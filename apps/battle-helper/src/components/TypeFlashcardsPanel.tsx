@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import type React from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Dex } from '@pkmn/dex';
 import { allTypes } from '../data';
 
@@ -27,7 +28,7 @@ export const TypeFlashcardsPanel: React.FC = () => {
 
     const eff = Dex.getEffectiveness(attackingType, [defendingType]);
     const isImmune = !Dex.getImmunity(attackingType, [defendingType]);
-    const actualMultiplier = isImmune ? 0 : Math.pow(2, eff);
+    const actualMultiplier = isImmune ? 0 : 2 ** eff;
 
     const isCorrect = guessMultiplier === actualMultiplier;
 

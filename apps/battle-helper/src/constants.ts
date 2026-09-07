@@ -1,4 +1,4 @@
-import { PokemonConfig } from './types';
+import type { PokemonConfig } from './types';
 
 export const defaultStats = { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 };
 export const defaultEVs = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };

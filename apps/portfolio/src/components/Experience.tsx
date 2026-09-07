@@ -1,5 +1,5 @@
-import React from "react";
-import { Experience as ExperienceType, ResumeBasicInfo } from "../types";
+import type React from "react";
+import type { Experience as ExperienceType, ResumeBasicInfo } from "../types";
 
 type ExperienceProps = {
   resumeExperience: ExperienceType[];
@@ -22,13 +22,11 @@ const Experience: React.FC<ExperienceProps> = ({ resumeExperience, resumeBasicIn
           <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full mt-2 md:mt-0">{work.years}</span>
         </div>
 
-        {work.technologies && work.technologies.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-4">
-            {work.technologies.map((tech, i) => (
-              <span key={i} className="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded">{tech}</span>
-            ))}
-          </div>
-        )}
+        <div className="flex flex-wrap gap-2 mt-4">
+          {work.technologies?.map((tech, i) => (
+            <span key={i} className="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded">{tech}</span>
+          ))}
+        </div>
       </div>
     );
   });

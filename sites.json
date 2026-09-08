@@ -37,5 +37,11 @@
     "type": "static",
     "tier": "experiment",
     "title": "Simple City"
+  },
+  {
+    "slug": "neural-race",
+    "type": "vite",
+    "tier": "experiment",
+    "title": "Neural Race Track"
   }
 ]

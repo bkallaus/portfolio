@@ -24,7 +24,7 @@
   },
   "overrides": [
     {
-      "includes": ["duel/**"],
+      "includes": ["apps/duel/**"],
       "linter": {
         "rules": {
           "a11y": {

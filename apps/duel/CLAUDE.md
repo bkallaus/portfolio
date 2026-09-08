@@ -3,9 +3,9 @@
 A two-player strategy card game for the browser. Built for two people to play together
 remotely.
 
-Lives inside the portfolio's own Vite project rather than as a standalone app — there's no
-`package.json` here beyond `{ "type": "module" }`, which just scopes ESM parsing to this
-directory. Run everything from the repo root:
+Lives inside the portfolio's own Vite project rather than as a standalone app — it has no
+`package.json` of its own; dependencies and the ESM `"type": "module"` setting come from the
+repo root. Run everything from the repo root:
 
 ```
 npm install

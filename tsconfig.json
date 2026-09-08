@@ -30,7 +30,6 @@
     "packages",
     "scripts",
     "vite.config.ts",
-    "duel/src",
-    "duel/test"
+    "apps/duel/test"
   ]
 }

@@ -33,6 +33,12 @@
     "title": "Battle Helper"
   },
   {
+    "slug": "neural-race-track",
+    "type": "vite",
+    "tier": "experiment",
+    "title": "Neural Race Track"
+  },
+  {
     "slug": "simple-city",
     "type": "static",
     "tier": "experiment",

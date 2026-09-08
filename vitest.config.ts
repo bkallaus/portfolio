@@ -35,6 +35,15 @@ export default defineConfig({
           setupFiles: ['./src/setupTests.ts'],
         },
       },
+      {
+        test: {
+          name: 'neural-race-track',
+          root: 'apps/neural-race-track',
+          environment: 'node',
+          globals: true,
+          include: ['src/**/*.test.ts'],
+        },
+      },
     ],
   },
 });

@@ -59,6 +59,22 @@
   ],
   "experimental_projects": [
     {
+      "title": "Duel",
+      "description": "A two-player strategy card game for the browser. Built for two people to play together remotely.",
+      "images": [],
+      "url": "/duel/",
+      "technologies": [
+        {
+          "class": "devicon-react-original",
+          "name": "React"
+        },
+        {
+          "class": "devicon-javascript-plain",
+          "name": "JavaScript"
+        }
+      ]
+    },
+    {
       "title": "Poke Search",
       "description": "Interactive Pokemon search and query tool",
       "images": [],

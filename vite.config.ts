@@ -38,6 +38,14 @@ function urlsMatchProduction(): Plugin {
     configureServer(server) {
       server.middlewares.use((req, _res, next) => {
         const url = req.url ?? '/';
+        // The Duel game lives at apps/duel/play but deploys at /duel/play/,
+        // alongside the /duel/ write-up served from public/. Mirror that here
+        // so dev URLs match production. (/duel/ itself falls through to the
+        // public/ write-up.)
+        if (url === '/duel/play' || url.startsWith('/duel/play/')) {
+          req.url = `/apps/duel${url.slice('/duel'.length)}`;
+          return next();
+        }
         for (const site of built) {
           if (url === `/${site.slug}` || url.startsWith(`/${site.slug}/`)) {
             req.url = `/apps/${site.slug}${url.slice(site.slug.length + 1)}`;
@@ -60,7 +68,12 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
     rollupOptions: {
-      input,
+      // The Duel game is a standalone page living under the portfolio's
+      // /duel/ write-up, at /duel/play/. It isn't a sites.json app of its
+      // own, so it rides along as an extra input; htmlAtUrlSegment rewrites
+      // apps/duel/play/index.html to duel/play/index.html, so it deploys at
+      // /duel/play/.
+      input: { ...input, 'duel-play': path.join(here, 'apps', 'duel', 'play', 'index.html') },
       output: {
         entryFileNames: 'assets/[name]-[hash].js',
       },

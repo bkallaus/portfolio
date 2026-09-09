@@ -34,6 +34,9 @@ jobs:
       - name: Run tests
         run: npm test
 
+      - name: Run Duel tests
+        run: npm run test:duel
+
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 

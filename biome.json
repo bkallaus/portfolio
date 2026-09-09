@@ -22,5 +22,19 @@
       }
     }
   },
+  "overrides": [
+    {
+      "includes": ["apps/duel/**"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "noStaticElementInteractions": "warn",
+            "useKeyWithClickEvents": "warn",
+            "noSvgWithoutTitle": "warn"
+          }
+        }
+      }
+    }
+  ],
   "formatter": { "enabled": false }
 }

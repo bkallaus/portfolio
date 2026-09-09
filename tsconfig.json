@@ -29,6 +29,7 @@
     "apps/*/src",
     "packages",
     "scripts",
-    "vite.config.ts"
+    "vite.config.ts",
+    "apps/duel/test"
   ]
 }

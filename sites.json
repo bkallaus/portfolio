@@ -37,5 +37,11 @@
     "type": "static",
     "tier": "experiment",
     "title": "Simple City"
+  },
+  {
+    "slug": "duel",
+    "type": "static",
+    "tier": "experiment",
+    "title": "Duel"
   }
 ]

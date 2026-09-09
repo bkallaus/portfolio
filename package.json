@@ -18,6 +18,7 @@
     "lint:fix": "biome lint --write .",
     "test:musical-cards": "vitest run --project musical-cards",
     "test:quick": "vitest run --project quick",
+    "test:duel": "node apps/duel/test/run.ts",
     "typecheck": "tsc --noEmit",
     "test:e2e": "playwright test",
     "walkthrough": "node scripts/record-walkthrough.mjs"
@@ -71,7 +72,7 @@
   },
   "overrides": {
     "underscore": "1.13.8",
-    "body-parser": "1.20.6"
+    "body-parser": "1.20.8"
   },
   "browserslist": {
     "production": [

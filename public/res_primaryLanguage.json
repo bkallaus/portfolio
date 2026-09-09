@@ -59,6 +59,38 @@
   ],
   "experimental_projects": [
     {
+      "title": "Neural Race Track",
+      "description": "Randomly generated circuits driven by cars that steer with their own small neural networks. Rewire a car's senses and hidden layers to see which brain learns the track fastest.",
+      "images": [],
+      "url": "/neural-race/",
+      "technologies": [
+        {
+          "class": "devicon-react-original",
+          "name": "React"
+        },
+        {
+          "class": "devicon-typescript-plain",
+          "name": "TypeScript"
+        }
+      ]
+    },
+    {
+      "title": "Duel",
+      "description": "A two-player strategy card game for the browser. Built for two people to play together remotely.",
+      "images": [],
+      "url": "/duel/",
+      "technologies": [
+        {
+          "class": "devicon-react-original",
+          "name": "React"
+        },
+        {
+          "class": "devicon-javascript-plain",
+          "name": "JavaScript"
+        }
+      ]
+    },
+    {
       "title": "Poke Search",
       "description": "Interactive Pokemon search and query tool",
       "images": [],

@@ -39,6 +39,12 @@
     "title": "Simple City"
   },
   {
+    "slug": "duel",
+    "type": "static",
+    "tier": "experiment",
+    "title": "Duel"
+  },
+  {
     "slug": "neural-race",
     "type": "vite",
     "tier": "experiment",

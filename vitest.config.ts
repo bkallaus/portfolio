@@ -28,6 +28,16 @@ export default defineConfig({
       {
         plugins: [react()],
         test: {
+          name: 'pit-wall',
+          root: 'apps/pit-wall',
+          environment: 'jsdom',
+          globals: true,
+          setupFiles: ['./vitest.setup.ts'],
+        },
+      },
+      {
+        plugins: [react()],
+        test: {
           name: 'portfolio',
           root: 'apps/portfolio',
           environment: 'jsdom',

@@ -43,5 +43,11 @@
     "type": "static",
     "tier": "experiment",
     "title": "Duel"
+  },
+  {
+    "slug": "pit-wall",
+    "type": "vite",
+    "tier": "experiment",
+    "title": "Pit Wall"
   }
 ]

@@ -1,14 +1,14 @@
-import { CAR_HALF_WIDTH, CAR_LENGTH, sensorAngles } from '../engine/car';
 import type { Race } from '../engine/race';
+import { CAR_HALF_WIDTH, CAR_LENGTH } from '../engine/runner';
 import type { Track } from '../engine/track';
 
 export type Viewport = { scale: number; offsetX: number; offsetY: number };
 
-export const SURFACE = '#20242c';
-export const WALL = '#525a67';
-export const BACKDROP = '#0c0e13';
+const SURFACE = '#20242c';
+const WALL = '#525a67';
+const BACKDROP = '#0c0e13';
 
-export function fitViewport(track: Track, width: number, height: number, padding = 28): Viewport {
+export function fitViewport(track: Track, width: number, height: number, padding = 26): Viewport {
   const spanX = track.bounds.maxX - track.bounds.minX;
   const spanY = track.bounds.maxY - track.bounds.minY;
   const scale = Math.min((width - padding * 2) / spanX, (height - padding * 2) / spanY);
@@ -57,12 +57,6 @@ export function drawTrack(ctx: CanvasRenderingContext2D, track: Track, view: Vie
   ctx.lineWidth = track.halfWidth * 2 * view.scale;
   ctx.stroke();
 
-  ctx.setLineDash([10, 18]);
-  ctx.strokeStyle = 'rgba(255,255,255,0.09)';
-  ctx.lineWidth = Math.max(1, 1.5 * view.scale);
-  ctx.stroke();
-  ctx.setLineDash([]);
-
   ctx.strokeStyle = WALL;
   ctx.lineWidth = Math.max(1.5, 2.5 * view.scale);
   tracePath(ctx, track.leftWall, view);
@@ -73,61 +67,25 @@ export function drawTrack(ctx: CanvasRenderingContext2D, track: Track, view: Vie
   drawStartLine(ctx, track, view);
 }
 
-function drawSensors(
-  ctx: CanvasRenderingContext2D,
-  race: Race,
-  index: number,
-  view: Viewport,
-): void {
-  const racer = race.racers[index];
-  const { state, spec } = racer;
-  const angles = sensorAngles(spec.sensors);
-
-  angles.forEach((angle, ray) => {
-    const reach = state.sensorReadings[ray] ?? spec.sensors.range;
-    const direction = state.heading + angle;
-    const originX = state.x * view.scale + view.offsetX;
-    const originY = state.y * view.scale + view.offsetY;
-    const endX = (state.x + Math.cos(direction) * reach) * view.scale + view.offsetX;
-    const endY = (state.y + Math.sin(direction) * reach) * view.scale + view.offsetY;
-    const proximity = 1 - reach / spec.sensors.range;
-
-    ctx.strokeStyle = `rgba(120, 220, 255, ${0.16 + proximity * 0.5})`;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(originX, originY);
-    ctx.lineTo(endX, endY);
-    ctx.stroke();
-
-    ctx.fillStyle = `rgba(120, 220, 255, ${0.3 + proximity * 0.6})`;
-    ctx.beginPath();
-    ctx.arc(endX, endY, 2, 0, Math.PI * 2);
-    ctx.fill();
-  });
-}
-
 function drawCar(
   ctx: CanvasRenderingContext2D,
-  race: Race,
-  index: number,
+  runner: Race['runners'][number],
   view: Viewport,
-  leaderId: string,
+  highlight: boolean,
 ): void {
-  const { state, spec } = race.racers[index];
   const length = CAR_LENGTH * view.scale;
   const width = CAR_HALF_WIDTH * 2 * view.scale;
 
   ctx.save();
-  ctx.translate(state.x * view.scale + view.offsetX, state.y * view.scale + view.offsetY);
-  ctx.rotate(state.heading);
-  ctx.globalAlpha = state.alive ? 1 : 0.28;
+  ctx.translate(runner.x * view.scale + view.offsetX, runner.y * view.scale + view.offsetY);
+  ctx.rotate(runner.heading);
 
-  if (state.alive && spec.id === leaderId) {
-    ctx.shadowColor = spec.color;
-    ctx.shadowBlur = 14;
+  if (highlight) {
+    ctx.shadowColor = runner.setup.color;
+    ctx.shadowBlur = 16;
   }
 
-  ctx.fillStyle = spec.color;
+  ctx.fillStyle = runner.setup.color;
   ctx.beginPath();
   ctx.moveTo(length / 2, 0);
   ctx.lineTo(-length / 2, -width / 2);
@@ -144,24 +102,24 @@ export function drawRace(
   view: Viewport,
   width: number,
   height: number,
-  selectedIndex: number,
+  highlightId: string,
+  showLine: boolean,
 ): void {
   ctx.fillStyle = BACKDROP;
   ctx.fillRect(0, 0, width, height);
 
   drawTrack(ctx, race.track, view);
 
-  const leader = [...race.racers]
-    .filter((racer) => racer.state.alive)
-    .sort((a, b) => b.state.distance - a.state.distance)[0];
-  const leaderId = leader ? leader.spec.id : '';
-
-  if (race.racers[selectedIndex]) {
-    ctx.globalAlpha = race.racers[selectedIndex].state.alive ? 1 : 0.35;
-    drawSensors(ctx, race, selectedIndex, view);
-    ctx.globalAlpha = 1;
+  if (showLine) {
+    tracePath(ctx, race.line.points, view);
+    ctx.setLineDash([9, 11]);
+    ctx.strokeStyle = 'rgba(120, 220, 255, 0.45)';
+    ctx.lineWidth = Math.max(1, 1.8 * view.scale);
+    ctx.stroke();
+    ctx.setLineDash([]);
   }
-  for (let index = 0; index < race.racers.length; index++) {
-    drawCar(ctx, race, index, view, leaderId);
+
+  for (const runner of race.runners) {
+    drawCar(ctx, runner, view, runner.setup.id === highlightId);
   }
 }

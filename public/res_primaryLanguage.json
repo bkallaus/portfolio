@@ -59,10 +59,10 @@
   ],
   "experimental_projects": [
     {
-      "title": "Neural Race Track",
-      "description": "Randomly generated circuits driven by cars that steer with their own small neural networks. Rewire a car's senses and hidden layers to see which brain learns the track fastest.",
+      "title": "Pit Wall",
+      "description": "A racing strategy game. Every circuit is generated from a seed \u2014 spend a fixed budget on the car, then watch whether your setup was the right read of the track.",
       "images": [],
-      "url": "/neural-race/",
+      "url": "/pit-wall/",
       "technologies": [
         {
           "class": "devicon-react-original",

@@ -28,8 +28,8 @@ export default defineConfig({
       {
         plugins: [react()],
         test: {
-          name: 'neural-race',
-          root: 'apps/neural-race',
+          name: 'pit-wall',
+          root: 'apps/pit-wall',
           environment: 'jsdom',
           globals: true,
           setupFiles: ['./vitest.setup.ts'],

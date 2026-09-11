@@ -1,11 +1,8 @@
 import {
-  castRay,
   catmullRomLoop,
   convexHull,
-  createSegmentIndex,
   loopLength,
   loopSelfIntersects,
-  projectOntoSegment,
   resampleLoop,
 } from './geometry';
 
@@ -69,37 +66,5 @@ describe('loopSelfIntersects', () => {
     ];
     expect(loopSelfIntersects(simple)).toBe(false);
     expect(loopSelfIntersects(crossed)).toBe(true);
-  });
-});
-
-describe('projectOntoSegment', () => {
-  it('clamps to the segment ends', () => {
-    const segment = { ax: 0, ay: 0, bx: 10, by: 0 };
-    expect(projectOntoSegment(5, 3, segment)).toMatchObject({ x: 5, y: 0, distance: 3 });
-    expect(projectOntoSegment(-8, 0, segment)).toMatchObject({ x: 0, y: 0, t: 0 });
-    expect(projectOntoSegment(99, 0, segment)).toMatchObject({ x: 10, y: 0, t: 1 });
-  });
-});
-
-describe('castRay', () => {
-  const index = createSegmentIndex([
-    { ax: 100, ay: -50, bx: 100, by: 50 },
-    { ax: -50, ay: 200, bx: 50, by: 200 },
-  ]);
-
-  it('measures the distance to the first wall hit', () => {
-    expect(castRay(index, 0, 0, 1, 0, 500)).toBeCloseTo(100);
-  });
-
-  it('returns the full range when nothing is hit', () => {
-    expect(castRay(index, 0, 0, -1, 0, 500)).toBe(500);
-  });
-
-  it('ignores walls beyond the sensor range', () => {
-    expect(castRay(index, 0, 0, 1, 0, 60)).toBe(60);
-  });
-
-  it('does not report walls behind the ray origin', () => {
-    expect(castRay(index, 200, 0, 1, 0, 500)).toBe(500);
   });
 });

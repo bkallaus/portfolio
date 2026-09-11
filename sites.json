@@ -45,9 +45,9 @@
     "title": "Duel"
   },
   {
-    "slug": "neural-race",
+    "slug": "pit-wall",
     "type": "vite",
     "tier": "experiment",
-    "title": "Neural Race Track"
+    "title": "Pit Wall"
   }
 ]

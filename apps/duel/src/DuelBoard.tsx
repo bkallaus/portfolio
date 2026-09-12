@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { C, CARDCOL, FONT, G, RES, RESCOL, RESLET, SCI, SHADOW, pipFill, shade } from "./theme.ts";
+import { C, CARDCOL, FONT, G, RES, RESCOL, RESLET, SCI, SCIINK, SHADOW, pipFill, shade } from "./theme.ts";
 import type { CardColor, Resource, ScienceSymbol } from "./theme.ts";
 import {
   CARDS, CARD, WONDERS, WON, TOKENS, TOK, LAYOUTS,
@@ -54,21 +54,17 @@ const Coin = ({ n, size = 14 }: { n: number; size?: number }) => (
 );
 
 function SciMark({ k, size = 15 }: { k: ScienceSymbol; size?: number }) {
-  const { col, shape } = SCI[k];
-  const s = size, h = s / 2;
-  const paths: Record<string, React.ReactElement> = {
-    circle: <circle cx={h} cy={h} r={h - 1} fill={col} />,
-    square: <rect x="2" y="2" width={s - 4} height={s - 4} fill={col} />,
-    triangle: <polygon points={`${h},1 ${s - 1},${s - 1} 1,${s - 1}`} fill={col} />,
-    diamond: <polygon points={`${h},1 ${s - 1},${h} ${h},${s - 1} 1,${h}`} fill={col} />,
-    hex: <polygon points={`${h},1 ${s - 1},${s * 0.3} ${s - 1},${s * 0.7} ${h},${s - 1} 1,${s * 0.7} 1,${s * 0.3}`} fill={col} />,
-    cross: <path d={`M${h - 2},1 h4 v${h - 3} h${h - 3} v4 h-${h - 3} v${h - 3} h-4 v-${h - 3} h-${h - 3} v-4 h${h - 3} z`} fill={col} />,
-    star: <polygon points={`${h},0 ${h * 1.25},${h * 0.7} ${s},${h * 0.75} ${h * 1.3},${h * 1.2} ${h * 1.55},${s} ${h},${h * 1.5} ${h * 0.45},${s} ${h * 0.7},${h * 1.2} 0,${h * 0.75} ${h * 0.75},${h * 0.7}`} fill={col} />,
-  };
+  const { col, label, parts } = SCI[k];
   return (
-    <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}
+    <svg width={size} height={size} viewBox="0 0 16 16" role="img" aria-label={label}
       style={{ display: "block", filter: `drop-shadow(0 1px 1px rgba(0,0,0,.45))`, flex: "0 0 auto" }}>
-      {paths[shape]}
+      <title>{label}</title>
+      {parts.map((part) => (
+        <path key={part.d} d={part.d}
+          fill={part.w ? "none" : part.ink ? SCIINK : col}
+          stroke={part.w ? (part.ink ? SCIINK : col) : "none"}
+          strokeWidth={part.w} strokeLinecap="round" strokeLinejoin="round" />
+      ))}
     </svg>
   );
 }
@@ -1044,14 +1040,15 @@ function RulesPanel({ onClose }: { onClose: () => void }) {
               return (
                 <span key={k} style={{ display: "flex", alignItems: "center", gap: 4 }}>
                   <SciMark k={k} size={15} />
-                  <span style={{ fontSize: 11 }}>{k} ×{n}</span>
+                  <span style={{ fontSize: 11 }}>{SCI[k].label} {n ? `×${n}` : "— Law token only"}</span>
                 </span>
               );
             })}
           </div>
           <div style={{ marginTop: 8, fontSize: 11.5 }}>
-            Two symbols appear on only one card each, so they can never be paired — but they still
-            count toward the six you need.
+            Six of the seven are printed on two green cards each, so every one of them can be
+            paired. The scales are on no card at all: the Law progress token is the only way to
+            hold that seventh symbol.
           </div>
         </Sec>
 

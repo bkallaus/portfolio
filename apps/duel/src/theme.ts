@@ -6,8 +6,21 @@
    ============================================================ */
 export type Resource = "wood" | "clay" | "stone" | "glass" | "papyrus";
 export type CardColor = "brown" | "grey" | "blue" | "green" | "yellow" | "red" | "purple";
-export type ScienceSymbol = "wheel" | "plumb" | "mortar" | "law" | "sundial" | "scales" | "astrolabe";
-export type SciShape = "circle" | "square" | "triangle" | "diamond" | "hex" | "cross" | "star";
+export type ScienceSymbol = "wheel" | "tablet" | "mortar" | "plumb" | "sundial" | "astrolabe" | "law";
+
+/* One glyph is a stack of parts drawn in a 16x16 box. A part with `w` is
+   stroked at that width, one without is filled; `ink` draws it in dark over
+   the symbol's own colour. */
+export interface SciPart {
+  d: string;
+  w?: number;
+  ink?: boolean;
+}
+export interface SciGlyph {
+  col: string;
+  label: string;
+  parts: SciPart[];
+}
 
 export const C = {
   board: "#18262a",
@@ -40,15 +53,74 @@ export const RESCOL: Record<Resource, string> = {
 };
 export const RESLET: Record<Resource, string> = { wood: "W", clay: "C", stone: "S", glass: "G", papyrus: "P" };
 
-/* Seven science symbols, drawn as distinct simple shapes. */
-export const SCI: Record<ScienceSymbol, { col: string; shape: SciShape }> = {
-  wheel: { col: "#e0b23c", shape: "circle" },
-  plumb: { col: "#7fc2e8", shape: "triangle" },
-  mortar: { col: "#d2705e", shape: "square" },
-  law: { col: "#b48fd6", shape: "diamond" },
-  sundial: { col: "#7fd6a8", shape: "hex" },
-  scales: { col: "#e8867f", shape: "cross" },
-  astrolabe: { col: "#cfd36f", shape: "star" },
+export const SCIINK = "rgba(24,19,10,.62)";
+
+/* The seven scientific symbols. Six appear on two green cards each; the
+   seventh, the scales, is carried only by the Law progress token. */
+export const SCI: Record<ScienceSymbol, SciGlyph> = {
+  wheel: {
+    col: "#e0b23c",
+    label: "Wheel",
+    parts: [
+      { d: "M8 1.9a6.1 6.1 0 1 0 0 12.2a6.1 6.1 0 1 0 0-12.2", w: 1.5 },
+      { d: "M8 2.6V13.4M2.6 8H13.4M4.2 4.2l7.6 7.6M11.8 4.2l-7.6 7.6", w: 1 },
+      { d: "M8 6.1a1.9 1.9 0 1 0 0 3.8a1.9 1.9 0 1 0 0-3.8" },
+    ],
+  },
+  tablet: {
+    col: "#6fbfe8",
+    label: "Inscribed tablet",
+    parts: [
+      { d: "M4.1 1.9h7.8a1.3 1.3 0 0 1 1.3 1.3v9.6a1.3 1.3 0 0 1-1.3 1.3H4.1a1.3 1.3 0 0 1-1.3-1.3V3.2a1.3 1.3 0 0 1 1.3-1.3z" },
+      { d: "M5.2 5.3h5.6M5.2 8h5.6M5.2 10.7h3.4", w: 1.1, ink: true },
+    ],
+  },
+  mortar: {
+    col: "#d2705e",
+    label: "Mortar and pestle",
+    parts: [
+      { d: "M10.9 2.1L6.6 6.8", w: 1.9 },
+      { d: "M2.5 7.1h11a5.5 5.5 0 0 1-5.5 6.8a5.5 5.5 0 0 1-5.5-6.8z" },
+    ],
+  },
+  plumb: {
+    col: "#8c9a33",
+    label: "Plumb bob",
+    parts: [
+      { d: "M8 1.1V5", w: 1.3 },
+      { d: "M6.2 4.7h3.6v1.8H6.2z" },
+      { d: "M5.1 6.4h5.8L8 14.7z" },
+    ],
+  },
+  sundial: {
+    col: "#7fd6a8",
+    label: "Sundial",
+    parts: [
+      { d: "M1.5 13.3a6.5 6.5 0 0 1 13 0z" },
+      { d: "M6.1 13.3L11.5 4.6v8.7z", ink: true },
+    ],
+  },
+  astrolabe: {
+    col: "#b48fd6",
+    label: "Armillary sphere",
+    parts: [
+      { d: "M8 1.9a6.1 6.1 0 1 0 0 12.2a6.1 6.1 0 1 0 0-12.2", w: 1.5 },
+      { d: "M1.9 8a6.1 3.1 0 1 0 12.2 0a6.1 3.1 0 1 0-12.2 0", w: 1 },
+      { d: "M4.9 8a3.1 6.1 0 1 0 6.2 0a3.1 6.1 0 1 0-6.2 0", w: 1 },
+      { d: "M8 0.9V2.6M8 13.4v1.7", w: 1.4 },
+    ],
+  },
+  law: {
+    col: "#e8867f",
+    label: "Scales of law",
+    parts: [
+      { d: "M8 1.1a1.1 1.1 0 1 0 0 2.2a1.1 1.1 0 1 0 0-2.2" },
+      { d: "M2.9 5.3h10.2M8 3.1v10.4M5.3 13.7h5.4", w: 1.4 },
+      { d: "M3.6 5.3v2.5M12.4 5.3v2.5", w: .9 },
+      { d: "M1.1 7.8a2.5 2.5 0 0 0 5 0z" },
+      { d: "M9.9 7.8a2.5 2.5 0 0 0 5 0z" },
+    ],
+  },
 };
 
 /* ============================================================

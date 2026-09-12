@@ -24,7 +24,7 @@ build step or test runner in the way.
 | File | Role |
 |---|---|
 | `src/engine.ts` | All game logic, and the types the rest of the app shares. Pure, no React, no DOM. |
-| `src/theme.ts` | Palette, resource colours, science symbol shapes, the domain unions, and the gradient/shadow tokens the board is skinned from. |
+| `src/theme.ts` | Palette, resource colours, science symbol glyphs, the domain unions, and the gradient/shadow tokens the board is skinned from. |
 | `src/net.ts` | Two connection transports behind one interface. |
 | `src/DuelBoard.tsx` | Every component. The only file that touches React. |
 | `test/` | Three suites, run by `test/run.ts`. |
@@ -76,6 +76,11 @@ array at the top of `engine.ts` are a reconstruction and have not been checked a
 physical copy. The engine is right; the numbers may not be. Only the Temple of Artemis cost
 was confirmed against an external source. Proofreading this is the highest-value hour
 available and doesn't require touching any logic.
+
+The scientific symbols are the one part of that array now held to the printed distribution,
+because getting it wrong is not a cosmetic error: six symbols, each on exactly two green
+cards, so every one of them can be paired for a progress token, plus the scales, which no
+card carries and only the Law token grants. `engine.test.ts` asserts all of it.
 
 Also unconfirmed: the wonder draft order. Currently the pick order flips for the second set
 of four (`DRAFT = [0,1,1,0, 1,0,0,1]`). If it should continue as a snake instead, that's one

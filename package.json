@@ -19,6 +19,7 @@
     "test:musical-cards": "vitest run --project musical-cards",
     "test:quick": "vitest run --project quick",
     "test:duel": "node apps/duel/test/run.ts",
+    "test:prism-duel": "node apps/prism-duel/test/run.ts",
     "typecheck": "tsc --noEmit",
     "test:e2e": "playwright test",
     "walkthrough": "node scripts/record-walkthrough.mjs"

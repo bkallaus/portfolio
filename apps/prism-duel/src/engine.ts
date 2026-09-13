@@ -296,6 +296,23 @@ export function lineOptions(state: GameState): number[][] {
   return options;
 }
 
+export const sortedLine = (cells: number[]): number[] => [...cells].sort((a, b) => a - b);
+
+export function takeExtensions(state: GameState, picked: number[]): number[] {
+  const reachable: number[] = [];
+  for (let cell = 0; cell < BOARD_CELLS; cell += 1) {
+    if (picked.includes(cell)) continue;
+    if (canTakeTokens(state, sortedLine([...picked, cell]))) reachable.push(cell);
+  }
+  return reachable;
+}
+
+export function truncateLine(picked: number[], cell: number): number[] {
+  const line = sortedLine(picked);
+  const at = line.indexOf(cell);
+  return at === -1 ? line : line.slice(0, at);
+}
+
 export function view(state: GameState, player: number): PlayerView {
   const me = state.players[player];
   const bonuses: Record<GemColor, number> = {

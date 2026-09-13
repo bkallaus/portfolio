@@ -103,6 +103,14 @@ sees the same prompt you do.
 the only way anything reaches the rules. The UI, the bot and the fuzz suite all go through
 them, so a move the tests can make is a move the board can make.
 
+**The board refuses illegal picks rather than silently correcting them.** `takeExtensions()`
+answers "which gems could join this line", and the grid disables everything it leaves out, so a
+gem that would break the line cannot be clicked at all. Clicking a gem you already picked
+truncates the line there (`truncateLine()`) rather than punching a hole in it. Both live in
+`engine.ts` with the rule they enforce, not in the view — the first draft did this arithmetic
+inline in `TableView` and quietly reset your whole selection when a click did not fit, which
+read as no enforcement at all.
+
 ## Three decisions worth knowing
 
 **Free actions happen before your action, not after.** The physical game is relaxed about
@@ -127,12 +135,13 @@ were rebalanced in the same change to make the position rarer in the first place
 
 ## What is verified
 
-`npm run test:prism-duel` runs four suites, 159 assertions:
+`npm run test:prism-duel` runs four suites, 174 assertions:
 
 - **cards** — deck shape, cost bands per tier, no card costing its own colour, every colour
   holding enough prestige for a colour victory.
-- **engine** — the bag, the spiral, line geometry in all four axes, privileges, replenishing,
-  the token limit, reserving, payment with and without gold, and each victory condition.
+- **engine** — the bag, the spiral, line geometry in all four axes, which gems may extend a
+  part-built line, privileges, replenishing, the token limit, reserving, payment with and
+  without gold, and each victory condition.
 - **abilities** — every card ability and its skip case, the wild-colour choice, royal claims at
   3 and 6 crowns and the two-royal cap, and the deferred victory check.
 - **fuzz** — 600 random games and 120 bot-versus-bot games. Every game reaches a winner, no

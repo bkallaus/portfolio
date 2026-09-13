@@ -29,6 +29,9 @@ import {
   canSpendPrivilege,
   mustReplenish,
   payment,
+  sortedLine,
+  takeExtensions,
+  truncateLine,
   view,
 } from "./engine.ts";
 import type { GameState, Move, Resolution } from "./engine.ts";
@@ -90,10 +93,9 @@ export function TableView({
       return;
     }
     setPicked((current) => {
-      if (current.includes(cell)) return current.filter((each) => each !== cell);
-      const attempt = [...current, cell].sort((a, b) => a - b);
-      if (canTakeTokens(state, attempt)) return attempt;
-      return canTakeTokens(state, [cell]) ? [cell] : current;
+      if (current.includes(cell)) return truncateLine(current, cell);
+      const attempt = sortedLine([...current, cell]);
+      return canTakeTokens(state, attempt) ? attempt : current;
     });
   };
 
@@ -116,10 +118,12 @@ export function TableView({
           .filter((cell) => cell >= 0)
       );
     }
-    return null;
-  }, [pending, spending, state.board]);
+    if (locked) return new Set<number>();
+    return new Set([...takeExtensions(state, picked), ...picked]);
+  }, [locked, pending, picked, spending, state]);
 
   const takeReady = picked.length > 0 && canTakeTokens(state, picked);
+  const lineFull = picked.length > 0 && takeExtensions(state, picked).length === 0;
 
   return (
     <div
@@ -200,9 +204,14 @@ export function TableView({
                 Replenish
               </Button>
             </div>
-            <p style={{ margin: "8px 0 0", font: `500 11px/1.5 ${FONT.body}`, color: C.muted }}>
-              Up to three tokens in one unbroken line — row, column or diagonal. Gold is only
-              reachable by reserving a card.
+            <p
+              style={{
+                margin: "8px 0 0",
+                font: `500 11px/1.5 ${FONT.body}`,
+                color: picked.length > 0 ? C.accent : C.muted,
+              }}
+            >
+              {selectionHint(picked.length, lineFull)}
             </p>
           </Panel>
 
@@ -255,6 +264,18 @@ export function TableView({
       )}
     </div>
   );
+}
+
+function selectionHint(pickedCount: number, lineFull: boolean): string {
+  if (pickedCount === 0) {
+    return "Take up to three tokens in one unbroken line — row, column or diagonal. Gold is only reachable by reserving a card.";
+  }
+  if (lineFull) {
+    return pickedCount === 3
+      ? "Three is the limit. Take them, or drop one to change the line."
+      : "Nothing else lies in line with this pick. Take them, or drop one to change the line.";
+  }
+  return "Only tokens that keep the line unbroken can be added — the rest are greyed out.";
 }
 
 const logEntries = (state: GameState): Array<{ id: string; text: string }> =>
@@ -396,7 +417,7 @@ function TokenGrid({
             />
           );
         }
-        const reachable = token !== "gold" && lit;
+        const reachable = token !== "gold" && (lit || chosen);
         return (
           <button
             key={`cell-${cell}`}
@@ -413,7 +434,7 @@ function TokenGrid({
                 ? `2px solid ${C.accent}`
                 : `1px solid ${shade(TOKEN_COLOR[token], -40)}`,
               boxShadow: chosen ? SHADOW.cardUp : "0 2px 4px rgba(0,0,0,.45)",
-              opacity: reachable ? 1 : 0.34,
+              opacity: reachable ? 1 : 0.22,
               color: TOKEN_INK[token],
               font: `700 13px/1 ${FONT.body}`,
               padding: 0,

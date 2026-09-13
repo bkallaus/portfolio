@@ -63,6 +63,48 @@ test.describe('prism-duel', () => {
     await expect(page.getByRole('listitem').first()).toContainText('took');
   });
 
+  test('only lets you pick gems that keep the line unbroken', async ({ page }) => {
+    await page.getByRole('button', { name: 'Start the duel' }).click();
+
+    const open = await takeable(page).evaluateAll((nodes) =>
+      nodes.map((node) => {
+        const found = /row (\d) column (\d)/.exec(node.getAttribute('aria-label') ?? '');
+        return { row: Number(found?.[1]), col: Number(found?.[2]) };
+      }),
+    );
+    const has = (row: number, col: number) => open.some((s) => s.row === row && s.col === col);
+
+    const line = open
+      .map((start) => [0, 1, 2].map((step) => ({ row: start.row, col: start.col + step })))
+      .find((cells) => cells.every((c) => c.col <= 5 && has(c.row, c.col)));
+    const offLine = open.find(
+      (s) => line && (Math.abs(s.row - line[0].row) > 1 || Math.abs(s.col - line[0].col) > 1),
+    );
+    if (!line || !offLine) {
+      throw new Error('the opening board should hold a row of three and a gem out of line with it');
+    }
+
+    const at = (row: number, col: number) =>
+      page.locator(`button[aria-label*="row ${row} column ${col}"]`);
+    const takeButton = page.getByRole('button', { name: /^Take/ });
+
+    await at(line[0].row, line[0].col).click();
+    await expect(takeButton).toHaveText(/Take 1 token/);
+    await expect(at(offLine.row, offLine.col)).toBeDisabled();
+    await expect(page.getByText('keep the line unbroken')).toBeVisible();
+
+    await at(line[1].row, line[1].col).click();
+    await at(line[2].row, line[2].col).click();
+    await expect(takeButton).toHaveText(/Take 3 tokens/);
+    await expect(takeButton).toBeEnabled();
+
+    await at(line[1].row, line[1].col).click();
+    await expect(takeButton).toHaveText(/Take 1 token/);
+
+    await takeButton.click();
+    await expect(page.getByText('Take up to three tokens in one unbroken line')).toBeVisible();
+  });
+
   test('opens a card and explains why it cannot be bought yet', async ({ page }) => {
     await page.getByRole('button', { name: 'Start the duel' }).click();
     await page.locator('button[aria-label^="Tier 3"]').first().click();

@@ -16,6 +16,8 @@ import {
   emptyPile,
   isStraightLine,
   lineOptions,
+  takeExtensions,
+  truncateLine,
   newGame,
   payment,
   replenish,
@@ -91,6 +93,70 @@ check("line options are all legal", lineOptions(row).every((cells) => canTakeTok
 check(
   "line options include a diagonal run",
   lineOptions(row).some((cells) => JSON.stringify(cells) === JSON.stringify([10, 16, 22]))
+);
+
+const open = withBoard([
+  "quartz", "azurite", "verdite", "garnet", "obsidian",
+  "pearl", "quartz", "azurite", "verdite", "garnet",
+  "obsidian", "pearl", "quartz", "azurite", "verdite",
+  "garnet", "obsidian", "pearl", "quartz", "azurite",
+  "verdite", "garnet", "obsidian", "pearl", "quartz",
+]);
+
+equal("with nothing picked every token is reachable", takeExtensions(open, []).length, 25);
+equal(
+  "one corner reaches only its three neighbours",
+  takeExtensions(open, [cellOf(0, 0)]).sort((a, b) => a - b),
+  [cellOf(0, 1), cellOf(1, 0), cellOf(1, 1)]
+);
+equal(
+  "a pair reaches only the two ends of its line",
+  takeExtensions(open, [cellOf(2, 1), cellOf(2, 2)]).sort((a, b) => a - b),
+  [cellOf(2, 0), cellOf(2, 3)]
+);
+equal(
+  "a diagonal pair reaches only the diagonal's ends",
+  takeExtensions(open, [cellOf(1, 1), cellOf(2, 2)]).sort((a, b) => a - b),
+  [cellOf(0, 0), cellOf(3, 3)]
+);
+equal("a line of three reaches nothing", takeExtensions(open, [0, 1, 2]), []);
+check(
+  "a gem out of line is never reachable",
+  !takeExtensions(open, [cellOf(1, 1)]).includes(cellOf(3, 4))
+);
+check(
+  "a gem that would bend the line is never reachable",
+  !takeExtensions(open, [cellOf(2, 2), cellOf(2, 3)]).includes(cellOf(3, 3))
+);
+check(
+  "every reachable gem really makes a legal take",
+  takeExtensions(open, [cellOf(2, 2)]).every((cell) =>
+    canTakeTokens(open, [cellOf(2, 2), cell].sort((a, b) => a - b))
+  )
+);
+const blocked = clone(open);
+blocked.board[cellOf(2, 3)] = "gold";
+check(
+  "gold never extends a line",
+  !takeExtensions(blocked, [cellOf(2, 1), cellOf(2, 2)]).includes(cellOf(2, 3))
+);
+const emptied2 = clone(open);
+emptied2.board[cellOf(2, 3)] = null;
+check(
+  "an empty space never extends a line",
+  !takeExtensions(emptied2, [cellOf(2, 1), cellOf(2, 2)]).includes(cellOf(2, 3))
+);
+
+equal("dropping the last of a line keeps the rest", truncateLine([0, 1, 2], 2), [0, 1]);
+equal("dropping the middle drops what follows it", truncateLine([0, 1, 2], 1), [0]);
+equal("dropping the first clears the line", truncateLine([0, 1, 2], 0), []);
+equal("dropping a gem that was never picked changes nothing", truncateLine([0, 1], 7), [0, 1]);
+check(
+  "every truncation is still a legal line",
+  [0, 1, 2].every((cell) => {
+    const left = truncateLine([0, 1, 2], cell);
+    return left.length === 0 || canTakeTokens(open, left);
+  })
 );
 
 const tripled = takeTokens(row, [0, 1, 2]);

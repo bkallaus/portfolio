@@ -206,7 +206,7 @@ const CARDS: Card[] = [
   c("stable", "Stable", 1, "red", { wood: 1 }, { shields: 1 }),
   c("apothecary", "Apothecary", 1, "green", { glass: 1 }, { sci: "wheel", vp: 1 }),
   c("workshop", "Workshop", 1, "green", { papyrus: 1 }, { sci: "plumb", vp: 1 }),
-  c("scriptorium", "Scriptorium", 1, "green", { coins: 2 }, { sci: "law" }),
+  c("scriptorium", "Scriptorium", 1, "green", { coins: 2 }, { sci: "tablet" }),
   c("pharmacist", "Pharmacist", 1, "green", { coins: 2 }, { sci: "mortar" }),
 
   /* ---------- AGE II ---------- */
@@ -231,7 +231,7 @@ const CARDS: Card[] = [
   c("fort", "Fort", 2, "red", { coins: 2, stone: 1 }, { shields: 1 }),
   c("dispensary", "Dispensary", 2, "green", { clay: 2, stone: 1 }, { sci: "mortar", vp: 2, chainFrom: "pharmacist" }),
   c("laboratory", "Laboratory", 2, "green", { papyrus: 2, wood: 1 }, { sci: "plumb", vp: 1, chainFrom: "workshop" }),
-  c("library", "Library", 2, "green", { wood: 3, glass: 1 }, { sci: "law", vp: 2, chainFrom: "scriptorium" }),
+  c("library", "Library", 2, "green", { wood: 3, glass: 1 }, { sci: "tablet", vp: 2, chainFrom: "scriptorium" }),
   c("school", "School", 2, "green", { wood: 1, papyrus: 2 }, { sci: "wheel", vp: 1, chainFrom: "apothecary" }),
 
   /* ---------- AGE III ---------- */
@@ -244,7 +244,7 @@ const CARDS: Card[] = [
   c("sanctuary", "Sanctuary", 3, "blue", { clay: 2, glass: 1 }, { vp: 5 }),
   c("academy", "Academy", 3, "green", { stone: 1, wood: 1, glass: 2 }, { sci: "sundial", vp: 3 }),
   c("study", "Study", 3, "green", { wood: 2, glass: 1, papyrus: 1 }, { sci: "sundial", vp: 3 }),
-  c("university", "University", 3, "green", { clay: 1, glass: 1, papyrus: 1 }, { sci: "scales", vp: 2, chainFrom: "school" }),
+  c("university", "University", 3, "green", { clay: 1, glass: 1, papyrus: 1 }, { sci: "astrolabe", vp: 2, chainFrom: "school" }),
   c("observatory", "Observatory", 3, "green", { stone: 1, papyrus: 2 }, { sci: "astrolabe", vp: 2, chainFrom: "laboratory" }),
   c("chamber_of_commerce", "Chamber of Commerce", 3, "yellow", { papyrus: 2 }, { vp: 3, coinsPer: { colors: ["grey"], n: 3 } }),
   c("port", "Port", 3, "yellow", { wood: 1, glass: 1, papyrus: 1 }, { vp: 3, coinsPer: { colors: ["brown"], n: 2 } }),
@@ -293,7 +293,7 @@ const TOKENS: ProgressToken[] = [
   { id: "agriculture", name: "Agriculture", text: "+6 coins now. Worth 4 VP.", coins: 6, vp: 4 },
   { id: "architecture", name: "Architecture", text: "Your future Wonders cost 2 fewer resources." },
   { id: "economy", name: "Economy", text: "You receive the coins your opponent spends on trade." },
-  { id: "law", name: "Law", text: "Counts as a scientific symbol.", sci: "law" },
+  { id: "law", name: "Law", text: "Counts as a seventh scientific symbol, on no card.", sci: "law" },
   { id: "masonry", name: "Masonry", text: "Your future blue cards cost 2 fewer resources." },
   { id: "mathematics", name: "Mathematics", text: "3 VP per progress token you hold." },
   { id: "philosophy", name: "Philosophy", text: "Worth 7 VP.", vp: 7 },

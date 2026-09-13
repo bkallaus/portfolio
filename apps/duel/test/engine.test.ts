@@ -41,10 +41,23 @@ chainTargets.forEach((k) => { if (!E.CARD[k.chainFrom!]) fails.push(`${k.name} c
 // science distribution
 const sciCount: Record<string, number> = {};
 E.CARDS.forEach((k) => { if (k.sci) sciCount[k.sci] = (sciCount[k.sci] || 0) + 1; });
-console.log("science symbols:", sciCount);
-const pairable = Object.values(sciCount).filter((n) => n >= 2).length;
-console.log(`${Object.keys(sciCount).length} symbols, ${pairable} obtainable as a pair`);
-if (Object.keys(sciCount).length < 6) fails.push("fewer than 6 distinct symbols — scientific victory impossible");
+const tokenSci = E.TOKENS.filter((t) => t.sci).map((t) => t.sci!);
+const allSci = new Set([...Object.keys(sciCount), ...tokenSci]);
+console.log("science symbols on cards:", sciCount);
+console.log("science symbols on tokens:", tokenSci);
+const pairable = Object.values(sciCount).filter((n) => n === 2).length;
+console.log(`${allSci.size} symbols in the game, ${Object.keys(sciCount).length} on cards, ${pairable} obtainable as a pair`);
+if (allSci.size !== 7) fails.push(`${allSci.size} distinct symbols in the game, expected 7`);
+if (Object.keys(sciCount).length !== 6) fails.push(`${Object.keys(sciCount).length} distinct symbols on cards, expected 6`);
+Object.entries(sciCount).forEach(([s, n]) => {
+  if (n !== 2) fails.push(`${s} is on ${n} card${n === 1 ? "" : "s"}, expected 2 — every card symbol must be pairable`);
+});
+tokenSci.forEach((s) => {
+  if (sciCount[s]) fails.push(`${s} is on a progress token and on ${sciCount[s]} cards — the token symbol is unique to the token`);
+});
+const greens = E.CARDS.filter((k) => k.color === "green");
+if (greens.length !== 12) fails.push(`${greens.length} green cards, expected 12`);
+greens.forEach((k) => { if (!k.sci) fails.push(`${k.name} is green but carries no scientific symbol`); });
 
 /* ---------- random self-play ---------- */
 const pick = <T,>(a: T[]): T => a[Math.floor(Math.random() * a.length)];

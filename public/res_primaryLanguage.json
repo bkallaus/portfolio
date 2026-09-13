@@ -59,6 +59,22 @@
   ],
   "experimental_projects": [
     {
+      "title": "Prism Duel",
+      "description": "An original two-player gem duel for the browser. Play the engine, share a device, or send a room code.",
+      "images": [],
+      "url": "/prism-duel/",
+      "technologies": [
+        {
+          "class": "devicon-react-original",
+          "name": "React"
+        },
+        {
+          "class": "devicon-typescript-plain",
+          "name": "TypeScript"
+        }
+      ]
+    },
+    {
       "title": "Duel",
       "description": "A two-player strategy card game for the browser. Built for two people to play together remotely.",
       "images": [],

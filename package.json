@@ -43,7 +43,7 @@
     "react-icons": "^5.0.1",
     "react-number-format": "^5.4.5",
     "styled-components": "^6.1.8",
-    "tailwind-merge": "^3.6.0",
+    "tailwind-merge": "^3.7.0",
     "tone": "^15.1.22",
     "use-local-storage": "^3.0.0",
     "vexflow": "^4.2.3"

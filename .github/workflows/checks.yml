@@ -37,6 +37,9 @@ jobs:
       - name: Run Duel tests
         run: npm run test:duel
 
+      - name: Run Prism Duel tests
+        run: npm run test:prism-duel
+
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 

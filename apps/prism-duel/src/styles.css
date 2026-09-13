@@ -1,0 +1,103 @@
+:root {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: #10161d;
+  color: #eef1f6;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+button:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid #d8a94a;
+  outline-offset: 2px;
+}
+
+@keyframes prism-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes prism-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(216, 169, 74, 0.55);
+  }
+  50% {
+    box-shadow: 0 0 0 7px rgba(216, 169, 74, 0);
+  }
+}
+
+.prism-rise {
+  animation: prism-rise 0.18s ease-out both;
+}
+
+.prism-pulse {
+  animation: prism-pulse 1.7s ease-out infinite;
+}
+
+.prism-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.prism-scroll::-webkit-scrollbar-thumb {
+  background: #36465a;
+  border-radius: 99px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .prism-rise,
+  .prism-pulse {
+    animation: none;
+  }
+}
+
+.prism-layout {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(260px, 350px) minmax(320px, 1fr);
+  align-items: start;
+}
+
+.prism-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+@media (max-width: 920px) {
+  .prism-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

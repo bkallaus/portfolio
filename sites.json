@@ -43,5 +43,11 @@
     "type": "static",
     "tier": "experiment",
     "title": "Duel"
+  },
+  {
+    "slug": "prism-duel",
+    "type": "static",
+    "tier": "experiment",
+    "title": "Prism Duel"
   }
 ]

@@ -46,7 +46,7 @@
   },
   {
     "slug": "prism-duel",
-    "type": "vite",
+    "type": "static",
     "tier": "experiment",
     "title": "Prism Duel"
   }

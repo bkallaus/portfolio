@@ -3,15 +3,21 @@
 A two-player gem-market duel for the browser: play the engine, share a device, or open a
 table and send someone a five-character code.
 
-Served at `/prism-duel/`. It lives inside the portfolio's one Vite project — no
-`package.json` of its own, no `vite.config.ts` of its own. Run everything from the repo root:
+Two URLs, the same shape as `apps/duel`: `/prism-duel/` is a static write-up served from
+`public/prism-duel/`, and `/prism-duel/play/` is the game itself, built from `play/index.html`
+here. The `sites.json` row is therefore `type: "static"` — it points at the write-up — and the
+playable page rides along as an extra Rollup input named in `gamesWithWriteups` in the root
+`vite.config.ts`, which also rewrites the dev URL so it matches production.
+
+It lives inside the portfolio's one Vite project — no `package.json` of its own, no
+`vite.config.ts` of its own. Run everything from the repo root:
 
 ```
 npm install --legacy-peer-deps
-npm run dev              # served at /prism-duel/
+npm run dev              # write-up at /prism-duel/, game at /prism-duel/play/
 npm run test:prism-duel  # four suites, ~4s
 npm run typecheck
-npm run build            # static output in dist/prism-duel/
+npm run build            # static output in dist/prism-duel/ and dist/prism-duel/play/
 npx playwright test e2e/prism-duel.spec.ts
 ```
 
@@ -32,6 +38,7 @@ favours, and a stalemate rule that no physical game needs.
 
 | File | Role |
 |---|---|
+| `play/index.html` | The game's entry point. Deploys to `/prism-duel/play/`. |
 | `src/engine.ts` | Every rule, and the types the rest of the app shares. Pure: no React, no DOM, no network. |
 | `src/cards.ts` | The 67-card deck and the four royal favours, as data. |
 | `src/theme.ts` | Palette, token vocabulary, gradients and shadows. The board is skinned from here. |
@@ -41,6 +48,13 @@ favours, and a stalemate rule that no physical game needs.
 | `src/TableView.tsx` | The board, the market, the prompts, the player panels. |
 | `src/Setup.tsx`, `src/RulesSheet.tsx`, `src/ui.tsx` | Lobby, rules, shared primitives. |
 | `test/` | Four suites, run by `test/run.ts`. |
+| `public/prism-duel/` | The write-up at `/prism-duel/` and its board shot. Copied verbatim, never parsed. |
+
+The webfont link in `play/index.html` is deliberately non-blocking — `media="print"`, swapped to
+`all` on load, with a `<noscript>` fallback. A stylesheet in `<head>` blocks execution of every
+script after it, so the ordinary form of that tag makes first paint wait on a third-party CDN: on
+a network where fonts.googleapis.com hangs rather than failing fast, the board stays blank. The
+fallback stacks in `theme.ts` carry the typography until the real faces arrive.
 
 ## The rules it implements
 

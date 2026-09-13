@@ -6,9 +6,23 @@ const tokens = (page: import('@playwright/test').Page) =>
 const takeable = (page: import('@playwright/test').Page) =>
   page.locator('button[aria-label*="at row"]:not([disabled])');
 
+test.describe('prism-duel write-up', () => {
+  test('introduces the game and links to the playable build', async ({ page }) => {
+    await page.goto('/prism-duel/', { waitUntil: 'networkidle' });
+
+    await expect(page.getByRole('heading', { name: 'PRISM', level: 1 })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Three ways to win' })).toBeVisible();
+    await expect(page.getByRole('img', { name: /Prism Duel board mid-play/ })).toBeVisible();
+
+    await page.getByRole('link', { name: /Play the game/ }).click();
+    await expect(page).toHaveURL(/\/prism-duel\/play\//);
+    await expect(page.getByRole('heading', { name: 'Prism Duel', level: 1 })).toBeVisible();
+  });
+});
+
 test.describe('prism-duel', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/prism-duel/', { waitUntil: 'networkidle' });
+    await page.goto('/prism-duel/play/', { waitUntil: 'networkidle' });
   });
 
   test('shows the lobby and the rules', async ({ page }) => {

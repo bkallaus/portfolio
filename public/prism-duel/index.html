@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <link rel="icon" href="/favicon.ico" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="description"
+    content="Prism Duel — an original two-player gem-market duel for the browser, built for remote play." />
+  <title>Prism Duel &middot; Ben Kallaus</title>
+  <style>
+    :root {
+      --bg: #f9fafb;
+      --surface: #ffffff;
+      --ink: #111827;
+      --ink-soft: #374151;
+      --muted: #6b7280;
+      --line: #e5e7eb;
+      --accent: #2563eb;
+      --slab: #1f2937;
+      /* Pulled from the game's own palette so the page and the board read as
+         one project rather than two. */
+      --board: #1a232e;
+      --gold: #d8a94a;
+      --parchment: #f1ebdd;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink-soft);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      line-height: 1.7;
+    }
+
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--line);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
+    }
+
+    .topbar-inner {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand {
+      font-weight: 700;
+      font-size: 20px;
+      color: var(--ink);
+      text-decoration: none;
+    }
+
+    .back {
+      font-weight: 500;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 15px;
+    }
+
+    .back:hover {
+      color: var(--accent);
+    }
+
+    /* The hero borrows the board's own colours, so arriving here and then
+       hitting Play doesn't feel like crossing between two different sites. */
+    header.hero {
+      background:
+        radial-gradient(130% 120% at 50% -20%, #25313f 0%, #1a232e 45%, #0d131a 100%);
+      color: #eef1f6;
+      border-bottom: 1px solid #090e14;
+      position: relative;
+      overflow: hidden;
+    }
+
+    header.hero::after {
+      /* A faint wash of gold at the horizon, and a hairline to close it off. */
+      content: "";
+      position: absolute;
+      inset: auto 0 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+      opacity: .5;
+    }
+
+    .hero-inner {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 64px 24px 56px;
+      text-align: center;
+      position: relative;
+    }
+
+    .hero-mark {
+      display: block;
+      margin: 0 auto 10px;
+      opacity: .9;
+    }
+
+    header.hero h1 {
+      font-size: 46px;
+      line-height: 1.05;
+      margin: 0 0 14px;
+      color: #f5f7fb;
+      font-weight: 700;
+      letter-spacing: 10px;
+      text-indent: 10px;
+      font-family: 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+      text-shadow: 0 0 60px rgba(216, 169, 74, .3);
+    }
+
+    header.hero .rule {
+      width: 92px;
+      height: 1px;
+      margin: 0 auto 18px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    }
+
+    header.hero .lede {
+      font-size: 18px;
+      margin: 0 auto;
+      max-width: 46ch;
+      color: #a3b3c6;
+      line-height: 1.65;
+    }
+
+    header.hero .tags {
+      margin-top: 24px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .tag {
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+      color: #9fb0c4;
+      background: rgba(255, 255, 255, .04);
+      border: 1px solid #36465a;
+      border-radius: 999px;
+      padding: 4px 13px;
+    }
+
+    .play-btn {
+      display: inline-block;
+      margin-top: 30px;
+      background: linear-gradient(180deg, #e8c278 0%, #d8a94a 55%, #b98c35 100%);
+      color: #2a2109;
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: .3px;
+      text-decoration: none;
+      padding: 12px 30px;
+      border: 1px solid #a87f31;
+      border-radius: 999px;
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, .35),
+        0 8px 24px -8px rgba(216, 169, 74, .75);
+      transition: transform .15s ease, filter .15s ease, box-shadow .15s ease;
+    }
+
+    .play-btn:hover {
+      filter: brightness(1.07);
+      transform: translateY(-2px);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, .35),
+        0 12px 30px -8px rgba(216, 169, 74, .85);
+    }
+
+    .play-btn:active {
+      transform: translateY(0);
+    }
+
+    /* The board shot straddles the hero edge, so the page opens on the game
+       itself rather than on a paragraph about it. */
+    .shot {
+      max-width: 900px;
+      margin: 40px auto -80px;
+      padding: 0 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .shot img {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 12px;
+      border: 1px solid #090e14;
+      box-shadow: 0 30px 60px -22px rgba(0, 0, 0, .6);
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin: 20px 0 4px;
+    }
+
+    .cards div {
+      background: #fbfcfd;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 16px 18px;
+    }
+
+    .cards h3 {
+      margin: 0 0 6px;
+      font-size: 15px;
+      color: var(--ink);
+      font-weight: 700;
+    }
+
+    .cards p {
+      margin: 0;
+      font-size: 14.5px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    main {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 104px 24px 72px;
+    }
+
+    section {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 8px 28px 28px;
+      margin-top: 28px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, .05);
+    }
+
+    h2 {
+      font-size: 26px;
+      color: var(--ink);
+      font-weight: 700;
+      margin: 28px 0 4px;
+      letter-spacing: -0.2px;
+    }
+
+    p {
+      margin: 16px 0;
+    }
+
+    strong {
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    a {
+      color: var(--accent);
+    }
+
+    .wins {
+      list-style: none;
+      margin: 18px 0 4px;
+      padding: 0;
+      display: grid;
+      gap: 10px;
+    }
+
+    .wins li {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      padding: 12px 16px;
+      background: #fbfcfd;
+      border: 1px solid var(--line);
+      border-left: 3px solid var(--gold);
+      border-radius: 8px;
+      font-size: 15px;
+    }
+
+    .wins b {
+      color: var(--ink);
+      font-size: 17px;
+      font-variant-numeric: tabular-nums;
+      min-width: 2.4ch;
+    }
+
+    footer {
+      background: var(--slab);
+      color: #fff;
+      padding: 32px 24px;
+      text-align: center;
+    }
+
+    footer h3 {
+      margin: 0 0 8px;
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    footer p {
+      margin: 0;
+      font-size: 14px;
+      color: #9ca3af;
+    }
+
+    @media (max-width: 640px) {
+      .hero-inner {
+        padding: 44px 20px 40px;
+      }
+
+      header.hero h1 {
+        font-size: 28px;
+        letter-spacing: 5px;
+        text-indent: 5px;
+      }
+
+      header.hero .lede {
+        font-size: 16px;
+      }
+
+      .shot {
+        margin: 28px auto -50px;
+        padding: 0 16px;
+      }
+
+      main {
+        padding-top: 70px;
+      }
+
+      section {
+        padding: 4px 20px 20px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .play-btn {
+        transition: none;
+      }
+
+      .play-btn:hover {
+        transform: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <nav class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="/">BK</a>
+      <a class="back" href="/#portfolio">&larr; Back to projects</a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="hero-inner">
+      <svg class="hero-mark" viewBox="0 0 64 64" width="56" height="56" aria-hidden="true">
+        <path d="M4 30 L26 30" stroke="#d8a94a" stroke-width="1.4" opacity=".6" />
+        <path d="M32 12 L52 48 L12 48 Z" fill="#d8a94a" opacity=".16" />
+        <path d="M32 12 L52 48 L12 48 Z" fill="none" stroke="#d8a94a" stroke-width="1.6" opacity=".65" />
+        <path d="M40 34 L60 26" stroke="#e8e4da" stroke-width="1.2" opacity=".7" />
+        <path d="M40 36 L60 33" stroke="#4a7fc4" stroke-width="1.2" opacity=".7" />
+        <path d="M40 38 L60 40" stroke="#4f9d6a" stroke-width="1.2" opacity=".7" />
+        <path d="M40 40 L60 47" stroke="#b4433f" stroke-width="1.2" opacity=".7" />
+      </svg>
+      <h1>PRISM DUEL</h1>
+      <div class="rule"></div>
+      <p class="lede">
+        An original two-player gem duel for the browser. Twenty-five tokens, sixty-seven
+        cards, and three ways to win &mdash; built for two people to play together remotely.
+      </p>
+      <div class="tags">
+        <span class="tag">React</span>
+        <span class="tag">TypeScript</span>
+        <span class="tag">WebRTC</span>
+        <span class="tag">Vite</span>
+      </div>
+      <a class="play-btn" href="/prism-duel/play/">Play the game &rarr;</a>
+    </div>
+  </header>
+
+  <div class="shot">
+    <img src="/prism-duel/board.jpg" width="1280" height="940"
+      alt="The Prism Duel board mid-play: a five-by-five grid of gem tokens with a line of three
+           selected, three rows of cards to buy, the royal favours, and both players' tableaus." />
+  </div>
+
+  <main>
+    <section>
+      <h2>How to play</h2>
+      <div class="cards">
+        <div>
+          <h3>Same screen</h3>
+          <p>Pass the laptop back and forth, or sit side by side. Nothing to set up.</p>
+        </div>
+        <div>
+          <h3>Two devices</h3>
+          <p>
+            The game connects the two browsers directly to each other, peer to peer,
+            with no account and no server in between.
+          </p>
+        </div>
+        <div>
+          <h3>On your own</h3>
+          <p>An engine opponent plays the other side, so there is always a game waiting.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>The shape of a turn</h2>
+      <p>
+        Twenty-five tokens fill a five-by-five board. On your turn you take up to
+        <strong>three of them in one unbroken line</strong> &mdash; a row, a column or a diagonal,
+        with no gap and no gold in the way. Or you take a gold token and reserve a card for later.
+        Or you spend what you have and buy one.
+      </p>
+      <p>
+        Every card you buy discounts the next purchase in its own colour, so the early turns are
+        about building an engine and the late ones are about spending it. Cards carry crowns and
+        abilities too: steal a token, take another turn, claim a privilege that buys you a free gem
+        on some future turn.
+      </p>
+      <h2>Three ways to win</h2>
+      <ul class="wins">
+        <li><b>20</b> prestige points in total &mdash; the long game.</li>
+        <li><b>10</b> prestige points on cards of a single colour &mdash; the monopoly.</li>
+        <li><b>10</b> crowns &mdash; the rush.</li>
+      </ul>
+      <p>
+        Your opponent is racing all three at once, and the board only holds twenty-five tokens.
+        Taking what you need often means handing over exactly what they were waiting for.
+      </p>
+    </section>
+
+    <section>
+      <h2>An original game</h2>
+      <p>
+        Prism Duel is its own game. The card costs, bonuses, crowns, abilities, names, palette and
+        artwork were written for this project; nothing here is reproduced from a published one.
+        What it shares with the tableau-building genre is its <strong>mechanics</strong> &mdash;
+        drawing tokens from a grid, buying cards that discount later purchases, racing to a
+        threshold &mdash; which is the part nobody owns.
+      </p>
+      <p>
+        The rules engine is pure and has no idea a browser exists, which is what lets a fuzz suite
+        play six hundred random games against it and check, after every single step, that the
+        tokens, cards and privileges all still add up. That suite found a real deadlock in an early
+        draft &mdash; two players sitting on ten unspendable tokens, taking and discarding forever
+        &mdash; and the fix is now a rule of the game.
+      </p>
+    </section>
+  </main>
+
+  <footer>
+    <h3>Ben Kallaus</h3>
+    <p>&copy; <span id="year">2026</span> All rights reserved.</p>
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+</body>
+
+</html>

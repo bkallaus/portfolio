@@ -9,6 +9,11 @@ type Site = { slug: string; type: 'vite' | 'static' };
 const here = import.meta.dirname;
 const sites: Site[] = JSON.parse(readFileSync(path.join(here, 'sites.json'), 'utf8'));
 
+// Each of these is a static write-up at /<slug>/ (from public/) with the playable
+// build at /<slug>/play/. They are not `type: "vite"` rows, so their entries are
+// added to the Rollup input by hand below.
+const gamesWithWriteups = ['duel', 'prism-duel'];
+
 const input = Object.fromEntries(
   sites
     .filter((s) => s.type === 'vite')
@@ -38,13 +43,14 @@ function urlsMatchProduction(): Plugin {
     configureServer(server) {
       server.middlewares.use((req, _res, next) => {
         const url = req.url ?? '/';
-        // The Duel game lives at apps/duel/play but deploys at /duel/play/,
-        // alongside the /duel/ write-up served from public/. Mirror that here
-        // so dev URLs match production. (/duel/ itself falls through to the
-        // public/ write-up.)
-        if (url === '/duel/play' || url.startsWith('/duel/play/')) {
-          req.url = `/apps/duel${url.slice('/duel'.length)}`;
-          return next();
+        // A game lives at apps/<slug>/play but deploys at /<slug>/play/, alongside the
+        // /<slug>/ write-up served from public/. Mirror that here so dev URLs match
+        // production. (/<slug>/ itself falls through to the public/ write-up.)
+        for (const slug of gamesWithWriteups) {
+          if (url === `/${slug}/play` || url.startsWith(`/${slug}/play/`)) {
+            req.url = `/apps/${slug}${url.slice(slug.length + 1)}`;
+            return next();
+          }
         }
         for (const site of built) {
           if (url === `/${site.slug}` || url.startsWith(`/${site.slug}/`)) {
@@ -68,12 +74,18 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
     rollupOptions: {
-      // The Duel game is a standalone page living under the portfolio's
-      // /duel/ write-up, at /duel/play/. It isn't a sites.json app of its
-      // own, so it rides along as an extra input; htmlAtUrlSegment rewrites
-      // apps/duel/play/index.html to duel/play/index.html, so it deploys at
-      // /duel/play/.
-      input: { ...input, 'duel-play': path.join(here, 'apps', 'duel', 'play', 'index.html') },
+      // Each game page rides along as an extra input; htmlAtUrlSegment rewrites
+      // apps/<slug>/play/index.html to <slug>/play/index.html, so it deploys at
+      // /<slug>/play/.
+      input: {
+        ...input,
+        ...Object.fromEntries(
+          gamesWithWriteups.map((slug) => [
+            `${slug}-play`,
+            path.join(here, 'apps', slug, 'play', 'index.html'),
+          ])
+        ),
+      },
       output: {
         entryFileNames: 'assets/[name]-[hash].js',
       },

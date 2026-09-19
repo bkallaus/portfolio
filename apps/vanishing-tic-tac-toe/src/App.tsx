@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { launchConfetti } from './confetti';
 import {
   BOARD_SIZE,
   createGame,
@@ -9,12 +10,25 @@ import {
   type Player,
 } from './game';
 
+const CONFETTI_COLORS = ['#5cc8ff', '#ff8a5c', '#7df0a8', '#ffd45c', '#c98cff'];
+
 function playerLabel(player: Player): string {
   return player === 'X' ? 'Player X' : 'Player O';
 }
 
 export default function App() {
   const [game, setGame] = useState(() => createGame());
+  const celebratedFor = useRef<Player | null>(null);
+
+  useEffect(() => {
+    if (game.winner && celebratedFor.current !== game.winner) {
+      celebratedFor.current = game.winner;
+      launchConfetti(CONFETTI_COLORS);
+    }
+    if (!game.winner) {
+      celebratedFor.current = null;
+    }
+  }, [game.winner]);
 
   const fadingId = fadingPlacementId(game);
   const cells = Array.from({ length: BOARD_SIZE }, (_, index) => index);

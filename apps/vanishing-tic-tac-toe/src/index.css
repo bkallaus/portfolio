@@ -1,0 +1,234 @@
+:root {
+  --bg: #0b0e14;
+  --bg-glow: #141a27;
+  --surface: rgba(255, 255, 255, 0.04);
+  --surface-line: rgba(255, 255, 255, 0.09);
+  --text: #eef1f7;
+  --text-muted: #9aa4b8;
+  --x-color: #5cc8ff;
+  --o-color: #ff8a5c;
+  --win: #7df0a8;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  min-height: 100vh;
+}
+
+body {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(1200px 600px at 50% -10%, var(--bg-glow), transparent 70%),
+    var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 20px;
+}
+
+.board-stage {
+  width: 100%;
+  max-width: 460px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  text-align: center;
+}
+
+.masthead {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.28em;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.masthead h1 {
+  font-size: clamp(28px, 7vw, 40px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.tagline {
+  color: var(--text-muted);
+  font-size: 15px;
+  line-height: 1.6;
+  max-width: 40ch;
+  margin: 0 auto;
+}
+
+.status-bar {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  padding: 10px 22px;
+  border-radius: 999px;
+  border: 1px solid var(--surface-line);
+  background: var(--surface);
+  transition: color 0.3s ease, border-color 0.3s ease;
+}
+
+.status-bar.player-x {
+  color: var(--x-color);
+  border-color: color-mix(in srgb, var(--x-color) 40%, transparent);
+}
+
+.status-bar.player-o {
+  color: var(--o-color);
+  border-color: color-mix(in srgb, var(--o-color) 40%, transparent);
+}
+
+.status-bar--won {
+  color: var(--win);
+  border-color: color-mix(in srgb, var(--win) 55%, transparent);
+  box-shadow: 0 0 26px color-mix(in srgb, var(--win) 25%, transparent);
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 12px;
+  width: 100%;
+  aspect-ratio: 1;
+}
+
+.cell {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--surface-line);
+  border-radius: 18px;
+  background: var(--surface);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: background 0.2s ease, transform 0.12s ease, border-color 0.2s ease;
+}
+
+.cell:not(:disabled):hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-2px);
+}
+
+.cell:disabled {
+  cursor: default;
+}
+
+.cell .mark {
+  font-size: clamp(40px, 14vw, 64px);
+  font-weight: 700;
+  line-height: 1;
+  animation: pop-in 0.24s ease;
+}
+
+.cell--x {
+  border-color: color-mix(in srgb, var(--x-color) 30%, var(--surface-line));
+}
+
+.cell--x .mark {
+  color: var(--x-color);
+  text-shadow: 0 0 18px color-mix(in srgb, var(--x-color) 40%, transparent);
+}
+
+.cell--o {
+  border-color: color-mix(in srgb, var(--o-color) 30%, var(--surface-line));
+}
+
+.cell--o .mark {
+  color: var(--o-color);
+  text-shadow: 0 0 18px color-mix(in srgb, var(--o-color) 40%, transparent);
+}
+
+.cell--fading .mark {
+  animation: fade-warn 1.1s ease-in-out infinite;
+}
+
+.cell--winning {
+  border-color: var(--win);
+  background: color-mix(in srgb, var(--win) 12%, var(--surface));
+  box-shadow: 0 0 24px color-mix(in srgb, var(--win) 30%, transparent);
+}
+
+.cell--winning .mark {
+  color: var(--win);
+  text-shadow: 0 0 20px color-mix(in srgb, var(--win) 50%, transparent);
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.reset-btn {
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--surface-line);
+  border-radius: 999px;
+  padding: 12px 28px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.12s ease;
+}
+
+.reset-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+.hint {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fade-warn {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.28;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell .mark,
+  .cell--fading .mark {
+    animation: none;
+  }
+
+  .cell--fading .mark {
+    opacity: 0.4;
+  }
+}

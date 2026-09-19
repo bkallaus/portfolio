@@ -51,12 +51,30 @@ When building a new side app in this repository, follow the app folder structure
      }
      ```
    - `tier` defaults to `"experiment"`. Set to `"featured"` only when showcasing on the portfolio hub.
+   - `sites.json` drives **only** the nav drawer and the Rollup build entry. It does **not** put a card on the portfolio home page — that is a separate file (see the next rule).
 
-7. **Navigation Component Integration**
+7. **Portfolio Hub Link (`public/res_primaryLanguage.json`) — always required**
+   - The home page's project grid reads from `public/res_primaryLanguage.json`, not `sites.json`. Every new app must also be added here, or it will never appear as a link on the main website.
+   - Add the app to the `projects` array for a `featured` app, or the `experimental_projects` array for an `experiment`:
+     ```json
+     {
+       "title": "My New App",
+       "description": "One sentence on what it does.",
+       "images": [],
+       "url": "/my-new-app/",
+       "technologies": [
+         { "class": "devicon-react-original", "name": "React" },
+         { "class": "devicon-typescript-plain", "name": "TypeScript" }
+       ]
+     }
+     ```
+   - Use a relative `url` (`/my-new-app/`) so the link works in every environment. The card renders under "Experimental Projects" (behind "View More") for `experimental_projects`, or in the top grid for `projects`.
+
+8. **Navigation Component Integration**
    - Vite apps automatically get the shared nav drawer injected during build.
    - Static pages under `public/<slug>/` must manually include the nav script tag before `</body>`.
 
-8. **Strict No Comments Rule**
+9. **Strict No Comments Rule**
    - Do not include inline, block, or JSDoc comments in source files.
    - Make code self-documenting through well-named functions and descriptive variables.
 
@@ -113,7 +131,22 @@ When building a new side app in this repository, follow the app folder structure
      "title": "My App"
    }
    ```
-6. **Verify build and tests:**
+6. **Add a card to the portfolio hub in `public/res_primaryLanguage.json`** (required — this is what makes the app show up as a link on the main website):
+   ```json
+   {
+     "title": "My App",
+     "description": "One sentence on what it does.",
+     "images": [],
+     "url": "/my-app/",
+     "technologies": [
+       { "class": "devicon-react-original", "name": "React" },
+       { "class": "devicon-typescript-plain", "name": "TypeScript" }
+     ]
+   }
+   ```
+   Append to `experimental_projects` for an experiment, or `projects` for a featured app.
+7. **Verify build and tests:**
    - Run `npm run build`
    - Confirm `dist/my-app/index.html` exists and references `/_nav/nav.js`
+   - Confirm the app's card appears in `dist/res_primaryLanguage.json`
    - Run `npm run test:e2e`

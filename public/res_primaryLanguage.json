@@ -137,6 +137,22 @@
           "name": "JavaScript"
         }
       ]
+    },
+    {
+      "title": "Vanishing Tic-Tac-Toe",
+      "description": "A tic-tac-toe variant where each player keeps only three marks — placing a fourth fades away your oldest, so the board never fills and never draws.",
+      "images": [],
+      "url": "/vanishing-tic-tac-toe/",
+      "technologies": [
+        {
+          "class": "devicon-react-original",
+          "name": "React"
+        },
+        {
+          "class": "devicon-typescript-plain",
+          "name": "TypeScript"
+        }
+      ]
     }
   ],
   "experience": [

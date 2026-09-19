@@ -49,5 +49,11 @@
     "type": "static",
     "tier": "experiment",
     "title": "Prism Duel"
+  },
+  {
+    "slug": "vanishing-tic-tac-toe",
+    "type": "vite",
+    "tier": "experiment",
+    "title": "Vanishing Tic-Tac-Toe"
   }
 ]

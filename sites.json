@@ -49,5 +49,12 @@
     "type": "static",
     "tier": "experiment",
     "title": "Prism Duel"
+  },
+  {
+    "slug": "dice-dungeon-duel",
+    "type": "static",
+    "tier": "experiment",
+    "title": "Dice Dungeon Duel",
+    "blurb": "Original 2-player dice, summoning, and cube-net path strategy"
   }
 ]

@@ -72,13 +72,19 @@ The exceptions are pre-existing and closed. Do not read them as precedent for a 
    again — `public/favicon.ico` serves at `/favicon.ico`, because portfolio is `/`.
 4. Add a row to `sites.json`. `type` is `"vite"` or `"static"`. Omit `tier` unless you are
    deliberately promoting it to `featured` (needs a `blurb`) or hiding it (`"hidden"`).
-5. Add any new dependencies to the root `package.json` and `npm install --legacy-peer-deps`
+   `sites.json` drives the nav drawer and the build entry only — it does **not** add a card to
+   the portfolio home page.
+5. Add a card to the portfolio hub in `public/res_primaryLanguage.json` so the app is linked
+   from the main website. Append to `experimental_projects` for an experiment, or `projects`
+   for a featured app, with a relative `"url": "/<slug>/"`. Skipping this is why a new app can
+   build, serve, and sit in the nav yet never appear on the home page.
+6. Add any new dependencies to the root `package.json` and `npm install --legacy-peer-deps`
    at the root.
-6. If the page is static, paste the nav tag into its `</body>` yourself — see the landmine.
-7. `npm run build`, then confirm three things in `dist/`: `dist/<slug>/index.html` exists, its
+7. If the page is static, paste the nav tag into its `</body>` yourself — see the landmine.
+8. `npm run build`, then confirm three things in `dist/`: `dist/<slug>/index.html` exists, its
    asset URLs start with `/<slug>/`, and the nav `<script>` tag is there.
 
-Done when step 7's three checks pass, and `npm run test:e2e` is what proves it — a green
+Done when step 8's three checks pass, and `npm run test:e2e` is what proves it — a green
 `npm run build` alone does not. A wrong path builds cleanly and 404s every asset in production.
 
 ## How the build assembles

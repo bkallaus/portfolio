@@ -1,7 +1,7 @@
 # ben.kallaus.me
 
 Every page on [ben.kallaus.me](https://ben.kallaus.me) lives in this repo and ships as **one**
-GitHub Pages artifact. Six sites, one `package.json`, one build, one deploy.
+GitHub Pages artifact. Seven sites, one `package.json`, one build, one deploy.
 
 | Path | Source | What it is |
 | --- | --- | --- |
@@ -10,7 +10,6 @@ GitHub Pages artifact. Six sites, one `package.json`, one build, one deploy.
 | [`/musical-cards/`](https://ben.kallaus.me/musical-cards/) | `apps/musical-cards` | Sight-reading practice with generated staves (VexFlow + Tone.js) |
 | [`/poke-search/`](https://ben.kallaus.me/poke-search/) | `apps/poke-search` | Pokémon lookup |
 | [`/battle-helper/`](https://ben.kallaus.me/battle-helper/) | `apps/battle-helper` | Damage calc / battle assistant |
-| [`/simple-city/`](https://ben.kallaus.me/simple-city/) | `apps/simple-city` | Plain-HTML toy |
 
 ## Getting started
 
@@ -43,7 +42,7 @@ committed lockfile and is unaffected.
 
 ## How it's put together
 
-**One root `package.json`.** No workspaces, no per-app manifest, no per-app lockfile. All six
+**One root `package.json`.** No workspaces, no per-app manifest, no per-app lockfile. All seven
 apps build against one version of everything (React 19, Vite 8, TypeScript 5.9), so an upgrade
 for one app is an upgrade for all of them — which is what CI exists to catch.
 
@@ -56,7 +55,7 @@ and pins that one chunk to an unhashed `/_nav/nav.js`, and the root `public/` (w
 the artifact root. One app failing fails the whole build on purpose.
 
 **A page's directory name is its URL segment.** `apps/quick` serves `/quick/`, and a static
-page like `public/simple-city/` serves `/simple-city/`. There is no router and no redirect
+page like `public/duel/` serves `/duel/`. There is no router and no redirect
 config — URLs resolve by static file lookup against the assembled
 `dist/`. `apps/portfolio` is the one exception: it is the hub and serves `/`.
 
@@ -66,8 +65,8 @@ optional `tier` that defaults to `experiment` — you opt *in* to the featured s
 unfinished project can't leak into the public persona by forgetting a flag.
 
 **The nav is a framework-agnostic web component** (`packages/nav/`), injected at build time
-rather than imported per app. It has to be: `simple-city` is plain HTML, and the apps disagree
-on styling (Tailwind v4, styled-components, hand-rolled CSS). Shadow DOM keeps that isolation
+rather than imported per app. It has to be: `duel` and `prism-duel` are plain HTML, and the
+apps disagree on styling (Tailwind v4, styled-components, hand-rolled CSS). Shadow DOM keeps that isolation
 in both directions.
 
 ## Adding a site

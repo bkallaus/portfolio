@@ -1,5 +1,30 @@
 @import "tailwindcss";
 
+@theme {
+  --color-ink: #2e2447;
+  --color-ink-soft: #4f4270;
+  --color-muted: #6f6390;
+  --color-haze: #f4ecff;
+  --color-pearl: #fbf8ff;
+  --color-blush: #fff4f8;
+  --color-line: #e6dcf5;
+  --color-violet: #6d4fd1;
+  --color-violet-soft: #a98bff;
+  --color-trace-pink: #ff8fc7;
+  --color-trace-blue: #6ec9ff;
+  --color-trace-mint: #4fd8b4;
+  --color-trace-gold: #f7b955;
+}
+
+@utility bg-vias {
+  background-image: radial-gradient(circle, rgb(169 139 255 / 0.2) 1.5px, transparent 1.6px);
+  background-size: 28px 28px;
+}
+
+@utility bg-trace {
+  background-image: linear-gradient(90deg, var(--color-trace-pink), var(--color-violet-soft), var(--color-trace-blue), var(--color-trace-mint), var(--color-trace-gold));
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -7,6 +32,8 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: var(--color-pearl);
+  color: var(--color-ink);
 }
 
 code {

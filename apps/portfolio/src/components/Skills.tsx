@@ -2,6 +2,7 @@ import type React from "react";
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { ResumeBasicInfo, SharedSkills } from "../types";
+import SectionHeading from "./SectionHeading";
 
 type SkillsProps = {
   sharedSkills: SharedSkills;
@@ -11,7 +12,6 @@ type SkillsProps = {
 const Skills: React.FC<SkillsProps> = ({ sharedSkills, resumeBasicInfo }) => {
   const [activeCategory, setActiveCategory] = useState('All');
 
-  // Manual categorization mapping since JSON is flat
   const categoryMap: Record<string, string> = {
     'TypeScript': 'Frontend',
     'JavaScript': 'Frontend',
@@ -40,21 +40,20 @@ const Skills: React.FC<SkillsProps> = ({ sharedSkills, resumeBasicInfo }) => {
   }
 
   return (
-    <section id="skills" className="py-20 bg-gray-100">
+    <section id="skills" className="py-20 bg-haze bg-vias">
       <div className="container mx-auto px-4 text-center">
-        <h1 className="text-4xl font-bold mb-12 text-gray-900">
+        <SectionHeading className="mb-12">
           <span>{sectionName}</span>
-        </h1>
+        </SectionHeading>
 
-        {/* Category Filter */}
         <div className="flex flex-wrap justify-center gap-4 mb-12">
           {categories.map(category => (
             <button
               key={category}
               onClick={() => setActiveCategory(category)}
               className={`px-6 py-2 rounded-full font-medium transition-all duration-300 ${activeCategory === category
-                ? 'bg-blue-600 text-white shadow-lg transform scale-105'
-                : 'bg-white text-gray-600 hover:bg-gray-200'
+                ? 'bg-violet text-white shadow-[0_8px_24px_-8px_rgb(109_79_209/0.6)] transform scale-105'
+                : 'bg-white text-ink-soft border border-line hover:bg-[#ece2fb]'
                 }`}
             >
               {category}
@@ -78,9 +77,9 @@ const Skills: React.FC<SkillsProps> = ({ sharedSkills, resumeBasicInfo }) => {
                 whileTap={{ scale: 0.95 }}
                 transition={{ duration: 0.2 }}
               >
-                <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-full shadow-sm border border-gray-100 hover:shadow-lg hover:border-blue-200 transition-all group cursor-pointer">
+                <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-full border border-line shadow-[0_6px_20px_-12px_rgb(91_74_134/0.35)] hover:shadow-[0_10px_28px_-12px_rgb(91_74_134/0.5)] hover:border-violet-soft transition-all group cursor-pointer">
                   <i className={`${skill.class} colored text-2xl`}></i>
-                  <span className="text-base font-semibold text-gray-700">{skill.name}</span>
+                  <span className="text-base font-semibold text-ink">{skill.name}</span>
                 </div>
               </motion.li>
             ))}
@@ -88,7 +87,7 @@ const Skills: React.FC<SkillsProps> = ({ sharedSkills, resumeBasicInfo }) => {
         </motion.ul>
 
         {filteredSkills.length === 0 && (
-          <p className="text-gray-500 italic mt-8">No skills found in this category.</p>
+          <p className="text-muted italic mt-8">No skills found in this category.</p>
         )}
       </div>
     </section>

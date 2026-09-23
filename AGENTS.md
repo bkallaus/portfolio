@@ -25,7 +25,7 @@ them through the `.claude/skills` symlink; every other agent reads this table.
 Break any of these and the site breaks in a way local dev will not show you.
 
 **1. A page's directory name is its URL segment.** `apps/quick` serves `/quick/`;
-`public/simple-city` serves `/simple-city/`. `vite.config.ts` derives one Rollup entry per
+`public/duel` serves `/duel/`. `vite.config.ts` derives one Rollup entry per
 `"vite"` row in `sites.json`, and the `html-at-url-segment` plugin renames each emitted page
 from its source path to its slug, so the folder, the manifest row, and the URL cannot drift
 apart. The dev server rewrites `/<slug>/` to `apps/<slug>/` for the same reason: you develop
@@ -34,7 +34,7 @@ against the URL you ship. `apps/portfolio` is the one exception — it is the hu
 **2. There is exactly one `package.json`, at the root.** No workspaces, no per-app manifest,
 no per-app lockfile. Every app therefore builds against one version of everything (React 19,
 Vite 8, TypeScript 5.9). A new dependency goes in the root manifest; an upgrade for one app
-is an upgrade for all six, which is what `ci.yml` exists to catch.
+is an upgrade for all seven, which is what `ci.yml` exists to catch.
 
 **3. `tier` defaults to `experiment`.** You opt *in* to the showcase, never out of it. A
 half-built scratch project cannot leak into the public persona by forgetting a flag.
@@ -51,8 +51,8 @@ The exceptions are pre-existing and closed. Do not read them as precedent for a 
 
 - `apps/musical-cards/src` is pre-consolidation `.jsx` throughout. Leave it, or convert it as
   its own change — do not copy it as the pattern for anything new.
-- `public/simple-city/main.js` is a no-build static page; the browser loads that file
-  verbatim, so it is the one place where the source *is* the artifact.
+- `public/duel/index.html` and `public/prism-duel/index.html` are no-build static pages with
+  inline scripts; the browser loads those files verbatim, so the source *is* the artifact.
 - `packages/nav/src/nav.js` is a Vite entry now, so it *could* be `.ts` for free. That is the
   one conversion worth doing the next time someone opens the nav.
 - Files a tool loads directly stay JS: `apps/*/tailwind.config.js` and
@@ -94,7 +94,7 @@ knowing which piece does which, because none of it is Vite's default behaviour:
    URL. The plugin rewrites `fileName` to `<slug>/index.html`, and portfolio's to `index.html`.
 2. **The one `publicDir`** is the repo root's `public/`, copied verbatim to the artifact root.
    Per-app assets live under `public/<slug>/` so they land at `/<slug>/`.
-3. **A static page is just a `public/` subdirectory.** `public/simple-city/` is copied, never
+3. **A static page is just a `public/` subdirectory.** `public/duel/` is copied, never
    parsed. That is all `type: "static"` means.
 4. **The nav is one more Rollup entry**, not a second bundler. `sites.json` and `nav.css` are
    inlined through `define`, and `entryFileNames` opts that one chunk out of content hashing so
@@ -102,7 +102,7 @@ knowing which piece does which, because none of it is Vite's default behaviour:
 5. **`nav-at-fixed-path` injects the nav tag** via `transformIndexHtml`, into every page Vite
    parses and only those. A page copied from `public/` carries the tag in its own source.
 
-One page failing fails the build: six sites deploy together or not at all.
+One page failing fails the build: seven sites deploy together or not at all.
 
 What this does *not* do, which the script did: validate that every `sites.json` row matches a
 real directory. A row pointing at nothing now produces a broken nav link rather than a failed
@@ -124,7 +124,7 @@ and after consolidation that fallback is global and must dispatch on the path pr
 ## The nav
 
 `packages/nav/` is one framework-agnostic web component, injected at build rather than
-imported per app. It has to be: `simple-city` is plain HTML, and the apps disagree on styling
+imported per app. It has to be: `duel` and `prism-duel` are plain HTML, and the apps disagree on styling
 (Tailwind v4, styled-components, hand-rolled CSS). Shadow DOM keeps that isolation in both
 directions.
 
@@ -134,10 +134,9 @@ button inside the frame.
 
 ## Landmines
 
-- **A static page's nav tag is hand-written and can be forgotten.** Vite injects the tag into
-  every page it parses; `public/simple-city/index.html` is copied, so its tag is checked in.
-  Delete it and that page silently loses the nav. The e2e suite asserts a working drawer on
-  every row in `sites.json`, which is what makes this recoverable rather than a production bug.
+- **A static page gets no nav unless you write the tag.** Vite injects the tag into every page
+  it parses; `public/duel/index.html` is copied, so it has no nav unless its source carries a
+  `<script type="module" src="/_nav/nav.js">` by hand.
 - **Never commit a `CNAME` outside `public/`.** Only root `public/CNAME` may exist. An apex
   `CNAME` in a subdirectory competes with the user site for the domain. `apps/musical-cards`
   shipped one before consolidation; it was deleted for this reason. `public/<slug>/` is a

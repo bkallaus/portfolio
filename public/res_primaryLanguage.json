@@ -121,22 +121,6 @@
           "name": "TypeScript"
         }
       ]
-    },
-    {
-      "title": "Simple City",
-      "description": "Interactive 3D city canvas web app",
-      "images": [],
-      "url": "https://ben.kallaus.me/simple-city",
-      "technologies": [
-        {
-          "class": "devicon-html5-plain",
-          "name": "HTML5"
-        },
-        {
-          "class": "devicon-javascript-plain",
-          "name": "JavaScript"
-        }
-      ]
     }
   ],
   "experience": [

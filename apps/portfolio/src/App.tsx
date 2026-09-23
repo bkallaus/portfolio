@@ -43,7 +43,7 @@ export const App = () => {
   }, []);
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="bg-pearl text-ink min-h-screen">
       <Navbar />
       <Hero headerData={sharedData.basic_info} />
       <About

@@ -1,6 +1,8 @@
 import type React from "react";
 import { useState } from "react";
 import type { Project, ResumeBasicInfo } from "../types";
+import { accentColor, chipClass } from "./pastel";
+import SectionHeading from "./SectionHeading";
 
 type ProjectsProps = {
   resumeProjects?: Project[];
@@ -20,11 +22,12 @@ const Projects: React.FC<ProjectsProps> = ({
     sectionName = resumeBasicInfo.section_name.projects;
   }
 
-  const renderProjectCard = (project: Project) => (
+  const renderProjectCard = (project: Project, index: number) => (
     <div
       key={project.title}
-      className="group relative overflow-hidden rounded-xl shadow-lg cursor-pointer transition-all hover:shadow-2xl bg-white border border-gray-100 flex flex-col justify-between p-6"
+      className="group relative overflow-hidden rounded-xl cursor-pointer transition-all bg-white border border-line shadow-[0_8px_30px_-16px_rgb(91_74_134/0.3)] hover:shadow-[0_18px_44px_-16px_rgb(91_74_134/0.45)] hover:-translate-y-1 flex flex-col justify-between p-6"
     >
+      <div className="absolute inset-x-0 top-0 h-1" style={{ background: accentColor(index) }} />
       <a
         href={project.url}
         target="_blank"
@@ -32,20 +35,20 @@ const Projects: React.FC<ProjectsProps> = ({
         className="block h-full w-full flex flex-col justify-between"
       >
         <div>
-          <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors flex items-center justify-between">
+          <h3 className="text-xl font-bold text-ink mb-2 group-hover:text-violet transition-colors flex items-center justify-between">
             <span>{project.title}</span>
             <i className="fas fa-external-link-alt text-sm opacity-0 group-hover:opacity-100 transition-opacity"></i>
           </h3>
           {project.description && (
-            <p className="text-gray-600 text-sm mb-4">{project.description}</p>
+            <p className="text-ink-soft text-sm mb-4">{project.description}</p>
           )}
         </div>
         {project.technologies && project.technologies.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-4">
-            {project.technologies.map((tech) => (
+            {project.technologies.map((tech, i) => (
               <span
                 key={tech.name}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700"
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium ${chipClass(i)}`}
               >
                 {tech.class && <i className={`${tech.class} text-xs`}></i>}
                 {tech.name}
@@ -58,13 +61,13 @@ const Projects: React.FC<ProjectsProps> = ({
   );
 
   return (
-    <section id="portfolio" className="py-16 bg-white">
+    <section id="portfolio" className="py-20 bg-pearl">
       <div className="container mx-auto px-4">
-        <h1 className="text-4xl font-bold text-center mb-12 text-gray-900">
+        <SectionHeading className="mb-12">
           <span>{sectionName}</span>
-        </h1>
+        </SectionHeading>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          {resumeProjects?.map((project) => renderProjectCard(project))}
+          {resumeProjects?.map(renderProjectCard)}
         </div>
 
         {experimentalProjects && experimentalProjects.length > 0 && (
@@ -72,7 +75,7 @@ const Projects: React.FC<ProjectsProps> = ({
             <button
               type="button"
               onClick={() => setShowExperimental(!showExperimental)}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-full font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-full font-semibold text-ink bg-gradient-to-r from-[#ffc8dd] via-[#e2c2ff] to-[#bde0fe] hover:brightness-105 transition-all shadow-[0_8px_24px_-10px_rgb(91_74_134/0.45)] focus:outline-none focus:ring-2 focus:ring-violet focus:ring-offset-2 cursor-pointer"
             >
               <span>{showExperimental ? "View Less" : "View More"}</span>
               <i
@@ -82,11 +85,11 @@ const Projects: React.FC<ProjectsProps> = ({
 
             {showExperimental && (
               <div className="mt-10 text-left">
-                <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
+                <h2 className="text-2xl font-bold text-ink mb-6 text-center">
                   Experimental Projects
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {experimentalProjects.map((project) => renderProjectCard(project))}
+                  {experimentalProjects.map(renderProjectCard)}
                 </div>
               </div>
             )}

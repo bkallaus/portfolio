@@ -1,5 +1,6 @@
 import type React from "react";
 import type { ResumeBasicInfo, SharedBasicInfo } from "../types";
+import SectionHeading from "./SectionHeading";
 
 type AboutProps = {
   resumeBasicInfo: ResumeBasicInfo;
@@ -22,17 +23,16 @@ const About: React.FC<AboutProps> = ({ resumeBasicInfo, sharedBasicInfo }) => {
   }
 
   return (
-    <section id="about" className="py-20 bg-white">
+    <section id="about" className="py-20 bg-gradient-to-b from-haze to-pearl">
       <div className="container mx-auto px-4">
-        <h1 className="text-4xl font-bold text-center mb-16 text-gray-900">
+        <SectionHeading className="mb-16">
           <span>{sectionName}</span>
-        </h1>
+        </SectionHeading>
         <div className="flex flex-col md:flex-row items-center justify-center gap-12">
-          {/* Profile Image */}
           <div className="md:w-1/3 flex justify-center">
             <div className="relative">
-              <div className="absolute inset-0 bg-gray-200 rounded-lg transform rotate-6 scale-105 z-0"></div>
-              <div className="relative z-10 bg-white p-2 rounded-lg shadow-lg">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#ffc8dd] via-[#cdb4db] to-[#a2d2ff] rounded-lg transform rotate-6 scale-105 z-0"></div>
+              <div className="relative z-10 bg-white p-2 rounded-lg shadow-[0_12px_40px_-12px_rgb(91_74_134/0.35)]">
                 <img
                   src={profilepic}
                   alt="Avatar placeholder"
@@ -42,21 +42,19 @@ const About: React.FC<AboutProps> = ({ resumeBasicInfo, sharedBasicInfo }) => {
             </div>
           </div>
 
-          {/* About Text */}
           <div className="md:w-2/3 max-w-2xl">
-            <div className="bg-gray-50 rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-              {/* Windows/Mac-like header */}
-              <div className="bg-gray-200 px-4 py-2 flex gap-2">
-                <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-                <div className="w-3 h-3 rounded-full bg-green-400"></div>
+            <div className="bg-white rounded-xl shadow-[0_12px_40px_-16px_rgb(91_74_134/0.3)] border border-line overflow-hidden">
+              <div className="bg-haze border-b border-line px-4 py-2 flex gap-2">
+                <div className="w-3 h-3 rounded-full bg-trace-pink"></div>
+                <div className="w-3 h-3 rounded-full bg-trace-gold"></div>
+                <div className="w-3 h-3 rounded-full bg-trace-mint"></div>
               </div>
 
               <div className="p-8">
-                <p className="text-2xl font-light mb-6 text-gray-800">
+                <p className="text-2xl font-light mb-6 text-ink">
                   {hello}
                 </p>
-                <div className="text-gray-600 leading-relaxed text-lg">
+                <div className="text-ink-soft leading-relaxed text-lg">
                   {about}
                 </div>
 
@@ -67,7 +65,7 @@ const About: React.FC<AboutProps> = ({ resumeBasicInfo, sharedBasicInfo }) => {
                       href={network.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-gray-400 hover:text-gray-800 transition-colors text-2xl"
+                      className="text-muted hover:text-violet transition-colors text-2xl"
                     >
                       <i className={network.class}></i>
                     </a>

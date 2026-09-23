@@ -1,5 +1,6 @@
 
 import { FaServer, FaUsers, FaRocket } from 'react-icons/fa';
+import { accentColor } from './pastel';
 
 const Seniority = () => {
     const pillars = [
@@ -21,21 +22,24 @@ const Seniority = () => {
     ];
 
     return (
-        <section id="seniority" className="py-20 bg-gray-50 border-t border-gray-200">
+        <section id="seniority" className="py-20 bg-blush bg-vias">
             <div className="container mx-auto px-4">
                 <div className="text-center mb-16">
-                    <h2 className="text-4xl font-bold text-gray-900 mb-4">Engineering Approach</h2>
-                    <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+                    <h2 className="text-4xl font-bold text-ink tracking-tight mb-4">Engineering Approach</h2>
+                    <p className="text-xl text-ink-soft max-w-2xl mx-auto">
                         Beyond just writing code, I bring a senior mindset focused on long-term value, stability, and team velocity.
                     </p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
                     {pillars.map((pillar, index) => (
-                        <div key={index} className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                            <div className="text-5xl mb-6 text-blue-600 flex justify-center">{pillar.icon}</div>
-                            <h3 className="text-2xl font-bold text-gray-800 mb-4 text-center">{pillar.title}</h3>
-                            <p className="text-gray-600 leading-relaxed text-center">
+                        <div key={pillar.title} className="relative overflow-hidden bg-white/85 backdrop-blur-sm p-8 rounded-xl border border-line shadow-[0_8px_30px_-16px_rgb(91_74_134/0.3)] hover:shadow-[0_16px_40px_-16px_rgb(91_74_134/0.4)] hover:-translate-y-1 transition-all">
+                            <div className="absolute inset-x-0 top-0 h-1" style={{ background: accentColor(index) }} />
+                            <div className="flex justify-center mb-6">
+                                <div className="text-3xl w-16 h-16 rounded-2xl flex items-center justify-center text-ink" style={{ background: `${accentColor(index)}33` }}>{pillar.icon}</div>
+                            </div>
+                            <h3 className="text-2xl font-bold text-ink mb-4 text-center">{pillar.title}</h3>
+                            <p className="text-ink-soft leading-relaxed text-center">
                                 {pillar.description}
                             </p>
                         </div>

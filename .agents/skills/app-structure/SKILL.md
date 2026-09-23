@@ -3,67 +3,33 @@ name: app-structure
 description: Use this skill when building a new side app, adding a site, or organizing an application folder structure in this repository.
 ---
 
-# App Folder Structure for New Side Apps
+# Adding a Side App
 
-When building a new side app in this repository, follow the app folder structure and repository conventions outlined below.
+The rules (URL = directory name, one root `package.json`, `tier` defaults to `experiment`)
+live in the root `AGENTS.md`, under "Three invariants" and "Adding a site". Read those first;
+this skill is the copy-paste starting point, not a second copy of the rules.
 
-## Directory Placement
+A new app touches exactly two places: its directory and one row in `sites.json`. If you find
+yourself editing `vite.config.ts`, `vitest.config.ts`, `tsconfig.json`, `package.json` scripts,
+a CI workflow, or `public/res_primaryLanguage.json` to wire an app in, stop — the app is in the
+wrong place or named the wrong way, because all of those pick it up by glob.
 
-- **Vite / React Apps:** Place the app under `apps/<slug>/`.
-  - Main HTML file: `apps/<slug>/index.html`
-  - Source code: `apps/<slug>/src/` (e.g. `main.tsx`, `App.tsx`)
-  - No per-app `vite.config.ts` or `package.json`.
-- **Static HTML Pages:** Place under `public/<slug>/`.
-  - Main HTML file: `public/<slug>/index.html`
-  - Source assets: HTML, JS, CSS served verbatim.
+## Where things go
 
-## Key Rules & Architectural Principles
+| Thing | Path | Served at |
+| --- | --- | --- |
+| Vite/React page | `apps/<slug>/index.html` + `apps/<slug>/src/` | `/<slug>/` |
+| Extra page for the same app | `apps/<slug>/<sub>/index.html` | `/<slug>/<sub>/` |
+| Static, no-build page | `public/<slug>/index.html` | `/<slug>/` |
+| Assets (manifest, images) | `public/<slug>/…` | `/<slug>/…` |
+| Unit tests | `apps/<slug>/src/**/*.test.tsx` | run by `npm test` |
+| Plain-Node test suites | `apps/<slug>/test/run.ts` | run by `npm test` |
 
-1. **URL Segment Matches Directory Name**
-   - The directory name (`apps/<slug>` or `public/<slug>`) determines the URL path (`/<slug>/`).
-   - Exception: `apps/portfolio` is the hub and serves at `/`.
+Source is TypeScript. No comments in source (see the `no-comments` skill).
 
-2. **Single Root `package.json`**
-   - All dependencies are managed at the repository root.
-   - Do not create per-app `package.json` or lockfiles.
-   - Install new packages at the root with `npm install --legacy-peer-deps`.
+## Walkthrough: a Vite app at `/my-app/`
 
-3. **No Per-App Vite Config**
-   - The root `vite.config.ts` automatically discovers apps configured in `sites.json`.
-
-4. **TypeScript Only**
-   - All new app source code must be `.ts` or `.tsx`.
-   - JavaScript (`.js` / `.jsx`) is strictly for legacy files or tools loading JS directly.
-
-5. **Static Asset Location**
-   - Place app assets in `public/<slug>/` so they land at `/<slug>/` in production.
-   - Do not create a nested `public/` directory inside `apps/<slug>/`.
-
-6. **Site Manifest Registration (`sites.json`)**
-   - Register the app in `sites.json`:
-     ```json
-     {
-       "slug": "my-new-app",
-       "type": "vite",
-       "tier": "experiment",
-       "title": "My New App",
-       "blurb": "Optional short description"
-     }
-     ```
-   - `tier` defaults to `"experiment"`. Set to `"featured"` only when showcasing on the portfolio hub.
-
-7. **Navigation Component Integration**
-   - Vite apps automatically get the shared nav drawer injected during build.
-   - Static pages under `public/<slug>/` must manually include the nav script tag before `</body>`.
-
-8. **Strict No Comments Rule**
-   - Do not include inline, block, or JSDoc comments in source files.
-   - Make code self-documenting through well-named functions and descriptive variables.
-
-## Step-by-Step Walkthrough: Creating a Vite Side App
-
-1. **Choose a URL slug:** e.g., `my-app`.
-2. **Create entry HTML at `apps/my-app/index.html`:**
+1. `apps/my-app/index.html`:
    ```html
    <!DOCTYPE html>
    <html lang="en">
@@ -78,12 +44,11 @@ When building a new side app in this repository, follow the app folder structure
      </body>
    </html>
    ```
-3. **Create `apps/my-app/src/main.tsx`:**
+2. `apps/my-app/src/main.tsx`:
    ```tsx
    import { StrictMode } from 'react';
    import { createRoot } from 'react-dom/client';
    import { App } from './App';
-   import './index.css';
 
    const rootElement = document.getElementById('root');
    if (rootElement) {
@@ -94,26 +59,26 @@ When building a new side app in this repository, follow the app folder structure
      );
    }
    ```
-4. **Create `apps/my-app/src/App.tsx`:**
+3. `apps/my-app/src/App.tsx`:
    ```tsx
    export function App() {
      return (
        <main className="min-h-screen p-8">
-         <h1 className="text-3xl font-bold">My New Side App</h1>
+         <h1 className="text-3xl font-bold">My App</h1>
        </main>
      );
    }
    ```
-5. **Add entry to `sites.json`:**
+4. Append to `sites.json` (its position in the file is its position on the hub):
    ```json
    {
      "slug": "my-app",
-     "type": "vite",
-     "tier": "experiment",
-     "title": "My App"
+     "title": "My App",
+     "blurb": "One line for the hub card",
+     "tech": ["react", "typescript"]
    }
    ```
-6. **Verify build and tests:**
-   - Run `npm run build`
-   - Confirm `dist/my-app/index.html` exists and references `/_nav/nav.js`
-   - Run `npm run test:e2e`
+   `tech` values are the keys of the `Tech` type in `sites.ts`; add a badge there if you need
+   a new one. Add `"tier": "featured"` only to promote it on the hub.
+5. Verify: `npm test` (includes the `sites.json` ↔ directory check), `npm run build`, then
+   confirm `dist/my-app/index.html` exists, and finally `npm run test:e2e`.

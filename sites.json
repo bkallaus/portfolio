@@ -1,53 +1,52 @@
 [
   {
     "slug": "portfolio",
-    "type": "vite",
-    "tier": "featured",
+    "tier": "hidden",
     "title": "Portfolio",
     "blurb": "About, experience, and what I've been building"
   },
   {
-    "slug": "quick",
-    "type": "vite",
-    "tier": "featured",
-    "title": "Quick",
-    "blurb": "Dev utilities \u2014 converters, generators, encoders"
-  },
-  {
     "slug": "musical-cards",
-    "type": "vite",
     "tier": "featured",
     "title": "Musical Cards",
-    "blurb": "Sight-reading practice with generated staves"
+    "blurb": "Sight-reading practice with generated staves",
+    "tech": ["react", "javascript"]
   },
   {
-    "slug": "poke-search",
-    "type": "vite",
-    "tier": "experiment",
-    "title": "Poke Search"
-  },
-  {
-    "slug": "battle-helper",
-    "type": "vite",
-    "tier": "experiment",
-    "title": "Battle Helper"
-  },
-  {
-    "slug": "simple-city",
-    "type": "static",
-    "tier": "experiment",
-    "title": "Simple City"
-  },
-  {
-    "slug": "duel",
-    "type": "static",
-    "tier": "experiment",
-    "title": "Duel"
+    "slug": "quick",
+    "tier": "featured",
+    "title": "Quick Calculations",
+    "blurb": "Dev utilities — converters, generators, encoders",
+    "tech": ["react", "typescript"]
   },
   {
     "slug": "prism-duel",
-    "type": "static",
-    "tier": "experiment",
-    "title": "Prism Duel"
+    "title": "Prism Duel",
+    "blurb": "An original two-player gem duel for the browser. Play the engine, share a device, or send a room code.",
+    "tech": ["react", "typescript"]
+  },
+  {
+    "slug": "duel",
+    "title": "Duel",
+    "blurb": "A two-player strategy card game for the browser. Built for two people to play together remotely.",
+    "tech": ["react", "typescript"]
+  },
+  {
+    "slug": "poke-search",
+    "title": "Poke Search",
+    "blurb": "Interactive Pokemon search and query tool",
+    "tech": ["react", "typescript"]
+  },
+  {
+    "slug": "battle-helper",
+    "title": "Battle Helper",
+    "blurb": "Pokemon battle calculator and type matchups",
+    "tech": ["react", "typescript"]
+  },
+  {
+    "slug": "simple-city",
+    "title": "Simple City",
+    "blurb": "Interactive 3D city canvas web app",
+    "tech": ["html5", "javascript"]
   }
 ]

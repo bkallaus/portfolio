@@ -64,6 +64,5 @@ export type Experience = {
 export type ResumeData = {
     basic_info: ResumeBasicInfo;
     projects: Project[];
-    experimental_projects?: Project[];
     experience: Experience[];
 }

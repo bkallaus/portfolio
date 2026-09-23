@@ -5,9 +5,9 @@ table and send someone a five-character code.
 
 Two URLs, the same shape as `apps/duel`: `/prism-duel/` is a static write-up served from
 `public/prism-duel/`, and `/prism-duel/play/` is the game itself, built from `play/index.html`
-here. The `sites.json` row is therefore `type: "static"` — it points at the write-up — and the
-playable page rides along as an extra Rollup input named in `gamesWithWriteups` in the root
-`vite.config.ts`, which also rewrites the dev URL so it matches production.
+here. Nothing registers the second page: the root `vite.config.ts` builds every `index.html`
+under `apps/<slug>/`, so `play/index.html` lands at `/prism-duel/play/` in both dev and
+production.
 
 It lives inside the portfolio's one Vite project — no `package.json` of its own, no
 `vite.config.ts` of its own. Run everything from the repo root:
@@ -15,7 +15,7 @@ It lives inside the portfolio's one Vite project — no `package.json` of its ow
 ```
 npm install --legacy-peer-deps
 npm run dev              # write-up at /prism-duel/, game at /prism-duel/play/
-npm run test:prism-duel  # four suites, ~4s
+node apps/prism-duel/test/run.ts  # four suites, ~4s
 npm run typecheck
 npm run build            # static output in dist/prism-duel/ and dist/prism-duel/play/
 npx playwright test e2e/prism-duel.spec.ts
@@ -135,7 +135,7 @@ were rebalanced in the same change to make the position rarer in the first place
 
 ## What is verified
 
-`npm run test:prism-duel` runs four suites, 174 assertions:
+`node apps/prism-duel/test/run.ts` runs four suites, 174 assertions:
 
 - **cards** — deck shape, cost bands per tier, no card costing its own colour, every colour
   holding enough prestige for a colour victory.

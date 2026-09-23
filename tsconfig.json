@@ -27,10 +27,8 @@
   },
   "include": [
     "apps/*/src",
-    "packages",
+    "apps/*/test",
     "scripts",
-    "vite.config.ts",
-    "apps/duel/test",
-    "apps/prism-duel/test"
+    "*.ts"
   ]
 }

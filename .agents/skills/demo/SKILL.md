@@ -20,7 +20,7 @@ Two ways to serve, and the change decides which:
 
 - **`npm run dev`** for ordinary in-app UI work. Fast, hot, good enough.
 - **`npm run build && npx vite preview --outDir dist --port 4173`** when the change touches
-  the shared nav, asset paths, `sites.json`, or `vite.config.ts`. Those things only exist
+  asset paths, `sites.json`, or `vite.config.ts`. Those things only exist
   after assembly — the dev server will happily show you a demo that is a lie. It is the same
   reason `playwright.config.ts` points at the assembled `dist/` rather than a dev server.
 

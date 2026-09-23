@@ -137,6 +137,22 @@
           "name": "JavaScript"
         }
       ]
+    },
+    {
+      "title": "Toon Planet",
+      "description": "Comic-book 3D planet with cities, cars and planes to explore",
+      "images": [],
+      "url": "https://ben.kallaus.me/toon-planet",
+      "technologies": [
+        {
+          "class": "devicon-threejs-original",
+          "name": "Three.js"
+        },
+        {
+          "class": "devicon-typescript-plain",
+          "name": "TypeScript"
+        }
+      ]
     }
   ],
   "experience": [

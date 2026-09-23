@@ -45,6 +45,7 @@ test('portfolio projects section shows view more button and reveals experimental
   await expect(page.getByText('Poke Search')).toBeVisible();
   await expect(page.getByText('Battle Helper')).toBeVisible();
   await expect(page.getByText('Simple City')).toBeVisible();
+  await expect(page.getByText('Toon Planet')).toBeVisible();
 
   await expect(page.getByRole('link', { name: /Prism Duel/ })).toHaveAttribute(
     'href',

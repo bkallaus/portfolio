@@ -49,5 +49,11 @@
     "type": "static",
     "tier": "experiment",
     "title": "Prism Duel"
+  },
+  {
+    "slug": "dice-dungeon-duel",
+    "type": "static",
+    "tier": "experiment",
+    "title": "Dice Dungeon Duel"
   }
 ]

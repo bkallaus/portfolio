@@ -8,9 +8,9 @@ Lives inside the portfolio's own Vite project rather than as a standalone app â€
 repo root. Run everything from the repo root:
 
 ```
-npm install
-npm run dev        # local server; game is served at /duel/play/
-npm run test:duel  # all three suites, ~10s
+npm install --legacy-peer-deps
+npm run dev                  # write-up at /duel/, game at /duel/play/
+node apps/duel/test/run.ts   # all three suites, ~10s
 npm run typecheck  # tsc over the whole repo
 npm run build      # static output in dist/duel/play/
 ```

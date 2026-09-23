@@ -1,23 +1,32 @@
 import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
-import { readFileSync } from 'node:fs';
+import { existsSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
-
-type Site = { slug: string; type: 'vite' | 'static' };
+import { HUB_SLUG } from './sites.ts';
 
 const here = import.meta.dirname;
-const sites: Site[] = JSON.parse(readFileSync(path.join(here, 'sites.json'), 'utf8'));
+const appsDir = path.join(here, 'apps');
+const notPages = new Set(['src', 'test', 'node_modules']);
 
-// Each of these is a static write-up at /<slug>/ (from public/) with the playable
-// build at /<slug>/play/. They are not `type: "vite"` rows, so their entries are
-// added to the Rollup input by hand below.
-const gamesWithWriteups = ['duel', 'prism-duel'];
+function pagesUnder(dir: string): string[] {
+  const pages = existsSync(path.join(dir, 'index.html')) ? [path.join(dir, 'index.html')] : [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (entry.isDirectory() && !notPages.has(entry.name)) {
+      pages.push(...pagesUnder(path.join(dir, entry.name)));
+    }
+  }
+  return pages;
+}
+
+const appSlugs = readdirSync(appsDir, { withFileTypes: true })
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => entry.name);
 
 const input = Object.fromEntries(
-  sites
-    .filter((s) => s.type === 'vite')
-    .map((s) => [s.slug, path.join(here, 'apps', s.slug, 'index.html')])
+  appSlugs
+    .flatMap((slug) => pagesUnder(path.join(appsDir, slug)))
+    .map((page) => [path.relative(appsDir, path.dirname(page)).replaceAll(path.sep, '-'), page])
 );
 
 function htmlAtUrlSegment(): Plugin {
@@ -29,36 +38,38 @@ function htmlAtUrlSegment(): Plugin {
         const match = /^apps\/([^/]+)\/(.*\.html)$/.exec(output.fileName);
         if (!match) continue;
         const [, slug, rest] = match;
-        output.fileName = slug === 'portfolio' ? rest : `${slug}/${rest}`;
+        output.fileName = slug === HUB_SLUG ? rest : `${slug}/${rest}`;
       }
     },
   };
 }
 
+function servedFromApps(urlPath: string): boolean {
+  const target = path.join(here, 'apps', urlPath);
+  if (!existsSync(target)) return false;
+  return statSync(target).isFile() || existsSync(path.join(target, 'index.html'));
+}
+
+function staticIndexIn(pathname: string): boolean {
+  return pathname.endsWith('/') && existsSync(path.join(here, 'public', pathname, 'index.html'));
+}
+
 function urlsMatchProduction(): Plugin {
-  const built = sites.filter((s) => s.type === 'vite' && s.slug !== 'portfolio');
+  const slugs = appSlugs.filter((slug) => slug !== HUB_SLUG);
   return {
     name: 'urls-match-production',
     apply: 'serve',
     configureServer(server) {
       server.middlewares.use((req, _res, next) => {
         const url = req.url ?? '/';
-        // A game lives at apps/<slug>/play but deploys at /<slug>/play/, alongside the
-        // /<slug>/ write-up served from public/. Mirror that here so dev URLs match
-        // production. (/<slug>/ itself falls through to the public/ write-up.)
-        for (const slug of gamesWithWriteups) {
-          if (url === `/${slug}/play` || url.startsWith(`/${slug}/play/`)) {
-            req.url = `/apps/${slug}${url.slice(slug.length + 1)}`;
-            return next();
-          }
+        if (url === '/' || url === '/index.html') {
+          req.url = `/apps/${HUB_SLUG}/index.html`;
+          return next();
         }
-        for (const site of built) {
-          if (url === `/${site.slug}` || url.startsWith(`/${site.slug}/`)) {
-            req.url = `/apps/${site.slug}${url.slice(site.slug.length + 1)}`;
-            return next();
-          }
-        }
-        if (url === '/' || url === '/index.html') req.url = '/apps/portfolio/index.html';
+        const [pathname] = url.split('?');
+        const slug = pathname.split('/')[1];
+        if (slugs.includes(slug) && servedFromApps(pathname)) req.url = `/apps${url}`;
+        else if (staticIndexIn(pathname)) req.url = `${pathname}index.html`;
         next();
       });
     },
@@ -67,25 +78,11 @@ function urlsMatchProduction(): Plugin {
 
 export default defineConfig({
   plugins: [react(), tailwindcss(), htmlAtUrlSegment(), urlsMatchProduction()],
-  define: {
-    __SITES__: JSON.stringify(sites),
-  },
   build: {
     outDir: 'dist',
     emptyOutDir: true,
     rollupOptions: {
-      // Each game page rides along as an extra input; htmlAtUrlSegment rewrites
-      // apps/<slug>/play/index.html to <slug>/play/index.html, so it deploys at
-      // /<slug>/play/.
-      input: {
-        ...input,
-        ...Object.fromEntries(
-          gamesWithWriteups.map((slug) => [
-            `${slug}-play`,
-            path.join(here, 'apps', slug, 'play', 'index.html'),
-          ])
-        ),
-      },
+      input,
       output: {
         entryFileNames: 'assets/[name]-[hash].js',
       },

@@ -8,6 +8,7 @@ import Experience from "./components/Experience";
 import Projects from "./components/Projects";
 import Skills from "./components/Skills";
 import type { PortfolioSharedData, ResumeData } from "./types";
+import { experimentalSiteProjects, featuredSiteProjects } from "./lib/site-projects";
 
 export const App = () => {
   const [sharedData, setSharedBasicInfo] = useState<PortfolioSharedData>({} as PortfolioSharedData);
@@ -52,8 +53,8 @@ export const App = () => {
       />
       <Seniority />
       <Projects
-        resumeProjects={resumeData.projects}
-        experimentalProjects={resumeData.experimental_projects}
+        resumeProjects={resumeData.projects && [...resumeData.projects, ...featuredSiteProjects]}
+        experimentalProjects={experimentalSiteProjects}
         resumeBasicInfo={resumeData.basic_info}
       />
       <Skills

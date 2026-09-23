@@ -25,16 +25,17 @@ them through the `.claude/skills` symlink; every other agent reads this table.
 Break any of these and the site breaks in a way local dev will not show you.
 
 **1. A page's directory name is its URL segment.** `apps/quick` serves `/quick/`;
-`public/duel` serves `/duel/`. `vite.config.ts` derives one Rollup entry per
-`"vite"` row in `sites.json`, and the `html-at-url-segment` plugin renames each emitted page
-from its source path to its slug, so the folder, the manifest row, and the URL cannot drift
-apart. The dev server rewrites `/<slug>/` to `apps/<slug>/` for the same reason: you develop
-against the URL you ship. `apps/portfolio` is the one exception — it is the hub and serves `/`.
+`apps/duel/play` serves `/duel/play/`; `public/duel` serves `/duel/`.
+`vite.config.ts` builds every `index.html` it finds under `apps/<slug>/` (skipping `src/` and
+`test/`), and the `html-at-url-segment` plugin renames each emitted page from its source path
+to its URL, so the folder and the URL cannot drift apart. The dev server applies the same
+mapping, so you develop against the URL you ship. `apps/portfolio` is the one exception — it
+is the hub and serves `/`.
 
 **2. There is exactly one `package.json`, at the root.** No workspaces, no per-app manifest,
 no per-app lockfile. Every app therefore builds against one version of everything (React 19,
 Vite 8, TypeScript 5.9). A new dependency goes in the root manifest; an upgrade for one app
-is an upgrade for all seven, which is what `ci.yml` exists to catch.
+is an upgrade for all of them, which is what `ci.yml` exists to catch.
 
 **3. `tier` defaults to `experiment`.** You opt *in* to the showcase, never out of it. A
 half-built scratch project cannot leak into the public persona by forgetting a flag.
@@ -51,101 +52,102 @@ The exceptions are pre-existing and closed. Do not read them as precedent for a 
 
 - `apps/musical-cards/src` is pre-consolidation `.jsx` throughout. Leave it, or convert it as
   its own change — do not copy it as the pattern for anything new.
-- `public/duel/index.html` and `public/prism-duel/index.html` are no-build static pages with
-  inline scripts; the browser loads those files verbatim, so the source *is* the artifact.
-- `packages/nav/src/nav.js` is a Vite entry now, so it *could* be `.ts` for free. That is the
-  one conversion worth doing the next time someone opens the nav.
 - Files a tool loads directly stay JS: `apps/*/tailwind.config.js` and
   `scripts/record-walkthrough.mjs`. Linting is configured in `biome.json`, which is JSON.
 
 ## Adding a site
 
+Two places, and only two: the source directory and one row in `sites.json`.
+
 1. Pick the slug you want in the URL. That decision is now made — it is the directory name.
-2. Add the source, in TypeScript. A Vite app is `apps/<slug>/index.html` plus `src/`, and
-   **no per-app `vite.config.ts`** — the root config reads `sites.json` and derives one Rollup
-   entry per app, so step 4 is what wires the page into the build. A static page is a
-   directory under `public/` instead: `public/<slug>/index.html` and its assets, copied
-   verbatim and never parsed. Never set `base` or `outDir` anywhere; the root config owns
-   every output path, and hardcoding one is the drift this design removes.
+2. Add the source, in TypeScript.
+   - **A Vite app** is `apps/<slug>/index.html` plus `src/`. No per-app `vite.config.ts`,
+     `package.json`, test config or setup file — the root config finds the page by walking
+     `apps/`. Need a second page (a game behind a write-up, say)? Put another `index.html` in
+     a subdirectory: `apps/<slug>/play/index.html` serves `/<slug>/play/`. Never set `base` or
+     `outDir` anywhere; the root config owns every output path.
+   - **A static page** is `public/<slug>/index.html` and its assets, copied verbatim and
+     never parsed.
 3. Static assets go in the one root `publicDir`, under the slug: `public/<slug>/manifest.json`
    serves at `/<slug>/manifest.json`. There is no per-app `public/`. The hub is the exception
    again — `public/favicon.ico` serves at `/favicon.ico`, because portfolio is `/`.
-4. Add a row to `sites.json`. `type` is `"vite"` or `"static"`. Omit `tier` unless you are
-   deliberately promoting it to `featured` (needs a `blurb`) or hiding it (`"hidden"`).
+4. Add a row to `sites.json`: `slug`, `title`, and ideally `blurb` and `tech`. Omit `tier`
+   unless you are promoting it to `featured` or hiding it (`"hidden"`). The row is what puts
+   the page on the hub and into the e2e sweep.
 5. Add any new dependencies to the root `package.json` and `npm install --legacy-peer-deps`
    at the root.
-6. If the page is static, paste the nav tag into its `</body>` yourself — see the landmine.
-7. `npm run build`, then confirm three things in `dist/`: `dist/<slug>/index.html` exists, its
-   asset URLs start with `/<slug>/`, and the nav `<script>` tag is there.
+6. `npm test`, then `npm run test:e2e`.
 
-Done when step 7's three checks pass, and `npm run test:e2e` is what proves it — a green
-`npm run build` alone does not. A wrong path builds cleanly and 404s every asset in production.
+`npm test` fails if a `sites.json` row points at no page, or a page has no row, so steps 2
+and 4 cannot drift. `npm run test:e2e` proves the page renders and every asset resolves — a
+green `npm run build` alone does not.
+
+### What gets picked up automatically
+
+| You add | Picked up by | Because |
+| --- | --- | --- |
+| `apps/<slug>/**/index.html` | the build and the dev server | `vite.config.ts` walks `apps/` |
+| `apps/<slug>/src/**/*.test.{ts,tsx}` | `npm test` | the `apps` project in `vitest.config.ts` globs for it |
+| `apps/<slug>/test/run.ts` | `npm test` | `scripts/test-engines.ts` runs every one it finds with plain Node |
+| `apps/<slug>/src`, `apps/<slug>/test` | `npm run typecheck` | `tsconfig.json` includes both globs |
+| a `sites.json` row | the hub's project grid, the e2e sweep | both read it through `sites.ts` |
+
+Unit tests share one setup file, the root `vitest.setup.ts` (jest-dom matchers and a canvas
+mock). Add to it rather than creating a per-app one.
 
 ## How the build assembles
 
 `npm run build` is `vite build`. One pass, one hashed asset graph, every page. There is no
 build script, no per-app build, and nothing to run before or after it.
 
-Five jobs that a wrapper script used to own now live in `vite.config.ts`, and it is worth
-knowing which piece does which, because none of it is Vite's default behaviour:
+Three pieces of `vite.config.ts` do the work, and none of it is Vite's default behaviour:
 
-1. **`html-at-url-segment`** renames emitted HTML in `generateBundle`. Vite writes each page
+1. **Page discovery** walks `apps/` and makes one Rollup input per `index.html`.
+2. **`html-at-url-segment`** renames emitted HTML in `generateBundle`. Vite writes each page
    to its path relative to root — `dist/apps/<slug>/` — which is one directory deeper than the
    URL. The plugin rewrites `fileName` to `<slug>/index.html`, and portfolio's to `index.html`.
-2. **The one `publicDir`** is the repo root's `public/`, copied verbatim to the artifact root.
-   Per-app assets live under `public/<slug>/` so they land at `/<slug>/`.
-3. **A static page is just a `public/` subdirectory.** `public/duel/` is copied, never
-   parsed. That is all `type: "static"` means.
-4. **The nav is one more Rollup entry**, not a second bundler. `sites.json` and `nav.css` are
-   inlined through `define`, and `entryFileNames` opts that one chunk out of content hashing so
-   it lands at a stable `/_nav/nav.js`.
-5. **`nav-at-fixed-path` injects the nav tag** via `transformIndexHtml`, into every page Vite
-   parses and only those. A page copied from `public/` carries the tag in its own source.
+3. **`urls-match-production`** is the dev-server mirror of that rename: `/<slug>/…` is served
+   from `apps/<slug>/…` when that file exists, and otherwise falls through to `public/`, with
+   a directory URL resolving to its `index.html` the way GitHub Pages does.
 
-One page failing fails the build: seven sites deploy together or not at all.
+The root `public/` is copied verbatim to the artifact root, which is all a static page is.
 
-What this does *not* do, which the script did: validate that every `sites.json` row matches a
-real directory. A row pointing at nothing now produces a broken nav link rather than a failed
-build. `npm run test:e2e` catches it, because it walks every row.
+One page failing fails the build: every site deploys together or not at all.
 
 ## Routing
 
 There is none. No router, no redirects, no config. URLs resolve by static file lookup against
 the assembled `dist/`, which is why invariant 1 matters.
 
-`sites.json` is **not** load-bearing for serving. It drives the nav drawer and the hub grid
-only. A wrong row makes the nav wrong; it cannot 404 anything. A folder with no row still
-serves — that is what `tier: "hidden"` means.
+`sites.json` is **not** load-bearing for serving. It drives the hub's project grid and the e2e
+sweep only. Read it through `sites.ts` (`sites`, `urlFor`, `listedIn`), never by parsing the
+JSON yourself — that is what keeps the hub, the tests and the walkthrough script agreeing on
+what a URL is.
 
 Consequence worth knowing before you reach for client-side routing: one Pages site gets one
 root `404.html`. Deep links like `/quick/base64` need the `404.html`-restores-the-path trick,
 and after consolidation that fallback is global and must dispatch on the path prefix.
 
-## The nav
+## The hub
 
-`packages/nav/` is one framework-agnostic web component, injected at build rather than
-imported per app. It has to be: `duel` and `prism-duel` are plain HTML, and the apps disagree on styling
-(Tailwind v4, styled-components, hand-rolled CSS). Shadow DOM keeps that isolation in both
-directions.
-
-It carries a top-frame guard — `if (window.self !== window.top) return;` — so a page embedded
-in an iframe (such as a tool under test in `quick`'s iframe tester) does not grow a second nav
-button inside the frame.
+`apps/portfolio` lists projects from two sources. Pages in this repo come from `sites.json`:
+`featured` rows sit in the main grid, `experiment` rows behind "View More", `hidden` rows
+nowhere. Projects that live elsewhere (another domain, another repo) are the `projects` array
+in `public/res_primaryLanguage.json`. Do not list a page from this repo there; give it a
+`sites.json` row instead.
 
 ## Landmines
 
-- **A static page gets no nav unless you write the tag.** Vite injects the tag into every page
-  it parses; `public/duel/index.html` is copied, so it has no nav unless its source carries a
-  `<script type="module" src="/_nav/nav.js">` by hand.
 - **Never commit a `CNAME` outside `public/`.** Only root `public/CNAME` may exist. An apex
   `CNAME` in a subdirectory competes with the user site for the domain. `apps/musical-cards`
   shipped one before consolidation; it was deleted for this reason. `public/<slug>/` is a
   published directory now, so the same rule applies there.
+- **A slug lives in `apps/` or `public/`, not both, for the same page.** `apps/duel/play/` and
+  `public/duel/index.html` coexist because they are different URLs. An `apps/<slug>/index.html`
+  next to a `public/<slug>/index.html` would race for `/<slug>/`; `npm test` rejects it.
 - `apps/portfolio` builds to `dist/`, not `build/` — uniform with every other app.
 - The root is `"type": "module"`, so `__dirname` is unavailable in config files. Use
   `import.meta.dirname`.
-- Absolute `/_nav/nav.js` 404s under `npm run dev` — it is a build entry, so it exists only
-  in `dist/`. Expected. To see the nav, `npm run build && npm run preview`.
 
 ## Installing
 

@@ -10,7 +10,7 @@ GitHub Pages artifact. Six sites, one `package.json`, one build, one deploy.
 | [`/musical-cards/`](https://ben.kallaus.me/musical-cards/) | `apps/musical-cards` | Sight-reading practice with generated staves (VexFlow + Tone.js) |
 | [`/poke-search/`](https://ben.kallaus.me/poke-search/) | `apps/poke-search` | Pokémon lookup |
 | [`/battle-helper/`](https://ben.kallaus.me/battle-helper/) | `apps/battle-helper` | Damage calc / battle assistant |
-| [`/simple-city/`](https://ben.kallaus.me/simple-city/) | `apps/simple-city` | Plain-HTML toy, also the portfolio's hero background |
+| [`/simple-city/`](https://ben.kallaus.me/simple-city/) | `apps/simple-city` | Plain-HTML toy |
 
 ## Getting started
 

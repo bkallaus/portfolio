@@ -128,9 +128,9 @@ imported per app. It has to be: `simple-city` is plain HTML, and the apps disagr
 (Tailwind v4, styled-components, hand-rolled CSS). Shadow DOM keeps that isolation in both
 directions.
 
-It carries a top-frame guard — `if (window.self !== window.top) return;` — because the
-portfolio iframes `simple-city` into its hero background. Removing that guard puts a nav
-button inside the hero.
+It carries a top-frame guard — `if (window.self !== window.top) return;` — so a page embedded
+in an iframe (such as a tool under test in `quick`'s iframe tester) does not grow a second nav
+button inside the frame.
 
 ## Landmines
 

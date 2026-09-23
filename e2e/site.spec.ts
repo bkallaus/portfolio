@@ -1,14 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
-
-type Site = { slug: string; type: 'vite' | 'static'; tier?: string; title: string };
-
-const sites: Site[] = JSON.parse(
-  readFileSync(path.join(import.meta.dirname, '..', 'sites.json'), 'utf8'),
-);
-
-const urlFor = (slug: string) => (slug === 'portfolio' ? '/' : `/${slug}/`);
+import { sites, urlFor } from '../sites.ts';
 
 test.describe('every page renders in a real browser', () => {
   for (const site of sites) {

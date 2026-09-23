@@ -1,14 +1,13 @@
 #!/usr/bin/env node
 import { chromium } from '@playwright/test';
-import { readFileSync, rmSync, readdirSync, renameSync } from 'node:fs';
+import { rmSync, readdirSync, renameSync } from 'node:fs';
 import path from 'node:path';
+import { sites, urlFor } from '../sites.ts';
 
 const root = path.join(import.meta.dirname, '..');
 const BASE = process.env.BASE_URL ?? 'http://localhost:4173';
 const OUT = path.join(root, 'walkthrough');
 
-const sites = JSON.parse(readFileSync(path.join(root, 'sites.json'), 'utf8'));
-const urlFor = (slug) => (slug === 'portfolio' ? '/' : `/${slug}/`);
 const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 
 rmSync(OUT, { recursive: true, force: true });

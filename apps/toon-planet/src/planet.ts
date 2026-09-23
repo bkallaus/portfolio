@@ -40,10 +40,10 @@ function surfaceColor(height: number, mountain: number, speckle: number, settled
   return target.lerp(palette.plaza, smoothstep(0.55, 0.9, settled));
 }
 
-export function createPlanet(terrain: Terrain): { group: Group; terrainMesh: Mesh; oceanMesh: Mesh } {
+export function createPlanet(terrain: Terrain, detail: number): { group: Group; terrainMesh: Mesh; oceanMesh: Mesh } {
   const group = new Group();
 
-  const base = new IcosahedronGeometry(1, 96);
+  const base = new IcosahedronGeometry(1, detail);
   base.deleteAttribute('normal');
   base.deleteAttribute('uv');
   const geometry = mergeVertices(base);

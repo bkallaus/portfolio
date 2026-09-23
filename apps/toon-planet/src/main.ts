@@ -16,6 +16,7 @@ import { ComicRenderer } from './comicRenderer.ts';
 import { createClouds, createTrees, createWindmills } from './nature.ts';
 import { createRandom } from './noise.ts';
 import { createPlanet } from './planet.ts';
+import { chooseQuality, isConstrainedDevice } from './quality.ts';
 import { createSettlements } from './settlements.ts';
 import { PLANET_RADIUS, SETTLEMENT_LEVEL, Terrain } from './terrain.ts';
 import { sharedUniforms } from './toonMaterial.ts';
@@ -44,24 +45,31 @@ function findHighestPeak(terrain: Terrain): Vector3 {
 }
 
 function buildWorld(canvasHost: HTMLElement) {
-  const renderer = new WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
-  const pixelRatio = Math.min(window.devicePixelRatio, 2);
+  const constrained = isConstrainedDevice();
+  const renderer = new WebGLRenderer({ antialias: false, powerPreference: constrained ? 'default' : 'high-performance' });
+  const quality = chooseQuality(renderer, constrained);
+  const pixelRatio = quality.pixelRatio;
   renderer.setPixelRatio(pixelRatio);
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = PCFShadowMap;
   renderer.shadowMap.autoUpdate = false;
   canvasHost.appendChild(renderer.domElement);
+  renderer.domElement.addEventListener('webglcontextlost', (event) => {
+    event.preventDefault();
+    renderer.setAnimationLoop(null);
+    showFailure('The graphics chip ran out of steam. Reload to try again!');
+  });
 
   const scene = new Scene();
   const camera = new PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 200);
-  const comic = new ComicRenderer(renderer);
+  const comic = new ComicRenderer(renderer, quality.samples);
   comic.setSize(window.innerWidth, window.innerHeight, pixelRatio);
 
   const terrain = new Terrain(42);
   const random = createRandom(1234);
 
-  const { group: planet, terrainMesh, oceanMesh } = createPlanet(terrain);
+  const { group: planet, terrainMesh, oceanMesh } = createPlanet(terrain, quality.terrainDetail);
   scene.add(planet);
   const settlements = createSettlements(terrain.city, terrain.town, random);
   scene.add(settlements.group);
@@ -77,7 +85,7 @@ function buildWorld(canvasHost: HTMLElement) {
 
   const sun = new DirectionalLight('#fff1d0', sharedUniforms.uSunIntensity.value);
   sun.castShadow = true;
-  sun.shadow.mapSize.set(4096, 4096);
+  sun.shadow.mapSize.set(quality.shadowMapSize, quality.shadowMapSize);
   sun.shadow.camera.left = -15;
   sun.shadow.camera.right = 15;
   sun.shadow.camera.top = 15;
@@ -158,6 +166,15 @@ function buildWorld(canvasHost: HTMLElement) {
   sharedUniforms.uDotSize.value = 5 * pixelRatio;
 
   renderer.setAnimationLoop((timestamp) => {
+    try {
+      renderFrame(timestamp);
+    } catch (error) {
+      renderer.setAnimationLoop(null);
+      showFailure('Kaboom! Something broke while drawing the planet.', error);
+    }
+  });
+
+  function renderFrame(timestamp: number) {
     timer.update(timestamp);
     const dt = Math.min(timer.getDelta(), 0.1);
     if (!paused) simulation += dt;
@@ -175,8 +192,20 @@ function buildWorld(canvasHost: HTMLElement) {
     rig.update(dt);
 
     comic.render(scene, camera, simulation, sunDirection);
-  });
+  }
+}
 
+function showFailure(message: string, error?: unknown) {
+  document.body.classList.remove('ready');
+  const loading = document.querySelector('.loading');
+  if (!loading) return;
+  loading.textContent = message;
+  if (error) {
+    const detail = document.createElement('small');
+    detail.className = 'failure-detail';
+    detail.textContent = error instanceof Error ? error.message : String(error);
+    loading.append(detail);
+  }
 }
 
 const host = document.getElementById('stage');
@@ -185,9 +214,8 @@ if (host) {
     setTimeout(() => {
       try {
         buildWorld(host);
-      } catch {
-        const loading = document.querySelector('.loading');
-        if (loading) loading.textContent = 'Kaboom! This browser can’t draw 3D (WebGL) right now.';
+      } catch (error) {
+        showFailure('Kaboom! This browser can’t draw 3D (WebGL) right now.', error);
         return;
       }
       document.body.classList.add('ready');

@@ -163,6 +163,21 @@ body {
   transition: opacity 0.5s ease;
 }
 
+.loading {
+  text-align: center;
+  padding: 16px;
+}
+
+.failure-detail {
+  display: block;
+  margin-top: 12px;
+  font-family: 'Comic Neue', system-ui, sans-serif;
+  font-size: 14px;
+  color: var(--paper);
+  -webkit-text-stroke: 0;
+  text-shadow: none;
+}
+
 body.ready .loading {
   opacity: 0;
 }

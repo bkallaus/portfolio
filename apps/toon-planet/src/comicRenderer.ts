@@ -1,7 +1,6 @@
 import {
   Color,
   DepthTexture,
-  HalfFloatType,
   Mesh,
   MeshNormalMaterial,
   OrthographicCamera,
@@ -9,6 +8,7 @@ import {
   PlaneGeometry,
   type Scene,
   ShaderMaterial,
+  SRGBColorSpace,
   Vector2,
   Vector3,
   type WebGLRenderer,
@@ -150,9 +150,12 @@ export class ComicRenderer {
   private readonly quadCamera = new OrthographicCamera(-1, 1, 1, -1, 0, 1);
   private readonly size = new Vector2();
 
-  constructor(private readonly renderer: WebGLRenderer) {
-    this.colorTarget = new WebGLRenderTarget(1, 1, { type: HalfFloatType, samples: 4 });
-    this.normalTarget = new WebGLRenderTarget(1, 1, { type: HalfFloatType, depthTexture: new DepthTexture(1, 1) });
+  constructor(
+    private readonly renderer: WebGLRenderer,
+    samples: number,
+  ) {
+    this.colorTarget = new WebGLRenderTarget(1, 1, { samples, colorSpace: SRGBColorSpace });
+    this.normalTarget = new WebGLRenderTarget(1, 1, { depthTexture: new DepthTexture(1, 1) });
     this.composite = new ShaderMaterial({
       vertexShader,
       fragmentShader,

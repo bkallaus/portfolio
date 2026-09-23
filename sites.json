@@ -16,7 +16,7 @@
     "slug": "quick",
     "tier": "featured",
     "title": "Quick Calculations",
-    "blurb": "Dev utilities — converters, generators, encoders",
+    "blurb": "Dev utilities: converters, generators, encoders",
     "tech": ["react", "typescript"]
   },
   {

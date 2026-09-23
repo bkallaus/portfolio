@@ -11,34 +11,36 @@ const Hero: React.FC<HeroProps> = ({ headerData }) => {
     const typedText = useTypewriter(titles, 100, 2000);
 
     return (
-        <div className="min-h-[80vh] flex items-center bg-[#f4ecff] relative overflow-hidden">
+        <header className="min-h-[80svh] flex items-center bg-haze relative overflow-hidden pt-16">
             <img
                 src="/images/hero-circuit-city.jpg"
                 alt=""
                 aria-hidden="true"
                 className="absolute inset-0 w-full h-full object-cover object-[70%_center]"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#f4ecff]/90 via-[#f4ecff]/70 to-[#f4ecff]/40 md:from-[#f4ecff]/60 md:via-transparent md:to-transparent" />
+            <div className="absolute inset-0 bg-haze/80 md:hidden" />
 
-            <div className="z-10 relative w-full px-6 md:px-16 lg:px-24">
-                <div className="max-w-xl text-left">
-                    <h1 className="text-6xl md:text-8xl font-bold text-gray-900 tracking-tight mb-6">
+            <div className="relative w-full max-w-6xl mx-auto px-6">
+                <div className="max-w-xl">
+                    <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-ink">
                         {headerData?.name || "Ben Kallaus"}
                     </h1>
-                    <div className="h-12 md:h-16 flex items-center">
-                        <p className="text-2xl md:text-3xl text-gray-700 font-light mb-0">
-                            {typedText}<span className="animate-pulse ml-1">|</span>
-                        </p>
-                    </div>
-                    <p className="text-xl text-gray-600 leading-relaxed mt-12">
-                        Building precise, high-performance digital experiences.
-                        <span className="block mt-2 text-sm uppercase tracking-widest text-gray-500 font-semibold">
-                            Engineering &bull; Design &bull; Architecture
-                        </span>
+                    <p className="sr-only">{titles.join(', ')}</p>
+                    <p className="mt-4 h-10 text-2xl md:text-3xl text-ink-soft" aria-hidden="true">
+                        {typedText}<span className="motion-safe:animate-pulse ml-0.5">|</span>
                     </p>
+                    <p className="mt-6 text-lg text-ink-soft max-w-[40ch]">
+                        Building precise, high-performance digital experiences.
+                    </p>
+                    <a
+                        href="#portfolio"
+                        className="mt-8 inline-flex items-center rounded-full bg-violet px-6 py-3 font-semibold text-white hover:bg-violet-deep active:scale-[0.98] transition"
+                    >
+                        View projects
+                    </a>
                 </div>
             </div>
-        </div>
+        </header>
     );
 };
 

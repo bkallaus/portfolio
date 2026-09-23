@@ -18,6 +18,7 @@ import { createClouds, createTrees, createWindmills } from './nature.ts';
 import { createRandom } from './noise.ts';
 import { createPlanet } from './planet.ts';
 import { chooseQuality, isConstrainedDevice } from './quality.ts';
+import { readSafeState, retrySimpler, SAFE_LEVELS } from './safeMode.ts';
 import { createSettlements } from './settlements.ts';
 import { PLANET_RADIUS, SETTLEMENT_LEVEL, Terrain } from './terrain.ts';
 import { sharedUniforms } from './toonMaterial.ts';
@@ -48,41 +49,59 @@ function findHighestPeak(terrain: Terrain): Vector3 {
 function buildWorld(canvasHost: HTMLElement) {
   const constrained = isConstrainedDevice();
   const renderer = new WebGLRenderer({ antialias: false, powerPreference: constrained ? 'default' : 'high-performance' });
-  const quality = chooseQuality(renderer, constrained);
+  const safeState = readSafeState();
+  const gpu = gpuName(renderer);
+  const quality = chooseQuality(renderer, constrained, safeState.level);
   const pixelRatio = quality.pixelRatio;
   renderer.setPixelRatio(pixelRatio);
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.enabled = quality.shadows;
   renderer.shadowMap.type = PCFShadowMap;
   renderer.shadowMap.autoUpdate = false;
   canvasHost.appendChild(renderer.domElement);
+
+  let framesDrawn = 0;
+  const stage = () => (framesDrawn === 0 ? 'the first frame' : `frame ${framesDrawn + 1}`);
+  const report = (headline: string, extra: string[] = []) => [
+    headline,
+    `GPU: ${gpu}`,
+    `Mode: ${SAFE_LEVELS[safeState.level]}  Pixel ratio: ${quality.pixelRatio}`,
+    ...safeState.history,
+    ...extra,
+  ];
+
   renderer.domElement.addEventListener('webglcontextlost', (event) => {
     event.preventDefault();
     renderer.setAnimationLoop(null);
-    showFailure('The graphics chip ran out of steam. Reload to try again!');
+    const note = `Lost the GPU with ${SAFE_LEVELS[safeState.level]}, during ${stage()}.`;
+    if (retrySimpler(safeState, note)) return;
+    showFailure('The graphics chip ran out of steam, even in its simplest mode.');
+    showDiagnostic(report('This phone’s GPU keeps resetting.', [note]));
   });
 
   const scene = new Scene();
   const camera = new PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 200);
   const comic = new ComicRenderer(renderer, quality.samples);
+  if (!quality.effects) comic.disableEffects();
+  if (safeState.level > 0) showDiagnostic(report('Running in a simpler mode so this device can draw the planet.'));
 
   const failures: ShaderFailure[] = [];
   const failedToonMaterials = new Set<string>();
   let pendingFallback = false;
   watchShaderFailures(renderer, (failure) => {
+    if (renderer.getContext().isContextLost()) return;
     failures.push(failure);
     if (ComicRenderer.programNames.includes(failure.name)) comic.disableEffects();
     else if (failure.name.startsWith('toon')) {
       failedToonMaterials.add(failure.name);
       pendingFallback = true;
     }
-    const gl = renderer.getContext();
-    showDiagnostic([
-      'Some effects failed on this device and were simplified.',
-      `GPU: ${gpuName(renderer)}`,
-      `Varyings: ${gl.getParameter(gl.MAX_VARYING_VECTORS)}  Samples: ${quality.samples}  Pixel ratio: ${quality.pixelRatio}`,
-      ...failures.map((f) => `[${f.name}] ${f.log.slice(0, 400)}`),
-    ]);
+    showDiagnostic(
+      report(
+        'Some effects failed on this device and were simplified.',
+        failures.map((f) => `[${f.name}] ${f.log.slice(0, 400)}`),
+      ),
+    );
   });
   comic.setSize(window.innerWidth, window.innerHeight, pixelRatio);
 
@@ -104,7 +123,7 @@ function buildWorld(canvasHost: HTMLElement) {
   scene.add(moon.moon);
 
   const sun = new DirectionalLight('#fff1d0', sharedUniforms.uSunIntensity.value);
-  sun.castShadow = true;
+  sun.castShadow = quality.shadows;
   sun.shadow.mapSize.set(quality.shadowMapSize, quality.shadowMapSize);
   sun.shadow.camera.left = -15;
   sun.shadow.camera.right = 15;
@@ -216,6 +235,7 @@ function buildWorld(canvasHost: HTMLElement) {
     rig.update(dt);
 
     comic.render(scene, camera, simulation, sunDirection);
+    framesDrawn++;
   }
 }
 

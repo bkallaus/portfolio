@@ -51,6 +51,10 @@ test('portfolio projects section shows view more button and reveals experimental
     'href',
     '/prism-duel/',
   );
+  await expect(page.getByRole('link', { name: /Toon Planet/ })).toHaveAttribute(
+    'href',
+    '/toon-planet/',
+  );
 
   const viewLessBtn = page.getByRole('button', { name: 'View Less' });
   await expect(viewLessBtn).toBeVisible();

@@ -13,6 +13,7 @@ import {
 } from 'three';
 import { CameraRig } from './cameraRig.ts';
 import { ComicRenderer } from './comicRenderer.ts';
+import { gpuName, replaceMaterialsNamed, type ShaderFailure, showDiagnostic, watchShaderFailures } from './diagnostics.ts';
 import { createClouds, createTrees, createWindmills } from './nature.ts';
 import { createRandom } from './noise.ts';
 import { createPlanet } from './planet.ts';
@@ -64,6 +65,25 @@ function buildWorld(canvasHost: HTMLElement) {
   const scene = new Scene();
   const camera = new PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 200);
   const comic = new ComicRenderer(renderer, quality.samples);
+
+  const failures: ShaderFailure[] = [];
+  const failedToonMaterials = new Set<string>();
+  let pendingFallback = false;
+  watchShaderFailures(renderer, (failure) => {
+    failures.push(failure);
+    if (ComicRenderer.programNames.includes(failure.name)) comic.disableEffects();
+    else if (failure.name.startsWith('toon')) {
+      failedToonMaterials.add(failure.name);
+      pendingFallback = true;
+    }
+    const gl = renderer.getContext();
+    showDiagnostic([
+      'Some effects failed on this device and were simplified.',
+      `GPU: ${gpuName(renderer)}`,
+      `Varyings: ${gl.getParameter(gl.MAX_VARYING_VECTORS)}  Samples: ${quality.samples}  Pixel ratio: ${quality.pixelRatio}`,
+      ...failures.map((f) => `[${f.name}] ${f.log.slice(0, 400)}`),
+    ]);
+  });
   comic.setSize(window.innerWidth, window.innerHeight, pixelRatio);
 
   const terrain = new Terrain(42);
@@ -175,6 +195,10 @@ function buildWorld(canvasHost: HTMLElement) {
   });
 
   function renderFrame(timestamp: number) {
+    if (pendingFallback) {
+      pendingFallback = false;
+      replaceMaterialsNamed(scene, failedToonMaterials);
+    }
     timer.update(timestamp);
     const dt = Math.min(timer.getDelta(), 0.1);
     if (!paused) simulation += dt;

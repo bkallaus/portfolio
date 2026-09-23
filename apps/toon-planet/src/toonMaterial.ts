@@ -40,41 +40,39 @@ const halftoneChunk = `
 `;
 
 const windowVertexPars = `
-  varying vec3 vWinPos;
-  varying vec3 vWinNormal;
-  varying vec3 vWinSize;
+  varying vec4 vWinPos;
+  varying vec4 vWinFace;
 `;
 
 const windowVertex = `
   #ifdef USE_INSTANCING
-    vWinSize = vec3(length(instanceMatrix[0].xyz), length(instanceMatrix[1].xyz), length(instanceMatrix[2].xyz));
+    vec3 winSize = vec3(length(instanceMatrix[0].xyz), length(instanceMatrix[1].xyz), length(instanceMatrix[2].xyz));
   #else
-    vWinSize = vec3(1.0);
+    vec3 winSize = vec3(1.0);
   #endif
-  vWinPos = position * vWinSize;
-  vWinNormal = normal;
+  vWinPos = vec4(position * winSize, winSize.y);
+  vWinFace = vec4(normal, abs(normal.x) > 0.5 ? winSize.z : winSize.x);
 `;
 
 const windowFragmentPars = `
-  varying vec3 vWinPos;
-  varying vec3 vWinNormal;
-  varying vec3 vWinSize;
+  varying vec4 vWinPos;
+  varying vec4 vWinFace;
   float windowHash(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
   }
   float windowMask(out float lightOn) {
     lightOn = 0.0;
-    if (abs(vWinNormal.y) > 0.5) return 0.0;
-    float across = abs(vWinNormal.x) > 0.5 ? vWinPos.z : vWinPos.x;
+    if (abs(vWinFace.y) > 0.5) return 0.0;
+    float across = abs(vWinFace.x) > 0.5 ? vWinPos.z : vWinPos.x;
     float up = vWinPos.y;
     float column = across / 0.034;
     float row = up / 0.04;
     vec2 f = fract(vec2(column, row));
     float inside = step(0.28, f.x) * step(f.x, 0.72) * step(0.3, f.y) * step(f.y, 0.8);
-    float topGap = step(up, vWinSize.y - 0.025);
+    float topGap = step(up, vWinPos.w - 0.025);
     float groundGap = step(0.03, up);
-    float sideGap = step(abs(across), (abs(vWinNormal.x) > 0.5 ? vWinSize.z : vWinSize.x) * 0.5 - 0.01);
-    lightOn = step(0.45, windowHash(floor(vec2(column, row)) + vWinNormal.xz * 17.0 + floor(vWinSize.xy * 97.0)));
+    float sideGap = step(abs(across), vWinFace.w * 0.5 - 0.01);
+    lightOn = step(0.45, windowHash(floor(vec2(column, row)) + vWinFace.xz * 17.0 + floor(vec2(vWinFace.w, vWinPos.w) * 97.0)));
     return inside * topGap * groundGap * sideGap;
   }
 `;
@@ -134,6 +132,7 @@ export function toonMaterial(color: ColorRepresentation, options: ToonOptions = 
         .replace('#include <begin_vertex>', '#include <begin_vertex>\nvWavePos = position;');
     }
   };
-  material.customProgramCacheKey = () => `toon-${windows}-${waves}`;
+  material.name = `toon${windows ? '-windows' : ''}${waves ? '-waves' : ''}`;
+  material.customProgramCacheKey = () => material.name;
   return material;
 }

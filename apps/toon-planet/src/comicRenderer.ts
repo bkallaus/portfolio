@@ -180,6 +180,8 @@ export class ComicRenderer {
         uCameraWorld: { value: null },
       },
     });
+    this.composite.name = 'comic-composite';
+    this.normalMaterial.name = 'comic-normals';
     this.quad = new Mesh(new PlaneGeometry(2, 2), this.composite);
     this.quad.frustumCulled = false;
   }
@@ -193,7 +195,18 @@ export class ComicRenderer {
     this.composite.uniforms.uThickness.value = Math.max(1, pixelRatio * 1.1);
   }
 
+  static readonly programNames = ['comic-composite', 'comic-normals'];
+  private effects = true;
+
+  disableEffects(): void {
+    this.effects = false;
+  }
+
   render(scene: Scene, camera: PerspectiveCamera, time: number, sunDirection: Vector3): void {
+    if (!this.effects) {
+      this.renderPlain(scene, camera);
+      return;
+    }
     const renderer = this.renderer;
     renderer.getSize(this.size);
     renderer.setClearColor(0x000000, 0);
@@ -221,5 +234,16 @@ export class ComicRenderer {
     uniforms.uCameraWorld.value = camera.matrixWorld;
     renderer.setRenderTarget(null);
     renderer.render(this.quad, this.quadCamera);
+  }
+
+  private renderPlain(scene: Scene, camera: PerspectiveCamera): void {
+    const renderer = this.renderer;
+    renderer.shadowMap.needsUpdate = true;
+    camera.layers.enable(0);
+    camera.layers.enable(GLOW_LAYER);
+    renderer.setRenderTarget(null);
+    renderer.setClearColor(this.composite.uniforms.uSkyTop.value, 1);
+    renderer.clear();
+    renderer.render(scene, camera);
   }
 }

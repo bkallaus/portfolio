@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Toon Planet</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue:wght@700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="stage"></div>
+    <div class="loading">Building a world…</div>
+    <h1 class="title">Toon Planet!</h1>
+    <p class="bubble">Drag to spin the world, scroll or pinch to zoom. Double-click anywhere to swoop down for a close look!</p>
+    <nav class="toolbar" aria-label="Camera">
+      <button type="button" data-action="planet">Whole planet</button>
+      <button type="button" data-action="city">Big city</button>
+      <button type="button" data-action="town">Little town</button>
+      <button type="button" data-action="peaks">Snowy peaks</button>
+      <button type="button" data-action="plane">Ride a plane</button>
+      <button type="button" data-action="car">Ride a car</button>
+      <button type="button" data-action="pause" aria-pressed="false">Pause time</button>
+    </nav>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>

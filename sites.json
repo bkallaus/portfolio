@@ -49,5 +49,12 @@
     "type": "static",
     "tier": "experiment",
     "title": "Prism Duel"
+  },
+  {
+    "slug": "toon-planet",
+    "type": "vite",
+    "tier": "experiment",
+    "title": "Toon Planet",
+    "blurb": "A comic-book 3D planet with cities, cars and planes"
   }
 ]

@@ -25,7 +25,7 @@ them through the `.claude/skills` symlink; every other agent reads this table.
 Break any of these and the site breaks in a way local dev will not show you.
 
 **1. A page's directory name is its URL segment.** `apps/quick` serves `/quick/`;
-`apps/duel/play` serves `/duel/play/`; `public/simple-city` serves `/simple-city/`.
+`apps/duel/play` serves `/duel/play/`; `public/duel` serves `/duel/`.
 `vite.config.ts` builds every `index.html` it finds under `apps/<slug>/` (skipping `src/` and
 `test/`), and the `html-at-url-segment` plugin renames each emitted page from its source path
 to its URL, so the folder and the URL cannot drift apart. The dev server applies the same
@@ -52,8 +52,6 @@ The exceptions are pre-existing and closed. Do not read them as precedent for a 
 
 - `apps/musical-cards/src` is pre-consolidation `.jsx` throughout. Leave it, or convert it as
   its own change — do not copy it as the pattern for anything new.
-- `public/simple-city/main.js` is a no-build static page; the browser loads that file
-  verbatim, so it is the one place where the source *is* the artifact.
 - Files a tool loads directly stay JS: `apps/*/tailwind.config.js` and
   `scripts/record-walkthrough.mjs`. Linting is configured in `biome.json`, which is JSON.
 

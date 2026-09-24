@@ -16,7 +16,7 @@
     "slug": "quick",
     "tier": "featured",
     "title": "Quick Calculations",
-    "blurb": "Dev utilities — converters, generators, encoders",
+    "blurb": "Dev utilities: converters, generators, encoders",
     "tech": ["react", "typescript"]
   },
   {
@@ -42,11 +42,5 @@
     "title": "Battle Helper",
     "blurb": "Pokemon battle calculator and type matchups",
     "tech": ["react", "typescript"]
-  },
-  {
-    "slug": "simple-city",
-    "title": "Simple City",
-    "blurb": "Interactive 3D city canvas web app",
-    "tech": ["html5", "javascript"]
   }
 ]

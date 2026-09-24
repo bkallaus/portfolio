@@ -11,33 +11,36 @@ const Hero: React.FC<HeroProps> = ({ headerData }) => {
     const typedText = useTypewriter(titles, 100, 2000);
 
     return (
-        <div className="min-h-[80vh] flex flex-col justify-center items-center bg-gray-50 text-center px-4 relative overflow-hidden">
-            {/* Background decoration */}
-            <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
-                <iframe
-                    src="/simple-city/"
-                    title="Simple City Visualization"
-                    className="w-full h-full border-0"
-                />
-            </div>
+        <header className="min-h-[80svh] flex items-center bg-haze relative overflow-hidden pt-16">
+            <img
+                src="/images/hero-circuit-city.jpg"
+                alt=""
+                aria-hidden="true"
+                className="absolute inset-0 w-full h-full object-cover object-[70%_center]"
+            />
+            <div className="absolute inset-0 bg-haze/80 md:hidden" />
 
-            <div className="z-10 max-w-4xl relative p-10 rounded-xl bg-white/5 backdrop-blur-md shadow-lg border border-white/20">
-                <h1 className="text-6xl md:text-8xl font-bold text-gray-900 tracking-tight mb-6">
-                    {headerData?.name || "Ben Kallaus"}
-                </h1>
-                <div className="h-12 md:h-16 flex items-center justify-center"> {/* Fixed height for typing stability */}
-                    <p className="text-2xl md:text-3xl text-gray-600 font-light mb-0">
-                        {typedText}<span className="animate-pulse ml-1">|</span>
+            <div className="relative w-full max-w-6xl mx-auto px-6">
+                <div className="max-w-xl">
+                    <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-ink">
+                        {headerData?.name || "Ben Kallaus"}
+                    </h1>
+                    <p className="sr-only">{titles.join(', ')}</p>
+                    <p className="mt-4 h-10 text-2xl md:text-3xl text-ink-soft" aria-hidden="true">
+                        {typedText}<span className="motion-safe:animate-pulse ml-0.5">|</span>
                     </p>
+                    <p className="mt-6 text-lg text-ink-soft max-w-[40ch]">
+                        Building precise, high-performance digital experiences.
+                    </p>
+                    <a
+                        href="#portfolio"
+                        className="mt-8 inline-flex items-center rounded-full bg-violet px-6 py-3 font-semibold text-white hover:bg-violet-deep active:scale-[0.98] transition"
+                    >
+                        View projects
+                    </a>
                 </div>
-                <p className="text-xl text-gray-500 max-w-2xl mx-auto leading-relaxed mt-12">
-                    Building precise, high-performance digital experiences.
-                    <span className="block mt-2 text-sm uppercase tracking-widest text-gray-400 font-semibold">
-                        Engineering &bull; Design &bull; Architecture
-                    </span>
-                </p>
             </div>
-        </div>
+        </header>
     );
 };
 

@@ -1,48 +1,70 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { FaBars, FaTimes } from 'react-icons/fa';
+
+const navLinks = [
+    { name: 'About', href: '#about' },
+    { name: 'Projects', href: '#portfolio' },
+    { name: 'Skills', href: '#skills' },
+    { name: 'Experience', href: '#experience' },
+];
 
 const Navbar = () => {
     const [scrolled, setScrolled] = useState(false);
+    const [open, setOpen] = useState(false);
 
     useEffect(() => {
-        const handleScroll = () => {
-            const isScrolled = window.scrollY > 50;
-            if (isScrolled !== scrolled) {
-                setScrolled(isScrolled);
-            }
-        };
+        const handleScroll = () => setScrolled(window.scrollY > 50);
+        handleScroll();
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
 
-        window.addEventListener('scroll', handleScroll);
-        return () => {
-            window.removeEventListener('scroll', handleScroll);
-        };
-    }, [scrolled]);
-
-    const navLinks = [
-        { name: 'About', href: '#about' },
-        { name: 'Projects', href: '#portfolio' },
-        { name: 'Skills', href: '#skills' },
-        { name: 'Experience', href: '#experience' },
-    ];
+    const solid = scrolled || open;
 
     return (
-        <nav className={`fixed w-full z-50 transition-all duration-300 ${scrolled ? 'bg-white shadow-md py-2' : 'bg-transparent py-4'}`}>
-            <div className="container mx-auto px-6 flex justify-between items-center">
-                <div className={`font-bold text-xl ${scrolled ? 'text-gray-800' : 'text-blue-900'} transition-colors`}>
+        <nav
+            aria-label="Main"
+            className={`fixed inset-x-0 top-0 z-50 transition-colors duration-300 ${solid ? 'bg-pearl border-b border-line' : 'bg-transparent border-b border-transparent'}`}
+        >
+            <div className="max-w-6xl mx-auto px-6 h-16 flex justify-between items-center">
+                <a href="#top" className="font-bold text-xl tracking-tight text-ink">
                     BK
-                </div>
-                <div className="hidden md:flex space-x-6">
+                </a>
+                <ul className="hidden md:flex gap-8">
                     {navLinks.map((link) => (
-                        <a
-                            key={link.name}
-                            href={link.href}
-                            className={`font-medium ${scrolled ? 'text-gray-600 hover:text-blue-600' : 'text-blue-800 hover:text-blue-600'} transition-colors`}
-                        >
-                            {link.name}
-                        </a>
+                        <li key={link.name}>
+                            <a href={link.href} className="font-medium text-ink-soft hover:text-violet transition-colors">
+                                {link.name}
+                            </a>
+                        </li>
                     ))}
-                </div>
-                {/* Mobile menu button could go here */}
+                </ul>
+                <button
+                    type="button"
+                    className="md:hidden -mr-2 p-2 text-ink text-xl"
+                    aria-expanded={open}
+                    aria-controls="mobile-menu"
+                    aria-label={open ? 'Close menu' : 'Open menu'}
+                    onClick={() => setOpen(!open)}
+                >
+                    {open ? <FaTimes aria-hidden="true" /> : <FaBars aria-hidden="true" />}
+                </button>
             </div>
+            {open && (
+                <ul id="mobile-menu" className="md:hidden border-t border-line px-6 py-2">
+                    {navLinks.map((link) => (
+                        <li key={link.name}>
+                            <a
+                                href={link.href}
+                                onClick={() => setOpen(false)}
+                                className="block py-3 font-medium text-ink-soft hover:text-violet"
+                            >
+                                {link.name}
+                            </a>
+                        </li>
+                    ))}
+                </ul>
+            )}
         </nav>
     );
 };

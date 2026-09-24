@@ -12,7 +12,6 @@ GitHub Pages artifact. Every site, one `package.json`, one build, one deploy.
 | [`/battle-helper/`](https://ben.kallaus.me/battle-helper/) | `apps/battle-helper` | Damage calc / battle assistant |
 | [`/prism-duel/`](https://ben.kallaus.me/prism-duel/) | `public/prism-duel` + `apps/prism-duel/play` | Original two-player gem duel: write-up, and the game at `/prism-duel/play/` |
 | [`/duel/`](https://ben.kallaus.me/duel/) | `public/duel` + `apps/duel/play` | Two-player strategy card game: write-up, and the game at `/duel/play/` |
-| [`/simple-city/`](https://ben.kallaus.me/simple-city/) | `public/simple-city` | Plain-HTML toy, also the portfolio's hero background |
 
 ## Getting started
 
@@ -58,8 +57,8 @@ source path to its URL, and the root `public/` (which carries `CNAME`, each page
 fails the whole build on purpose.
 
 **A page's directory name is its URL segment.** `apps/quick` serves `/quick/`,
-`apps/duel/play` serves `/duel/play/`, and a static page like `public/simple-city/` serves
-`/simple-city/`. There is no router and no redirect config — URLs resolve by static file lookup
+`apps/duel/play` serves `/duel/play/`, and a static page like `public/duel/` serves
+`/duel/`. There is no router and no redirect config — URLs resolve by static file lookup
 against the assembled `dist/`. `apps/portfolio` is the one exception: it is the hub and serves
 `/`.
 

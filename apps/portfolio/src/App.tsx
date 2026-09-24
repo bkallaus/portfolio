@@ -44,27 +44,29 @@ export const App = () => {
   }, []);
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div id="top" className="bg-pearl text-ink min-h-screen">
       <Navbar />
       <Hero headerData={sharedData.basic_info} />
-      <About
-        resumeBasicInfo={resumeData.basic_info}
-        sharedBasicInfo={sharedData.basic_info}
-      />
-      <Seniority />
-      <Projects
-        resumeProjects={resumeData.projects && [...resumeData.projects, ...featuredSiteProjects]}
-        experimentalProjects={experimentalSiteProjects}
-        resumeBasicInfo={resumeData.basic_info}
-      />
-      <Skills
-        sharedSkills={sharedData.skills}
-        resumeBasicInfo={resumeData.basic_info}
-      />
-      <Experience
-        resumeExperience={resumeData.experience}
-        resumeBasicInfo={resumeData.basic_info}
-      />
+      <main>
+        <About
+          resumeBasicInfo={resumeData.basic_info}
+          sharedBasicInfo={sharedData.basic_info}
+        />
+        <Seniority />
+        <Projects
+          resumeProjects={resumeData.projects && [...resumeData.projects, ...featuredSiteProjects]}
+          experimentalProjects={experimentalSiteProjects}
+          resumeBasicInfo={resumeData.basic_info}
+        />
+        <Skills
+          sharedSkills={sharedData.skills}
+          resumeBasicInfo={resumeData.basic_info}
+        />
+        <Experience
+          resumeExperience={resumeData.experience}
+          resumeBasicInfo={resumeData.basic_info}
+        />
+      </main>
       <Footer sharedBasicInfo={sharedData.basic_info} />
     </div>
   );

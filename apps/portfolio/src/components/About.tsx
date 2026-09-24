@@ -1,5 +1,6 @@
 import type React from "react";
 import type { ResumeBasicInfo, SharedBasicInfo } from "../types";
+import SectionHeading from "./SectionHeading";
 
 type AboutProps = {
   resumeBasicInfo: ResumeBasicInfo;
@@ -7,75 +8,40 @@ type AboutProps = {
 }
 
 const About: React.FC<AboutProps> = ({ resumeBasicInfo, sharedBasicInfo }) => {
-  let about: string | undefined;
-  let hello: string | undefined;
-  let profilepic: string | undefined;
-  let sectionName: string | undefined;
-
-  if (sharedBasicInfo) {
-    profilepic = `images/${sharedBasicInfo.image}`;
-  }
-  if (resumeBasicInfo) {
-    sectionName = resumeBasicInfo.section_name.about;
-    hello = resumeBasicInfo.description_header;
-    about = resumeBasicInfo.description;
-  }
+  const profilepic = sharedBasicInfo ? `images/${sharedBasicInfo.image}` : undefined;
+  const name = sharedBasicInfo?.name || "Ben Kallaus";
 
   return (
-    <section id="about" className="py-20 bg-white">
-      <div className="container mx-auto px-4">
-        <h1 className="text-4xl font-bold text-center mb-16 text-gray-900">
-          <span>{sectionName}</span>
-        </h1>
-        <div className="flex flex-col md:flex-row items-center justify-center gap-12">
-          {/* Profile Image */}
-          <div className="md:w-1/3 flex justify-center">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gray-200 rounded-lg transform rotate-6 scale-105 z-0"></div>
-              <div className="relative z-10 bg-white p-2 rounded-lg shadow-lg">
-                <img
-                  src={profilepic}
-                  alt="Avatar placeholder"
-                  className="w-64 h-auto rounded object-cover"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* About Text */}
-          <div className="md:w-2/3 max-w-2xl">
-            <div className="bg-gray-50 rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-              {/* Windows/Mac-like header */}
-              <div className="bg-gray-200 px-4 py-2 flex gap-2">
-                <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-                <div className="w-3 h-3 rounded-full bg-green-400"></div>
-              </div>
-
-              <div className="p-8">
-                <p className="text-2xl font-light mb-6 text-gray-800">
-                  {hello}
-                </p>
-                <div className="text-gray-600 leading-relaxed text-lg">
-                  {about}
-                </div>
-
-                <div className="mt-8 flex gap-6 justify-center md:justify-start">
-                  {sharedBasicInfo?.social?.map((network) => (
-                    <a
-                      key={network.name}
-                      href={network.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-gray-400 hover:text-gray-800 transition-colors text-2xl"
-                    >
-                      <i className={network.class}></i>
-                    </a>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
+    <section id="about" className="py-24 bg-pearl">
+      <div className="max-w-6xl mx-auto px-6 grid gap-12 md:grid-cols-[minmax(0,18rem)_1fr] md:gap-16 items-start">
+        {profilepic && (
+          <img
+            src={profilepic}
+            alt={`Portrait of ${name}`}
+            className="w-56 md:w-full aspect-[4/5] rounded-2xl object-cover shadow-[0_16px_40px_-20px_rgb(91_74_134/0.45)]"
+          />
+        )}
+        <div className="max-w-[65ch]">
+          <SectionHeading>{resumeBasicInfo?.section_name.about}</SectionHeading>
+          <p className="mt-6 text-2xl text-ink">{resumeBasicInfo?.description_header}</p>
+          <p className="mt-4 text-lg leading-relaxed text-ink-soft">{resumeBasicInfo?.description}</p>
+          {sharedBasicInfo?.social && sharedBasicInfo.social.length > 0 && (
+            <ul className="mt-8 flex gap-3">
+              {sharedBasicInfo.social.map((network) => (
+                <li key={network.name}>
+                  <a
+                    href={network.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex h-11 w-11 items-center justify-center rounded-full border border-line bg-white text-xl text-ink-soft hover:border-violet-soft hover:text-violet transition-colors"
+                  >
+                    <i className={network.class} aria-hidden="true"></i>
+                    <span className="sr-only">{network.name}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
     </section>

@@ -1,0 +1,402 @@
+:root {
+  --paper: #f6f3ec;
+  --card: #fffdf8;
+  --ink: #1f1d1a;
+  --muted: #6b665d;
+  --line: #e2ddd1;
+  --accent: #2f6f5e;
+  --accent-ink: #ffffff;
+  --warn: #b0452f;
+  --live: #2f8f5b;
+  --idle: #a49d8f;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #171614;
+    --card: #211f1c;
+    --ink: #eeeae2;
+    --muted: #a39d92;
+    --line: #34312c;
+    --accent: #7cc3ac;
+    --accent-ink: #10201b;
+    --warn: #ec8a73;
+    --live: #6fd49a;
+    --idle: #7a746a;
+    color-scheme: dark;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button,
+summary {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.shell {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 32px 16px 64px;
+  display: grid;
+  gap: 20px;
+}
+
+.masthead {
+  display: grid;
+  gap: 8px;
+}
+
+.list-picker {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.list-picker select {
+  max-width: 60%;
+}
+
+.list-name {
+  font-family: ui-serif, Georgia, "Times New Roman", serif;
+  font-size: clamp(2rem, 6vw, 2.75rem);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  border: 0;
+  border-bottom: 1px dashed transparent;
+  background: transparent;
+  padding: 4px 0;
+  width: 100%;
+}
+
+.list-name:hover,
+.list-name:focus {
+  border-bottom-color: var(--line);
+  outline: none;
+}
+
+.summary {
+  margin: 0;
+  color: var(--muted);
+}
+
+.masthead-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+button,
+summary,
+select {
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: 8px;
+  padding: 8px 12px;
+  line-height: 1.2;
+}
+
+button:hover:not(:disabled),
+summary:hover {
+  border-color: var(--muted);
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+button.quiet {
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+  text-decoration: underline;
+}
+
+.card,
+.share {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.share {
+  display: grid;
+  gap: 12px;
+}
+
+.share-row {
+  display: flex;
+  gap: 8px;
+}
+
+.share-row input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: var(--paper);
+  color: var(--muted);
+}
+
+.status {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--idle);
+}
+
+.status-hosting .dot,
+.status-joined .dot {
+  background: var(--live);
+}
+
+.toggle {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.todo-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.field {
+  display: grid;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.field input,
+.field select {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 1rem;
+}
+
+.field-title,
+.field-notes {
+  grid-column: span 3;
+}
+
+.form-actions {
+  grid-column: span 3;
+  display: flex;
+  gap: 8px;
+}
+
+.todos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.todo {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: start;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.todo.editing {
+  display: block;
+}
+
+.todo > input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  accent-color: var(--accent);
+}
+
+.todo-body {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.todo-title {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.todo.done .todo-title {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+
+.todo-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.overdue {
+  color: var(--warn);
+  font-weight: 600;
+}
+
+.todo-actions {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.todo-actions button,
+.todo-actions summary {
+  padding: 6px 10px;
+  font-size: 0.85rem;
+}
+
+.calendar-menu {
+  position: relative;
+}
+
+.calendar-menu summary {
+  list-style: none;
+}
+
+.calendar-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 10;
+  display: grid;
+  min-width: 190px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 6px;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.12);
+}
+
+.menu a,
+.menu button {
+  text-align: left;
+  border: 0;
+  background: transparent;
+  padding: 8px 10px;
+  border-radius: 6px;
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.menu a:hover,
+.menu button:hover {
+  background: var(--paper);
+}
+
+.empty {
+  color: var(--muted);
+  text-align: center;
+  padding: 32px 16px;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  margin: 0;
+}
+
+.foot {
+  display: flex;
+  justify-content: center;
+}
+
+@media (max-width: 560px) {
+  .todo-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .field-title,
+  .field-notes,
+  .form-actions {
+    grid-column: span 2;
+  }
+
+  .todo {
+    grid-template-columns: auto 1fr;
+  }
+
+  .todo-actions {
+    grid-column: 2;
+    flex-wrap: wrap;
+  }
+}

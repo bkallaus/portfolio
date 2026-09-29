@@ -42,5 +42,11 @@
     "title": "Battle Helper",
     "blurb": "Pokemon battle calculator and type matchups",
     "tech": ["react", "typescript"]
+  },
+  {
+    "slug": "todo",
+    "title": "Shared Todo",
+    "blurb": "A todo list you share by link, sync live between browsers, and send to your calendar",
+    "tech": ["react", "typescript"]
   }
 ]

@@ -10,6 +10,7 @@ import PercentToHex from '../components/percent-to-hex';
 import PourOver from '../components/pour-over';
 import PxToRem from '../components/px-to-rem';
 import QrCode from '../components/qr-code';
+import RecurringChores from '../components/recurring-chores';
 import ShareableList from '../components/shareable-list';
 import SubnetCalculator from '../components/subnet-calculator';
 import TimestampConverter from '../components/timestamp-converter';
@@ -80,6 +81,13 @@ export const toolCategories: ToolCategory[] = [
     tools: [
       { id: 'ml-to-cups', label: 'Ml to Cups', Component: MlToCups },
       { id: 'pour-over', label: 'Pour Over', Component: PourOver },
+    ],
+  },
+  {
+    id: 'household',
+    label: 'Household',
+    tools: [
+      { id: 'recurring-chores', label: 'Recurring Chores', Component: RecurringChores },
     ],
   },
 ];

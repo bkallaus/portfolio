@@ -42,5 +42,11 @@
     "title": "Battle Helper",
     "blurb": "Pokemon battle calculator and type matchups",
     "tech": ["react", "typescript"]
+  },
+  {
+    "slug": "neon-street",
+    "title": "Neon Bloom",
+    "blurb": "A rain-soaked cyberpunk street under falling cherry blossoms, painted in canvas with scroll-driven parallax.",
+    "tech": ["react", "typescript"]
   }
 ]

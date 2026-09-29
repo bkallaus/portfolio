@@ -29,9 +29,9 @@ export function paintSky(frame: LayerFrame): void {
     }
   });
 
-  const moonX = width * 0.74;
-  const moonY = height * 0.2;
-  const moonR = viewportHeight * 0.075;
+  const moonX = width * 0.57;
+  const moonY = height * 0.13;
+  const moonR = viewportHeight * 0.06;
   softGlow(ctx, moonX, moonY, moonR * 6, '#ff8fc0', 0.22);
   softGlow(ctx, moonX, moonY, moonR * 2, '#ffe3f0', 0.35);
   withState(ctx, () => {

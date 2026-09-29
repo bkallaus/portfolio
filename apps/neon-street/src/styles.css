@@ -38,24 +38,17 @@ body {
   pointer-events: none;
 }
 
-.ns-layer {
-  position: absolute;
-  top: 0;
-  left: 0;
-  will-change: transform;
-  opacity: 0;
-  transition: opacity 900ms ease;
-}
-
-.ns-root[data-ready='true'] .ns-layer {
-  opacity: 1;
-}
-
-.ns-effects {
+.ns-canvas {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
+  opacity: 0;
+  transition: opacity 900ms ease;
+}
+
+.ns-root[data-ready='true'] .ns-canvas {
+  opacity: 1;
 }
 
 .ns-grade {

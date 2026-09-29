@@ -3,7 +3,7 @@ import { between, type Rng } from './rng';
 export type Petal = {
   x: number;
   y: number;
-  depth: number;
+  z: number;
   size: number;
   angle: number;
   spin: number;
@@ -15,30 +15,30 @@ export type Petal = {
   variant: number;
 };
 
-export type Field = { width: number; height: number };
+export type Anchor = { x: number; y: number; z: number };
 
-export type Weather = {
-  time: number;
-  wind: number;
-  cameraShift: number;
-};
+export type Volume = { near: number; far: number; halfWidth: number; below: number; above: number };
+
+export type Weather = { time: number; wind: number };
 
 export const PETAL_VARIANTS = 4;
 
-export function spawnPetal(rng: Rng, field: Field, minDepth: number, maxDepth: number, fromTop: boolean): Petal {
-  const depth = between(rng, minDepth, maxDepth);
+export const PETAL_VOLUME: Volume = { near: 0.5, far: 30, halfWidth: 8, below: 6, above: 9 };
+
+export function spawnPetal(rng: Rng, anchor: Anchor, volume: Volume, fromAbove: boolean): Petal {
+  const floor = Math.max(0.05, anchor.y - volume.below);
   return {
-    x: between(rng, -0.1, 1.1) * field.width,
-    y: fromTop ? between(rng, -0.25, -0.02) * field.height : between(rng, 0, 1) * field.height,
-    depth,
-    size: between(rng, 7, 12) * depth,
+    x: anchor.x + between(rng, -1, 1) * volume.halfWidth,
+    y: fromAbove ? anchor.y + volume.above * between(rng, 0.8, 1) : between(rng, floor, anchor.y + volume.above),
+    z: anchor.z + volume.near + (volume.far - volume.near) * rng() ** 0.8,
+    size: between(rng, 0.1, 0.17),
     angle: between(rng, 0, Math.PI * 2),
     spin: between(rng, -1.4, 1.4),
     flip: between(rng, 0, Math.PI * 2),
     flipSpeed: between(rng, 1.2, 3.4),
     phase: between(rng, 0, Math.PI * 2),
-    sway: between(rng, 14, 38),
-    fall: between(rng, 34, 62),
+    sway: between(rng, 0.3, 0.8),
+    fall: between(rng, 0.9, 1.6),
     variant: Math.floor(rng() * PETAL_VARIANTS),
   };
 }
@@ -46,25 +46,29 @@ export function spawnPetal(rng: Rng, field: Field, minDepth: number, maxDepth: n
 export function stepPetal(petal: Petal, dt: number, weather: Weather): void {
   const flutter = Math.sin(weather.time * 1.3 + petal.phase);
   const glide = Math.abs(Math.cos(petal.flip));
-  petal.x += (weather.wind * 60 + flutter * petal.sway) * petal.depth * dt;
-  petal.y += petal.fall * (0.55 + 0.45 * glide) * petal.depth * dt - weather.cameraShift * petal.depth;
+  petal.x += (weather.wind + flutter * petal.sway) * dt;
+  petal.z += weather.wind * 0.35 * dt;
+  petal.y -= petal.fall * (0.55 + 0.45 * glide) * dt;
   petal.angle += petal.spin * dt + flutter * 0.01;
   petal.flip += petal.flipSpeed * dt;
 }
 
-export function wrapPetal(petal: Petal, field: Field): boolean {
-  const pad = petal.size * 4;
-  if (petal.x < -pad) petal.x += field.width + pad * 2;
-  else if (petal.x > field.width + pad) petal.x -= field.width + pad * 2;
-  if (petal.y > field.height + pad) {
-    petal.y = -pad;
-    return true;
+export function recyclePetal(petal: Petal, rng: Rng, anchor: Anchor, volume: Volume): boolean {
+  const floor = Math.max(0.02, anchor.y - volume.below);
+  const tooLow = petal.y < floor;
+  const tooHigh = petal.y > anchor.y + volume.above * 1.5;
+  const passed = petal.z < anchor.z + volume.near * 0.5;
+  const tooFar = petal.z > anchor.z + volume.far;
+  if (!(tooLow || tooHigh || passed || tooFar)) {
+    if (petal.x < anchor.x - volume.halfWidth) petal.x += volume.halfWidth * 2;
+    else if (petal.x > anchor.x + volume.halfWidth) petal.x -= volume.halfWidth * 2;
+    return false;
   }
-  if (petal.y < -field.height * 0.3 - pad) {
-    petal.y = field.height + pad;
-    return true;
-  }
-  return false;
+  const fresh = spawnPetal(rng, anchor, volume, tooLow);
+  if (passed) fresh.z = anchor.z + volume.far * between(rng, 0.6, 1);
+  if (tooFar) fresh.z = anchor.z + volume.near + between(rng, 0, 3);
+  Object.assign(petal, fresh);
+  return true;
 }
 
 export const petalScaleX = (petal: Petal): number => Math.max(0.12, Math.abs(Math.cos(petal.flip)));

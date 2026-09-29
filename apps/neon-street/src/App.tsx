@@ -1,21 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Stage } from './components/Stage';
-import { altitudeAt } from './lib/parallax';
+import type { Camera } from './lib/camera';
 
 const CHAPTERS = [
   {
     index: '01',
     label: 'Skyline',
     jp: '摩天楼',
-    title: 'Two hundred metres above the rain.',
-    body: 'Scroll to lower the camera. Every layer of the city moves at the speed its distance allows — the moon barely, the towers slowly, the street all at once.',
+    title: 'Every line runs to one point.',
+    body: 'Scroll to fly down the street. Facades, cables and kerbs all rush toward the same vanishing point, and everything near you moves faster than everything far away.',
   },
   {
     index: '02',
     label: 'Mid-block',
     jp: '雑居ビル',
     title: 'Signage stacked forty floors deep.',
-    body: 'Karaoke over pawnshop over noodle bar. The fog swallows the ground floors, and the blossoms start to drift past the windows.',
+    body: 'Karaoke over pawnshop over noodle bar. The fog swallows the far end of the block, and the blossoms start to drift past the windows.',
   },
   {
     index: '03',
@@ -46,8 +46,8 @@ export function App() {
   const railRef = useRef<HTMLSpanElement>(null);
   const hintRef = useRef<HTMLParagraphElement>(null);
 
-  const onFrame = useCallback((progress: number) => {
-    if (altitudeRef.current) altitudeRef.current.textContent = altitudeAt(progress).toFixed(1).padStart(5, '0');
+  const onFrame = useCallback((progress: number, camera: Camera) => {
+    if (altitudeRef.current) altitudeRef.current.textContent = camera.y.toFixed(1).padStart(5, '0');
     if (railRef.current) railRef.current.style.transform = `scaleY(${progress.toFixed(4)})`;
     if (hintRef.current) hintRef.current.style.opacity = String(Math.max(0, 1 - progress * 12));
   }, []);
@@ -80,7 +80,7 @@ export function App() {
           <div>
             <dt>ALT</dt>
             <dd>
-              <span ref={altitudeRef}>212.0</span> m
+              <span ref={altitudeRef}>038.0</span> m
             </dd>
           </div>
           <div>

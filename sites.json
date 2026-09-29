@@ -42,5 +42,11 @@
     "title": "Battle Helper",
     "blurb": "Pokemon battle calculator and type matchups",
     "tech": ["react", "typescript"]
+  },
+  {
+    "slug": "care-log",
+    "title": "Care Log",
+    "blurb": "Track feedings, grooming, and medications for the people you look after",
+    "tech": ["react", "typescript"]
   }
 ]

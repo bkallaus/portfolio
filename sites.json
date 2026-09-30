@@ -42,5 +42,11 @@
     "title": "Battle Helper",
     "blurb": "Pokemon battle calculator and type matchups",
     "tech": ["react", "typescript"]
+  },
+  {
+    "slug": "meepleton",
+    "title": "Meepleton",
+    "blurb": "A pixel-art town that builds itself: meeples gather, haul, and raise a village from day to night.",
+    "tech": ["html5"]
   }
 ]

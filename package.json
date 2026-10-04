@@ -62,7 +62,7 @@
     "jsdom": "^29.1.1",
     "prettier": "^3.2.5",
     "sass": "^1.42.1",
-    "shadcn": "^4.17.0",
+    "shadcn": "^4.21.1",
     "tailwindcss": "^4.3.3",
     "typescript": "~5.9.3",
     "vite": "^8.0.10",

@@ -188,7 +188,8 @@ const C = {
 const gradMap = new THREE.DataTexture(new Uint8Array([95, 175, 255]), 3, 1, THREE.LuminanceFormat);
 gradMap.minFilter = gradMap.magFilter = THREE.NearestFilter; gradMap.generateMipmaps = false; gradMap.needsUpdate = true;
 const matCache = {};
-function M(c) { const k = String(c); return matCache[k] || (matCache[k] = new THREE.MeshToonMaterial({ color: c, gradientMap: gradMap })); }
+function M(c) { const k = String(c); if (!matCache[k]) { matCache[k] = new THREE.MeshToonMaterial({ color: c, gradientMap: gradMap }); matCache[k].userData.plain = true; } return matCache[k]; }
+const vcToon = new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: gradMap });
 const outlineMat = new THREE.MeshBasicMaterial({ color: C.ink, side: THREE.BackSide });
 const geoCache = {};
 function boxG(w, h, d) { const k = 'b' + w + ',' + h + ',' + d; return geoCache[k] || (geoCache[k] = (() => { const g = new THREE.BoxGeometry(w, h, d); g.translate(0, h / 2, 0); return g; })()); }
@@ -213,6 +214,39 @@ function part(parent, geo, color, x = 0, y = 0, z = 0, ol = false) {
   m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; parent.add(m);
   if (ol) outline(m, (typeof ol === 'number' && ol < 0.2) ? ol : 0.03);
   return m;
+}
+const _bakeInv = new THREE.Matrix4(), _bakeM = new THREE.Matrix4();
+function bakeStatic(root, skip = []) {
+  root.updateMatrixWorld(true);
+  _bakeInv.copy(root.matrixWorld).invert();
+  const skipSet = new Set(skip.filter(Boolean)), buckets = new Map(), baked = [];
+  root.traverse(o => {
+    if (!o.isMesh || o.isInstancedMesh || o.userData.baked) return;
+    for (let q = o; q && q !== root; q = q.parent) if (skipSet.has(q) || !q.visible) return;
+    if (skipSet.has(o.material)) return;
+    const plain = !!o.material.userData.plain, key = (plain ? 'vc' : o.material.uuid) + (o.castShadow ? '|s' : '|n');
+    if (!buckets.has(key)) buckets.set(key, { mat: plain ? vcToon : o.material, cast: o.castShadow, items: [] });
+    buckets.get(key).items.push(o);
+  });
+  for (const { mat, cast, items } of buckets.values()) {
+    const parts = items.map(o => { const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone(); g.applyMatrix4(_bakeM.multiplyMatrices(_bakeInv, o.matrixWorld)); return g; });
+    const total = parts.reduce((a, g) => a + g.attributes.position.count, 0), hasUv = parts.every(g => g.attributes.uv), vc = mat === vcToon;
+    const pos = new Float32Array(total * 3), nor = new Float32Array(total * 3), uv = hasUv ? new Float32Array(total * 2) : null, col = vc ? new Float32Array(total * 3) : null;
+    let off = 0;
+    parts.forEach((g, k) => {
+      const n = g.attributes.position.count;
+      pos.set(g.attributes.position.array, off * 3); nor.set(g.attributes.normal.array, off * 3); if (uv) uv.set(g.attributes.uv.array, off * 2);
+      if (col) { const c = items[k].material.color; for (let v = 0; v < n; v++) { col[(off + v) * 3] = c.r; col[(off + v) * 3 + 1] = c.g; col[(off + v) * 3 + 2] = c.b; } }
+      off += n; g.dispose();
+    });
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('normal', new THREE.BufferAttribute(nor, 3)); if (uv) geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); if (col) geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    geo.computeBoundingSphere();
+    const m = new THREE.Mesh(geo, mat); m.castShadow = cast; m.receiveShadow = true; m.userData.baked = true;
+    baked.push(m);
+  }
+  for (const b of buckets.values()) for (const o of b.items) if (o.parent) o.parent.remove(o);
+  for (const m of baked) root.add(m);
 }
 function shade(hex, f) { const c = new THREE.Color(hex); c.setRGB(Math.min(1, c.r * f), Math.min(1, c.g * f), Math.min(1, c.b * f)); return '#' + c.getHexString(); }
 
@@ -543,6 +577,7 @@ function buildQuarry() {
   const sgn = [Math.sign(HALF - quarryC[0]), Math.sign(HALF - quarryC[1])];
   const cx = wx(quarryC[0]) + sgn[0] * 1.55, cz = wz(quarryC[1]) + sgn[1] * 1.55;
   if (inb(tI(cx), tJ(cz)) && occ[id(tI(cx), tJ(cz))] === O_NONE) { part(g, boxG(0.34, 0.18, 0.26), '#8a5a2e', cx, 0, cz, 0.02); for (let k = 0; k < 3; k++) part(g, boxG(0.1, 0.08, 0.1), '#b3b0b8', cx - 0.1 + k * 0.1, 0.18, cz); }
+  bakeStatic(g);
 }
 
 const FIRE = { i: HALF, j: HALF, x: wx(HALF), z: wz(HALF) };
@@ -583,7 +618,7 @@ function addLamp(i, j) {
   part(g, boxG(0.12, 0.13, 0.12), lampOn, 0, 0.68, 0);
   part(g, cylG(0.0, 0.1, 0.07, 4), '#2b2238', 0, 0.81, 0).rotation.y = Math.PI / 4;
   const sp = new THREE.Sprite(glowMat); sp.scale.set(1.3, 1.3, 1); sp.position.y = 0.74; g.add(sp);
-  lamps.push({ i, j, g });
+  bakeStatic(g); lamps.push({ i, j, g });
 }
 function lampNear(i, j, r) { return lamps.some(l => Math.abs(l.i - i) <= r && Math.abs(l.j - j) <= r); }
 
@@ -827,9 +862,10 @@ function createBuilding(type, i0, j0, o, entry, street, instant) {
     b.barFg.position.set(b.cx - 0.25, (b.roofTop || 1) + 0.25, b.cz); b.barFg.scale.set(0.001, 0.05, 1);
     scene.add(b.barBg, b.barFg);
   }
-  buildings.push(b); setStage(b); if (typeof computeReach === 'function' && !instant) computeReach();
+  buildings.push(b); setStage(b); if (instant) bakeBuilding(b); if (typeof computeReach === 'function' && !instant) computeReach();
   return b;
 }
+function bakeBuilding(b) { bakeStatic(b.g, [b.door, b.spin, b.flag && b.flag.parent, b.clockH, b.clockM, b.bucket, b.cropMat]); }
 function siteReady(b) { return !b.done && b.delivered.wood >= b.T.cost.wood && b.delivered.stone >= b.T.cost.stone && !footprintHasTree(b); }
 function footprintHasTree(b) {
   return b.trees.some(t => t.state === 'standing' || t.state === 'sapling' || t.state === 'falling');
@@ -851,7 +887,7 @@ function finishBuilding(b) {
   for (const o of [b.site, b.scaf]) if (o) b.g.remove(o);
   for (const o of [b.icon, b.barBg, b.barFg]) if (o) { scene.remove(o); o.material.dispose(); }
   for (let a = 0; a < b.size; a++) for (let c = 0; c < b.size; c++) occ[id(b.i0 + a, b.j0 + c)] = O_BLD;
-  setStage(b);
+  setStage(b); bakeBuilding(b);
   emit(b.cx, (b.roofTop || 1) + 0.2, b.cz, { n: 40, color: ['#e34b4b', '#f2c230', '#3f7fd9', '#49a84f', '#ffffff', '#ef7fb0'], v: 1.6, vy: [2, 3.5], size: 0.06, life: [1, 1.6], grav: 4, glow: true, drag: 1.2 });
   onBuildingDone(b);
 }
@@ -980,6 +1016,7 @@ function makeMeeple(opts) {
   m.toolPiv = new THREE.Group(); m.toolPiv.position.set(0.27, 0.3, 0.02); m.b.add(m.toolPiv);
   m.carryG = new THREE.Group(); m.carryG.position.set(0, 0.62, 0); m.b.add(m.carryG);
   m.tool = null; m.carry = null;
+  bakeStatic(m.b, [m.hat, m.toolPiv, m.carryG, ...m.eyes]);
   meeples.push(m); placeMeeple(m); return m;
 }
 function setTool(m, t) {
@@ -1623,6 +1660,7 @@ function buildBridge(k) {
     for (const sx of [-0.45, 0, 0.45]) part(g, boxG(0.05, 0.27, 0.05), '#6b4428', sx, 0.02, sz * 0.43);
   }
   for (const sx of [-0.4, 0.4]) part(g, cylG(0.05, 0.05, 0.3, 6), '#5a3a22', sx, -0.2, 0);
+  bakeStatic(g);
 }
 function planRoad() {
   if (chance(0.35) && planBridge()) return true;
@@ -2387,7 +2425,7 @@ function frame(now) {
 setupTown(); resize(); updSky(0); setSpeed(1);
 if (window.__MEEPLE_WARMUP) { for (let k = 0; k < window.__MEEPLE_WARMUP * 20; k++) simStep(0.05, performance.now()); }
 requestAnimationFrame(frame);
-if (window.__MEEPLE_FAST) window.__mt = { setClock: (d, t) => { dayN = d; clock = (d - 1) * DAY + t * DAY; }, buildHall: () => { const b = createBuilding('hall', HALF + 4, HALF + 3, 0, { i: HALF + 4, j: HALF }, 'Old Lane', true); b.done = true; }, critters, ground, step: (sec) => { for (let k = 0; k < sec * 20; k++) simStep(0.05, performance.now()); }, planBridge, bridge, road, reach, computeReach, weather: (w) => { wx_.want = w; wx_.t = 999; }, wx: wx_, season: (n) => { dayN = n * SEASON_DAYS + 1; startSeason(seasonNow()); }, camera, select, THREE, nextShot: () => { camTimer = 0; }, astar, accessTile, passable, PILE, quarryTiles, rocks, meeples, buildings, stock, plannedRoads, logLines, trees, phase, dayT, get day() { return dayN; } };
+if (window.__MEEPLE_FAST) window.__mt = { renderer, scene, setClock: (d, t) => { dayN = d; clock = (d - 1) * DAY + t * DAY; }, buildHall: () => { const b = createBuilding('hall', HALF + 4, HALF + 3, 0, { i: HALF + 4, j: HALF }, 'Old Lane', true); b.done = true; }, critters, ground, step: (sec) => { for (let k = 0; k < sec * 20; k++) simStep(0.05, performance.now()); }, planBridge, bridge, road, reach, computeReach, weather: (w) => { wx_.want = w; wx_.t = 999; }, wx: wx_, season: (n) => { dayN = n * SEASON_DAYS + 1; startSeason(seasonNow()); }, camera, select, THREE, nextShot: () => { camTimer = 0; }, astar, accessTile, passable, PILE, quarryTiles, rocks, meeples, buildings, stock, plannedRoads, logLines, trees, phase, dayT, get day() { return dayN; } };
 })();
 </script>
 

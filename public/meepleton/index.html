@@ -561,6 +561,9 @@ const BT = {
   tavern: { size: 2, cost: { wood: 7, stone: 4 }, work: 22, cap: 0, label: 'tavern' },
   garden: { size: 1, cost: { wood: 1, stone: 1 }, work: 5, cap: 0, label: 'garden' },
   hall: { size: 2, cost: { wood: 5, stone: 9 }, work: 28, cap: 0, label: 'town hall' },
+  fountain: { size: 1, cost: { wood: 0, stone: 6 }, work: 12, cap: 0, label: 'fountain' },
+  bakery: { size: 1, cost: { wood: 4, stone: 2 }, work: 12, cap: 0, label: 'bakery' },
+  statue: { size: 1, cost: { wood: 0, stone: 8 }, work: 18, cap: 0, label: 'statue' },
 };
 const buildings = [];
 const WIN_DAY = new THREE.Color('#6f9ccc'), WIN_DARK = new THREE.Color('#2a3550'), WIN_LIT = new THREE.Color('#ffd772');
@@ -578,6 +581,30 @@ function addDoor(b, w, h, z, double) {
   b.door = piv; b.doorZ = z + 0.03; if (double) part(piv, boxG(0.012, h, 0.045), C.timber, w / 2, 0, 0.012);
 }
 const BUILD = {
+  fountain(b) {
+    part(b.W, cylG(0.42, 0.45, 0.14, 8), C.stone, 0, 0, 0, 1);
+    part(b.W, cylG(0.36, 0.36, 0.02, 8), '#5aa0e0', 0, 0.12, 0);
+    part(b.W, cylG(0.06, 0.08, 0.42, 6), C.stoneD, 0, 0.12, 0, 0.02);
+    part(b.W, cylG(0.17, 0.11, 0.07, 8), C.stone, 0, 0.5, 0, 0.02);
+    part(b.W, cylG(0.14, 0.14, 0.01, 8), '#8cc9f2', 0, 0.565, 0);
+    for (let k = 0; k < 4; k++) { const a = k * Math.PI / 2 + Math.PI / 4; part(b.D, boxG(0.08, 0.1, 0.08), '#86838e', Math.cos(a) * 0.42, 0.12, Math.sin(a) * 0.42); }
+    b.spout = new V3(0, 0.6, 0); b.wallH = 0.6; b.roofTop = 0.75;
+  },
+  bakery(b) {
+    BUILD.cottage(b);
+    b.R.children.forEach(o => { if (o.material && o.material !== outlineMat) o.material = M(o.position.y > 0.3 ? '#5a3a22' : '#a0603a'); });
+    const sg = new THREE.Sprite(new THREE.SpriteMaterial({ map: emoteTexture('wheat') })); sg.scale.set(0.24, 0.24, 1); sg.position.set(-0.24, 0.62, 0.44); b.D.add(sg);
+    part(b.D, boxG(0.3, 0.06, 0.12), '#9a6a40', -0.25, 0.14, 0.44);
+    for (let k = 0; k < 3; k++) part(b.D, new THREE.IcosahedronGeometry(0.035, 0), '#d9a35a', -0.34 + k * 0.09, 0.22, 0.44);
+  },
+  statue(b) {
+    part(b.W, boxG(0.6, 0.12, 0.6), C.stoneD, 0, 0, 0, 1);
+    part(b.W, boxG(0.44, 0.34, 0.44), C.stone, 0, 0.12, 0, 1);
+    part(b.W, boxG(0.46, 0.04, 0.46), C.gold, 0, 0.42, 0);
+    const fig = part(b.W, meepleGeo, '#b08d4a', 0, 0.46, 0, 0.022); fig.scale.setScalar(1.35);
+    part(b.D, boxG(0.22, 0.08, 0.02), C.gold, 0, 0.2, 0.225);
+    b.wallH = 0.46; b.roofTop = 1.25;
+  },
   cottage(b) {
     const wall = pick(C.walls), roof = pick(C.roofs);
     part(b.W, boxG(0.78, 0.5, 0.72), wall, 0, 0, 0, 1);
@@ -1318,6 +1345,15 @@ function* rWell(m) {
   if (m.home && m.home.done) { if (yield* enterB(m, m.home)) { yield* wait(rr(3, 6)); yield* exitB(m); } }
   setCarry(m, null);
 }
+function* rVisit(m, type, doing, emotes, sit) {
+  m.doing = doing;
+  const s = nearestB(m, type); if (!s) return;
+  yield* goOut(m); m.busy = 'idle';
+  if (!(yield* walkTo(m, s.entry.i, s.entry.j))) return;
+  faceTo(m, s.cx, s.cz); yield* wait(rr(0.8, 1.6)); emote(m, pick(emotes), 1.6);
+  if (sit) yield* doAct(m, 'sit', rr(3, 5)); else yield* wait(rr(1, 2));
+  if (type === 'bakery' && chance(0.5)) { setCarry(m, 'wheat'); yield* wait(rr(1.5, 3)); setCarry(m, null); }
+}
 function* rStall(m) {
   m.doing = 'Browsing the market stall';
   const s = nearestB(m, 'stall'); if (!s) return;
@@ -1443,6 +1479,9 @@ function pickLeisure(m) {
   if (shoreTiles.length && m.age >= 1 && seasonNow() !== 3 && !isRaining()) opts.push([1.6, () => rFish(m)]);
   if (buildings.some(b => b.type === 'well' && b.done)) opts.push([1.2, () => rWell(m)]);
   if (buildings.some(b => b.type === 'stall' && b.done)) opts.push([1.2, () => rStall(m)]);
+  if (buildings.some(b => b.type === 'bakery' && b.done)) opts.push([1.2, () => rVisit(m, 'bakery', 'Buying a warm loaf', ['heart', 'smile', 'wheat'])]);
+  if (buildings.some(b => b.type === 'fountain' && b.done)) opts.push([1.1, () => rVisit(m, 'fountain', 'Sitting by the fountain', ['drop', 'music', 'smile', 'heart'], true)]);
+  if (buildings.some(b => b.type === 'statue' && b.done)) opts.push([0.6, () => rVisit(m, 'statue', 'Admiring the statue', ['star', 'exclaim', 'heart'])]);
   if (m.home && m.home.done) opts.push([isRaining() ? 6 : 1, () => rBreak(m)]);
   if (buildings.some(b => b.type === 'garden' && b.done)) opts.push([1.4, () => rGarden(m)]);
   let tot = 0; for (const o of opts) tot += o[0]; let r = rnd() * tot;
@@ -1589,6 +1628,9 @@ function chooseType() {
   if (countB('windmill') < Math.floor(countB('field') / 2)) o.push('windmill');
   if (pop >= 12 && countB('tavern') < 1 + Math.floor(pop / 40)) o.push('tavern');
   if (pop >= 18 && countB('hall') < 1) o.push('hall');
+  if (pop >= 20 && countB('fountain') < 1 + Math.floor(pop / 32)) o.push('fountain');
+  if (countB('windmill') >= 1 && countB('bakery') < Math.ceil(countB('windmill') / 2)) o.push('bakery');
+  if (pop >= 30 && buildings.some(b => b.type === 'hall' && b.done) && countB('statue') < 1) o.push('statue');
   if (countB('garden') < Math.floor(pop / 7)) o.push('garden');
   return o.length ? pick(o) : (cap < MAXPOP ? 'cottage' : null);
 }
@@ -1639,6 +1681,14 @@ function onBuildingDone(b) {
   } else if (b.type === 'field') logEvent(`A wheat field was sown ${where}.`);
   else if (b.type === 'tavern') logEvent(`The tavern ${where} opens its doors. Songs tonight!`);
   else if (b.type === 'hall') logEvent(`The town hall rings its bell ${where}. Meepleton is a proper town.`);
+  else if (b.type === 'statue') {
+    const score = m => m.tally.build * 3 + m.tally.trees + m.tally.stone + m.tally.pave + m.tally.food / 3 + m.tally.plant;
+    const hero = meeples.filter(m => m.age >= 1).sort((a, c) => score(c) - score(a))[0];
+    b.honor = hero ? hero.name : 'the founders';
+    logEvent(`A statue of <b>${b.honor}</b> was unveiled ${where}. Hats off!`);
+    for (const o of meeples) if (!o.inside && Math.hypot(o.x - b.cx, o.z - b.cz) < 7) { emote(o, pick(['star', 'heart', 'exclaim'])); o.hop = 0.3; }
+  }
+  else if (b.type === 'bakery') logEvent(`The bakery ${where} fires up its oven. Fresh bread!`);
   else logEvent(`The ${b.T.label} ${where} is finished.`);
 }
 function edgeTile() {
@@ -1805,9 +1855,10 @@ function updBuildings(dt, now) {
     const lit = nightF > 0.35 && (b.occupants > 0 || b.type === 'tavern' && ph !== 'night' || b.type === 'hall' && ph === 'evening');
     b.winMat.color.copy(lit ? WIN_LIT : cA.copy(WIN_DAY).lerp(WIN_DARK, nightF));
     if (b.spin) b.spin.rotation.z -= dt * 1.1;
+    if (b.spout && seasonNow() !== 3 && chance(dt * 14)) { b.g.localToWorld(_cw.copy(b.spout)); emit(_cw.x, _cw.y, _cw.z, { n: 1, color: ['#8cc9f2', '#cfeaf8', '#ffffff'], v: 0.35, vy: [0.8, 1.2], size: 0.035, life: [0.4, 0.6], grav: 5, spread: 0.02 }); }
     if (b.flag) b.flag.rotation.y = Math.sin(now / 300) * 0.35;
     if (b.clockH) { const t = dayT() * Math.PI * 4; b.clockH.rotation.z = -t; b.clockM.rotation.z = -t * 12; }
-    if (b.chimney && (b.occupants > 0 || (ph === 'evening' && b.residents.length) || b.type === 'tavern' && ph === 'evening')) {
+    if (b.chimney && (b.occupants > 0 || (ph === 'evening' && b.residents.length) || b.type === 'tavern' && ph === 'evening' || b.type === 'bakery' && (ph === 'work' || ph === 'dawn'))) {
       b.smokeT -= dt;
       if (b.smokeT < 0) { b.smokeT = rr(0.35, 0.7); b.g.localToWorld(_cw.copy(b.chimney)); emit(_cw.x, _cw.y, _cw.z, { n: 1, color: ['#e8e4ec', '#d4d0da', '#c3bfc9'], v: 0.08, vx: 0.15, vy: [0.35, 0.5], size: 0.11, life: [1.8, 2.6], grav: 0, grow: 2.2, spread: 0.03 }); }
     }
@@ -1907,6 +1958,7 @@ function tallyLine(m) {
 }
 function buildingStatus(b) {
   if (b.type === 'field' && b.done) return b.grow >= 1 ? 'Ripe and ready to harvest' : `Growing, ${Math.round(b.grow * 100)}%`;
+  if (b.type === 'statue' && b.done) return `In honour of ${b.honor}`;
   if (b.done) return b.occupants ? `${b.occupants} inside` : 'Quiet for now';
   if (footprintHasTree(b)) return 'Waiting for the lot to be cleared';
   if (b.delivered.wood < b.T.cost.wood || b.delivered.stone < b.T.cost.stone) return `Materials: wood ${b.delivered.wood}/${b.T.cost.wood}, stone ${b.delivered.stone}/${b.T.cost.stone}`;

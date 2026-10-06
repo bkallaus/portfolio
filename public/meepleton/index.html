@@ -31,6 +31,11 @@ body{margin:0;overflow:hidden;background:var(--night);color:var(--ink);font-fami
 #log h2{font-family:var(--f-display);font-size:12px;margin:0 0 4px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.12em}
 #log p{margin:0}
 #log p .d{color:var(--accent)}
+#rank{display:inline-block;vertical-align:4px;margin-left:6px;font-family:var(--f-ui);font-size:9px;font-weight:400;letter-spacing:.08em;text-transform:uppercase;background:var(--accent);color:#fff8e6;padding:3px 5px 2px;border:2px solid var(--ink)}
+#toast{position:fixed;left:50%;top:calc(18px + env(safe-area-inset-top,0px));transform:translate(-50%,-140%);background:var(--board);border:3px solid var(--ink);box-shadow:inset 0 0 0 2px var(--board-edge),4px 4px 0 rgba(20,14,30,.55);padding:10px 16px;font-family:var(--f-display);font-size:18px;font-weight:700;text-align:center;pointer-events:none;transition:transform .5s cubic-bezier(.2,1.4,.4,1);white-space:nowrap;max-width:calc(100vw - 32px)}
+#toast small{display:block;font-family:var(--f-ui);font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px}
+#toast.on{transform:translate(-50%,0)}
+@media (max-width:700px){#toast{top:auto;bottom:calc(120px + env(safe-area-inset-bottom,0px));transform:translate(-50%,200%);font-size:15px}#toast.on{transform:translate(-50%,0)}}
 #seedRow{display:flex;align-items:center;gap:8px;margin-top:3px;font-size:9px;letter-spacing:.06em;pointer-events:auto}
 #seedLink{color:var(--muted);text-decoration:none;border-bottom:1px dotted var(--muted);font-variant-numeric:tabular-nums}
 #seedLink:hover{color:var(--accent);border-color:var(--accent)}
@@ -67,9 +72,10 @@ body{margin:0;overflow:hidden;background:var(--night);color:var(--ink);font-fami
 <div id="sky"></div>
 <canvas id="stars"></canvas>
 <canvas id="view"></canvas>
-<div class="board" id="sign"><h1>Meepleton</h1><div id="clock">Day 1 · 06:00</div><div id="seedRow"><a id="seedLink" title="Permalink to this island">Island #</a><button type="button" id="newTown" title="Found a new island">New island</button></div><div id="stats"></div><div id="ctl" role="group" aria-label="Simulation speed"><button type="button" data-speed="0" aria-label="Pause" title="Pause (Space)">II</button><button type="button" data-speed="1" title="Normal speed (1)">1x</button><button type="button" data-speed="2" title="Double speed (2)">2x</button><button type="button" data-speed="4" title="Fast (3)">4x</button></div></div>
+<div class="board" id="sign"><h1>Meepleton <span id="rank">Camp</span></h1><div id="clock">Day 1 · 06:00</div><div id="seedRow"><a id="seedLink" title="Permalink to this island">Island #</a><button type="button" id="newTown" title="Found a new island">New island</button></div><div id="stats"></div><div id="ctl" role="group" aria-label="Simulation speed"><button type="button" data-speed="0" aria-label="Pause" title="Pause (Space)">II</button><button type="button" data-speed="1" title="Normal speed (1)">1x</button><button type="button" data-speed="2" title="Double speed (2)">2x</button><button type="button" data-speed="4" title="Fast (3)">4x</button></div></div>
 <div class="board" id="card" hidden aria-live="polite"><button type="button" id="cardClose" aria-label="Close" title="Close (Esc)">X</button><div id="cardBody"></div></div>
 <button type="button" class="board" id="caption" hidden></button>
+<div id="toast" role="status" aria-live="polite"></div>
 <div class="board" id="log"><h2>Town chronicle</h2><div id="logList"></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
@@ -2139,7 +2145,30 @@ function logEvent(html) {
   logLines.unshift(`<span class="d">D${dayN}</span> ${html}`); if (logLines.length > 5) logLines.pop();
   logEl.innerHTML = logLines.map((l, k) => `<p style="opacity:${(1 - k * 0.17).toFixed(2)}">${l}</p>`).join('');
 }
+const RANKS = [[0, 'Camp'], [6, 'Hamlet'], [14, 'Village'], [30, 'Town'], [50, 'Market Town']];
+let rankIdx = 0, toastTimer = 0, fullLogged = false;
+const rankEl = document.getElementById('rank'), toastEl = document.getElementById('toast');
+function toast(kicker, text) {
+  toastEl.innerHTML = `<small>${esc(kicker)}</small>${esc(text)}`; toastEl.classList.add('on');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => toastEl.classList.remove('on'), 4500);
+}
+function celebrate() {
+  for (let k = 0; k < 4; k++) emit(FIRE.x + rr(-1.5, 1.5), 2 + k * 0.4, FIRE.z + rr(-1.5, 1.5), { n: 35, color: ['#e34b4b', '#f2c230', '#3f7fd9', '#49a84f', '#ffffff', '#ef7fb0'], v: 2, vy: [1.5, 3.5], size: 0.07, life: [1.2, 2], grav: 3, glow: true, drag: 1.2 });
+  for (const o of meeples) if (!o.inside) { o.hop = 0.3; if (chance(0.5)) emote(o, pick(['star', 'heart', 'exclaim', 'music'])); }
+}
+function checkRank() {
+  const pop = meeples.length; let r = 0;
+  for (let k = 0; k < RANKS.length; k++) if (pop >= RANKS[k][0]) r = k;
+  if (r > rankIdx) {
+    rankIdx = r; const name = RANKS[r][1];
+    logEvent(`With ${pop} meeples, Meepleton is now a <b>${name.toLowerCase()}</b>!`);
+    toast(`Day ${dayN} · ${pop} meeples`, `Meepleton is now a ${name}!`); celebrate();
+  }
+  rankEl.textContent = RANKS[rankIdx][1];
+  if (!fullLogged && pop >= MAXPOP) { fullLogged = true; logEvent('Every home is full. Meepleton has grown as big as the island allows.'); }
+}
 function updHUD() {
+  checkRank();
   const t = dayT(), mins = Math.floor(t * 24 * 60), hh = String(Math.floor(mins / 60)).padStart(2, '0'), mm = String(Math.floor(mins % 60 / 10) * 10).padStart(2, '0');
   const ph = { night: 'Night', dawn: 'Dawn', work: 'Workday', evening: 'Evening' }[phase()];
   clockEl.textContent = `Day ${dayN} · ${SEASON_NAMES[seasonNow()]} · ${hh}:${mm} · ${simSpeed === 0 ? 'Paused' : ph}`;

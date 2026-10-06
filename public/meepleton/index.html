@@ -30,12 +30,24 @@ body{margin:0;overflow:hidden;background:var(--night);color:var(--ink);font-fami
 #log{bottom:calc(12px + env(safe-area-inset-bottom,0px));left:12px;max-width:min(380px,calc(100vw - 48px));font-size:10px;line-height:1.55;letter-spacing:.02em}
 #log h2{font-family:var(--f-display);font-size:12px;margin:0 0 4px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.12em}
 #log p{margin:0}
+#log{pointer-events:auto}
+#logToggle{font:inherit;color:inherit;letter-spacing:inherit;text-transform:inherit;background:none;border:0;padding:0;cursor:pointer;display:flex;gap:6px;align-items:center}
+#logToggle::after{content:"-";font-family:var(--f-ui)}
+#log.folded #logToggle::after{content:"+"}
+#log.folded h2{margin:0}#log.folded #logList{display:none}
+#help{left:50%;top:50%;transform:translate(-50%,-50%);width:min(330px,calc(100vw - 48px));pointer-events:auto;font-size:10px;line-height:1.5;z-index:5}
+#help[hidden]{display:none}
+#help h3{font-family:var(--f-display);font-size:18px;margin:0 0 8px}
+#help dl{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:0}
+#help dt{font-weight:700;color:var(--accent)}#help dd{margin:0}
+#help p{margin:8px 0 0;color:var(--muted)}
+#helpClose{position:absolute;top:4px;right:4px;font-family:var(--f-ui);font-size:12px;width:22px;height:22px;padding:0;display:grid;place-items:center;color:var(--ink);background:#fff8e6;border:2px solid var(--ink);cursor:pointer}
 #log p .d{color:var(--accent)}
 #rank{display:inline-block;vertical-align:4px;margin-left:6px;font-family:var(--f-ui);font-size:9px;font-weight:400;letter-spacing:.08em;text-transform:uppercase;background:var(--accent);color:#fff8e6;padding:3px 5px 2px;border:2px solid var(--ink)}
-#toast{position:fixed;left:50%;top:calc(18px + env(safe-area-inset-top,0px));transform:translate(-50%,-140%);background:var(--board);border:3px solid var(--ink);box-shadow:inset 0 0 0 2px var(--board-edge),4px 4px 0 rgba(20,14,30,.55);padding:10px 16px;font-family:var(--f-display);font-size:18px;font-weight:700;text-align:center;pointer-events:none;transition:transform .5s cubic-bezier(.2,1.4,.4,1);white-space:nowrap;max-width:calc(100vw - 32px)}
+#toast{position:fixed;left:50%;top:calc(18px + env(safe-area-inset-top,0px));transform:translate(-50%,-140%);background:var(--board);border:3px solid var(--ink);box-shadow:inset 0 0 0 2px var(--board-edge),4px 4px 0 rgba(20,14,30,.55);padding:10px 16px;font-family:var(--f-display);font-size:18px;font-weight:700;text-align:center;pointer-events:none;transition:transform .5s cubic-bezier(.2,1.4,.4,1),visibility 0s .5s;visibility:hidden;white-space:nowrap;max-width:calc(100vw - 32px)}
 #toast small{display:block;font-family:var(--f-ui);font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px}
-#toast.on{transform:translate(-50%,0)}
-@media (max-width:700px){#toast{top:auto;bottom:calc(120px + env(safe-area-inset-bottom,0px));transform:translate(-50%,200%);font-size:15px}#toast.on{transform:translate(-50%,0)}}
+#toast.on{transform:translate(-50%,0);visibility:visible;transition:transform .5s cubic-bezier(.2,1.4,.4,1)}
+@media (max-width:700px){#toast{top:auto;bottom:calc(120px + env(safe-area-inset-bottom,0px));transform:translate(-50%,200%);font-size:15px}#toast.on{transform:translate(-50%,0);visibility:visible;transition:transform .5s cubic-bezier(.2,1.4,.4,1)}}
 #seedRow{display:flex;align-items:center;gap:8px;margin-top:3px;font-size:9px;letter-spacing:.06em;pointer-events:auto}
 #seedLink{color:var(--muted);text-decoration:none;border-bottom:1px dotted var(--muted);font-variant-numeric:tabular-nums}
 #seedLink:hover{color:var(--accent);border-color:var(--accent)}
@@ -73,11 +85,15 @@ body{margin:0;overflow:hidden;background:var(--night);color:var(--ink);font-fami
 <div id="sky"></div>
 <canvas id="stars"></canvas>
 <canvas id="view"></canvas>
-<div class="board" id="sign"><h1>Meepleton <span id="rank">Camp</span></h1><div id="clock">Day 1 · 06:00</div><div id="seedRow"><a id="seedLink" title="Permalink to this island">Island #</a><button type="button" id="newTown" title="Found a new island">New island</button></div><div id="stats"></div><div id="ctl" role="group" aria-label="Simulation speed"><button type="button" data-speed="0" aria-label="Pause" title="Pause (Space)">II</button><button type="button" data-speed="1" title="Normal speed (1)">1x</button><button type="button" data-speed="2" title="Double speed (2)">2x</button><button type="button" data-speed="4" title="Fast (3)">4x</button><button type="button" id="postcard" title="Save a postcard (P)" aria-label="Save a postcard">Postcard</button></div></div>
+<div class="board" id="sign"><h1>Meepleton <span id="rank">Camp</span></h1><div id="clock">Day 1 · 06:00</div><div id="seedRow"><a id="seedLink" title="Permalink to this island">Island #</a><button type="button" id="newTown" title="Found a new island">New island</button></div><div id="stats"></div><div id="ctl" role="group" aria-label="Simulation speed"><button type="button" data-speed="0" aria-label="Pause" title="Pause (Space)">II</button><button type="button" data-speed="1" title="Normal speed (1)">1x</button><button type="button" data-speed="2" title="Double speed (2)">2x</button><button type="button" data-speed="4" title="Fast (3)">4x</button><button type="button" id="helpBtn" title="Controls (?)" aria-label="Show controls" aria-expanded="false" aria-controls="help">?</button><button type="button" id="postcard" title="Save a postcard (P)" aria-label="Save a postcard">Postcard</button></div></div>
 <div class="board" id="card" hidden aria-live="polite"><button type="button" id="cardClose" aria-label="Close" title="Close (Esc)">X</button><div id="cardBody"></div></div>
 <button type="button" class="board" id="caption" hidden></button>
 <div id="toast" role="status" aria-live="polite"></div>
-<div class="board" id="log"><h2>Town chronicle</h2><div id="logList"></div></div>
+<div class="board" id="help" hidden><button type="button" id="helpClose" aria-label="Close">X</button><h3>Getting around</h3><dl>
+<dt>Drag</dt><dd>Pan the island</dd><dt>Right-drag, Q / E</dt><dd>Rotate</dd><dt>Wheel, pinch, + / -</dt><dd>Zoom</dd><dt>Arrows, WASD</dt><dd>Pan</dd>
+<dt>Click</dt><dd>Inspect a meeple or building</dd><dt>Esc</dt><dd>Let go and resume the tour</dd><dt>Space</dt><dd>Pause</dd><dt>1 / 2 / 3</dt><dd>Speed</dd><dt>P</dt><dd>Save a postcard</dd><dt>C</dt><dd>Fold the chronicle</dd></dl>
+<p>Leave it alone and the camera tours the town on its own.</p></div>
+<div class="board" id="log"><h2><button type="button" id="logToggle" aria-expanded="true" aria-controls="logList">Town chronicle</button></h2><div id="logList"></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 (function(){
@@ -2230,6 +2246,19 @@ function savePostcard() {
   toast('Postcard saved', `Greetings from day ${dayN}!`);
 }
 document.getElementById('postcard').addEventListener('click', savePostcard);
+const helpEl = document.getElementById('help'), helpBtn = document.getElementById('helpBtn'), logBox = document.getElementById('log'), logToggle = document.getElementById('logToggle');
+function setHelp(on) { helpEl.hidden = !on; helpBtn.setAttribute('aria-expanded', String(on)); if (on) document.getElementById('helpClose').focus(); }
+function foldLog(on) { logBox.classList.toggle('folded', on); logToggle.setAttribute('aria-expanded', String(!on)); }
+helpBtn.addEventListener('click', () => setHelp(helpEl.hidden));
+document.getElementById('helpClose').addEventListener('click', () => { setHelp(false); helpBtn.focus(); });
+logToggle.addEventListener('click', () => foldLog(!logBox.classList.contains('folded')));
+if (matchMedia('(max-width:520px)').matches) foldLog(true);
+addEventListener('keydown', e => {
+  if (e.target.closest && e.target.closest('input,textarea')) return;
+  if (e.key === '?') setHelp(helpEl.hidden);
+  else if (e.key === 'Escape' && !helpEl.hidden) setHelp(false);
+  else if (e.key.toLowerCase() === 'c') foldLog(!logBox.classList.contains('folded'));
+});
 addEventListener('keydown', e => { if (e.key.toLowerCase() === 'p' && !(e.target.closest && e.target.closest('input,textarea'))) savePostcard(); });
 function updHUD() {
   checkRank();

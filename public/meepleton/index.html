@@ -1503,7 +1503,7 @@ function* rLamplight(m, route) {
   } finally { setTool(m, null); for (const l of route) l.res = 0; }
   yield* rEvening(m);
 }
-let lampDay = 0;
+let lampDay = 0, lastLamplighter = '';
 function lampTick() {
   const t = dayT();
   for (const l of lamps) {
@@ -1525,7 +1525,7 @@ function assignLamplighters() {
       const l = todo.splice(bi, 1)[0]; l.res = m.id; route.push(l); px = l.x; pz = l.z;
     }
     if (m.co) m.co.return(); m.act = null; m.co = rLamplight(m, route);
-    if (c === 0) logEvent(`${m.name} shoulders the lamplighter's pole as dusk falls.`);
+    if (c === 0 && lastLamplighter !== m.name) { lastLamplighter = m.name; logEvent(`${m.name} takes up the lamplighter's pole tonight.`); }
   }
 }
 function* rArrive(m, home) {

@@ -1223,7 +1223,7 @@ function* rWander(m) {
   if (tgt) yield* walkTo(m, tgt[0], tgt[1]);
   m.busy = 'idle';
   const looks = ri(1, 3);
-  for (let k = 0; k < looks; k++) { m.face += rr(-1.5, 1.5); yield* wait(rr(0.6, 1.6)); if (chance(0.15)) emote(m, pick(['music', 'sun', 'smile', 'leaf'])); }
+  for (let k = 0; k < looks; k++) { m.face += rr(-1.5, 1.5); yield* wait(rr(0.6, 1.6)); if (chance(0.15)) emote(m, wx_.wet > 0.5 ? pick(wx_.kind === 'snow' ? ['star', 'smile', 'heart'] : ['drop', 'question', 'drop']) : pick(['music', 'sun', 'smile', 'leaf'])); }
 }
 function* rChat(m, o) {
   m.doing = `Chatting with ${o.name}`; o.doing = `Chatting with ${m.name}`;
@@ -1422,10 +1422,10 @@ function pickLeisure(m) {
     const o = meeples.find(o => o !== m && o.busy === 'idle' && !o.inside && Math.hypot(o.x - m.x, o.z - m.z) < 9);
     if (o) opts.push([5, () => rChat(m, o)]);
   }
-  if (shoreTiles.length && m.age >= 1 && seasonNow() !== 3) opts.push([1.6, () => rFish(m)]);
+  if (shoreTiles.length && m.age >= 1 && seasonNow() !== 3 && !isRaining()) opts.push([1.6, () => rFish(m)]);
   if (buildings.some(b => b.type === 'well' && b.done)) opts.push([1.2, () => rWell(m)]);
   if (buildings.some(b => b.type === 'stall' && b.done)) opts.push([1.2, () => rStall(m)]);
-  if (m.home && m.home.done) opts.push([1, () => rBreak(m)]);
+  if (m.home && m.home.done) opts.push([isRaining() ? 6 : 1, () => rBreak(m)]);
   if (buildings.some(b => b.type === 'garden' && b.done)) opts.push([1.4, () => rGarden(m)]);
   let tot = 0; for (const o of opts) tot += o[0]; let r = rnd() * tot;
   for (const o of opts) { r -= o[0]; if (r <= 0) return o[1](); }
@@ -1629,7 +1629,9 @@ function updSky(dt) {
   sun.color.set(mix(A[3], B[3], f)); sun.intensity = lerp(A[4], B[4], f);
   hemi.color.set(mix(A[5], B[5], f)); hemi.groundColor.set(mix(A[6], B[6], f)); hemi.intensity = lerp(A[7], B[7], f);
   dayLight = sun.intensity; nightF = clamp((0.72 - sun.intensity) / 0.38, 0, 1);
-  skyT -= dt; if (skyT <= 0) { skyT = 0.25; skyEl.style.background = `linear-gradient(${mix(A[1], B[1], f)}, ${mix(A[2], B[2], f)})`; starsEl.style.opacity = (nightF * 0.9).toFixed(2); }
+  const gloom = wx_.wet * (wx_.kind === 'snow' ? 0.25 : 0.4);
+  sun.intensity *= 1 - gloom; hemi.intensity *= 1 - gloom * 0.4; dayLight = sun.intensity;
+  skyT -= dt; if (skyT <= 0) { skyT = 0.25; const grey = wx_.kind === 'snow' ? '#c9cfd8' : '#7d8794'; skyEl.style.background = `linear-gradient(${mix(mix(A[1], B[1], f), grey, gloom * 1.4 * (1 - nightF))}, ${mix(mix(A[2], B[2], f), grey, gloom * 1.4 * (1 - nightF))})`; starsEl.style.opacity = (nightF * 0.9 * (1 - wx_.wet * 0.8)).toFixed(2); }
   const a = (t - 0.25) * Math.PI * 2, el = Math.sin(a), s = el >= -0.05 ? a : a + Math.PI;
   sun.position.set(Math.cos(s) * 40, Math.max(18, Math.abs(Math.sin(s)) * 50), 16);
 }
@@ -1637,6 +1639,51 @@ function drawStars() {
   starsEl.width = Math.ceil(innerWidth / 3); starsEl.height = Math.ceil(innerHeight / 3);
   const x = starsEl.getContext('2d'); x.clearRect(0, 0, starsEl.width, starsEl.height);
   for (let k = 0; k < starsEl.width * starsEl.height / 180; k++) { x.fillStyle = pick(['#ffffff', '#fff4c8', '#cfe0ff']); const X = Math.floor(rnd() * starsEl.width), Y = Math.floor(rnd() * starsEl.height * 0.8); x.fillRect(X, Y, 1, 1); if (chance(0.06)) { x.fillRect(X - 1, Y, 3, 1); x.fillRect(X, Y - 1, 1, 3); } }
+}
+const PRECIP = 900;
+const rainPos = new Float32Array(PRECIP * 6), rainGeo = new THREE.BufferGeometry();
+rainGeo.setAttribute('position', new THREE.BufferAttribute(rainPos, 3));
+const rainMesh = new THREE.LineSegments(rainGeo, new THREE.LineBasicMaterial({ color: 0xb8d4ee, transparent: true, opacity: 0.75 }));
+rainMesh.frustumCulled = false; scene.add(rainMesh);
+const snowPos = new Float32Array(PRECIP * 3), snowGeo = new THREE.BufferGeometry();
+snowGeo.setAttribute('position', new THREE.BufferAttribute(snowPos, 3));
+const flakeTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 4; const x = c.getContext('2d'); x.fillStyle = '#9fb3c8'; x.fillRect(1, 0, 2, 4); x.fillRect(0, 1, 4, 2); x.fillStyle = '#ffffff'; x.fillRect(1, 1, 2, 2); const t = new THREE.CanvasTexture(c); t.magFilter = t.minFilter = THREE.NearestFilter; t.generateMipmaps = false; return t; })();
+const snowMesh = new THREE.Points(snowGeo, new THREE.PointsMaterial({ map: flakeTex, size: 4, sizeAttenuation: false, transparent: true, alphaTest: 0.5, depthWrite: false }));
+snowMesh.frustumCulled = false; scene.add(snowMesh);
+const drops = []; for (let k = 0; k < PRECIP; k++) drops.push({ x: rr(-1, 1), y: rr(0, 1), z: rr(-1, 1), p: rr(0, 6.28) });
+const wx_ = { kind: 'clear', want: 'clear', wet: 0, t: rr(50, 90) };
+const WEATHER_ODDS = [0.3, 0.18, 0.35, 0.55];
+const WEATHER_LINES = { rain: ['Rain patters on the rooftops.', 'A shower rolls in off the hills.', 'Grey clouds gather. Rain!'], snow: ['Snow begins to drift down.', 'Fat snowflakes settle on the lanes.'], clearrain: ['The rain clears. Everything smells green.', 'The shower passes and the sun peeks out.'], clearsnow: ['The snowfall eases.', 'The snow stops. Crisp, still air.'] };
+function weatherTick(dt) {
+  wx_.t -= dt;
+  if (wx_.t <= 0) {
+    const se = seasonNow();
+    if (wx_.want === 'clear') { if (chance(WEATHER_ODDS[se])) { wx_.want = se === 3 ? 'snow' : 'rain'; wx_.t = rr(35, 80); logEvent(pick(WEATHER_LINES[wx_.want])); } else wx_.t = rr(40, 90); }
+    else { logEvent(pick(WEATHER_LINES['clear' + wx_.want])); wx_.want = 'clear'; wx_.t = rr(60, 140); }
+  }
+  if (wx_.want !== 'clear' && wx_.kind !== wx_.want) { wx_.wet = Math.max(0, wx_.wet - dt / 3); if (wx_.wet === 0) wx_.kind = wx_.want; }
+  else wx_.wet = clamp(wx_.wet + (wx_.want === 'clear' ? -dt / 6 : dt / 5), 0, 1);
+  if (wx_.want === 'clear' && wx_.wet === 0) wx_.kind = 'clear';
+}
+const isRaining = () => wx_.kind === 'rain' && wx_.wet > 0.3;
+function updPrecip(dt) {
+  const n = Math.floor(PRECIP * wx_.wet), R = camHalf * 1.7, H0 = 10, snow = wx_.kind === 'snow';
+  rainMesh.visible = !snow && n > 0; snowMesh.visible = snow && n > 0;
+  if (!n) return;
+  const cx = camFocus.x, cz = camFocus.z, sx = Math.sin(az) * 0.6, sz = Math.cos(az) * 0.6;
+  for (let k = 0; k < n; k++) {
+    const d = drops[k];
+    d.y -= dt * (snow ? 0.09 : 1.6);
+    if (d.y < 0) {
+      if (!snow && chance(0.05)) { const gx_ = cx + d.x * R, gz_ = cz + d.z * R, ti = tI(gx_), tj = tJ(gz_); if (inb(ti, tj) && ground[id(ti, tj)] === G_WATER) emit(gx_, 0.02, gz_, { n: 2, color: '#cfeaf8', v: 0.25, vy: [0.3, 0.6], size: 0.03, life: [0.15, 0.3] }); }
+      d.y += 1; d.x = rr(-1, 1); d.z = rr(-1, 1);
+    }
+    const x = cx + d.x * R + (snow ? Math.sin(d.p + performance.now() / 900) * 0.3 : 0), y = d.y * H0, z = cz + d.z * R;
+    if (snow) { snowPos[k * 3] = x; snowPos[k * 3 + 1] = y; snowPos[k * 3 + 2] = z; }
+    else { const o = k * 6; rainPos[o] = x; rainPos[o + 1] = y; rainPos[o + 2] = z; rainPos[o + 3] = x - sx * 0.12 + 0.05; rainPos[o + 4] = y + 0.45; rainPos[o + 5] = z - sz * 0.12; }
+  }
+  if (snow) { snowGeo.setDrawRange(0, n); snowGeo.attributes.position.needsUpdate = true; }
+  else { rainGeo.setDrawRange(0, n * 2); rainGeo.attributes.position.needsUpdate = true; }
 }
 const clouds = [];
 const cloudMat = new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false });
@@ -1698,7 +1745,7 @@ function updBuildings(dt, now) {
     }
     if (ph === 'night' && b.T.cap > 0 && b.occupants > 0) { b.zzzT -= dt; if (b.zzzT < 0) { b.zzzT = rr(5, 9); worldEmote(b.cx + rr(-.2, .2), (b.roofTop || 1) + 0.25, b.cz, 'zzz', 2.4, 0.4); } }
     if (b.type === 'field') {
-      if (b.grow < 1 && seasonNow() !== 3) { b.grow = Math.min(1, b.grow + dt / (DAY * 0.8) * (b.tend > 0 ? 2.2 : 1) * (seasonNow() === 2 ? 1.3 : 1)); b.tend -= dt; }
+      if (b.grow < 1 && seasonNow() !== 3) { b.grow = Math.min(1, b.grow + dt / (DAY * 0.8) * (b.tend > 0 || isRaining() ? 2.2 : 1) * (seasonNow() === 2 ? 1.3 : 1)); b.tend -= dt; }
       if (Math.floor(b.grow * 40) !== b.growQ) { b.growQ = Math.floor(b.grow * 40); updCrops(b); }
     }
   }
@@ -1995,7 +2042,7 @@ function simStep(dt, now) {
     stumpT = 2;
     for (let k = stumps.length - 1; k >= 0; k--) { const s = stumps[k]; s.stumpT += 2; const o = occ[id(s.i, s.j)]; if (s.state !== 'stump') { stumps.splice(k, 1); continue; } if (s.stumpT > 80 || o === O_SITE || o === O_BLD) { removeTree(s); stumps.splice(k, 1); } }
   }
-  updTrees(dt);
+  updTrees(dt); weatherTick(dt);
   for (const r of rocks) if (r.shake > 0) { r.shake -= dt; rockMatrix(r); }
 }
 let last = performance.now();
@@ -2005,7 +2052,7 @@ function frame(now) {
   const dt = raw * SPEED * simSpeed, steps = Math.max(1, Math.ceil(dt / 0.05)), sdt = dt / steps;
   for (let s = 0; s < steps; s++) simStep(sdt, now);
   for (const m of meeples) animMeeple(m, dt);
-  updSeasonSweep(); updParticles(dt); updSky(dt); updBuildings(dt, now); updAmbient(dt, now); updCamera(raw); updSelection(raw);
+  updSeasonSweep(); updPrecip(dt); updParticles(dt); updSky(dt); updBuildings(dt, now); updAmbient(dt, now); updCamera(raw); updSelection(raw);
   waterT -= raw; if (waterT <= 0) { waterT = 0.45; waterPhase = (waterPhase + 1) % 8; for (const [i, j] of waterTiles) drawTile(i, j); gtex.needsUpdate = true; }
   hudT -= raw; if (hudT <= 0) { hudT = 0.5; updHUD(); }
   renderer.render(scene, camera);
@@ -2013,7 +2060,7 @@ function frame(now) {
 setupTown(); resize(); updSky(0); setSpeed(1);
 if (window.__MEEPLE_WARMUP) { for (let k = 0; k < window.__MEEPLE_WARMUP * 20; k++) simStep(0.05, performance.now()); }
 requestAnimationFrame(frame);
-if (window.__MEEPLE_FAST) window.__mt = { season: (n) => { dayN = n * SEASON_DAYS + 1; startSeason(seasonNow()); }, camera, select, THREE, nextShot: () => { camTimer = 0; }, astar, accessTile, passable, PILE, quarryTiles, rocks, meeples, buildings, stock, plannedRoads, logLines, trees, phase, dayT, get day() { return dayN; } };
+if (window.__MEEPLE_FAST) window.__mt = { weather: (w) => { wx_.want = w; wx_.t = 999; }, wx: wx_, season: (n) => { dayN = n * SEASON_DAYS + 1; startSeason(seasonNow()); }, camera, select, THREE, nextShot: () => { camTimer = 0; }, astar, accessTile, passable, PILE, quarryTiles, rocks, meeples, buildings, stock, plannedRoads, logLines, trees, phase, dayT, get day() { return dayN; } };
 })();
 </script>
 

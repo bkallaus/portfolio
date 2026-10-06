@@ -30,6 +30,11 @@ body{margin:0;overflow:hidden;background:var(--night);color:var(--ink);font-fami
 #log h2{font-family:var(--f-display);font-size:12px;margin:0 0 4px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.12em}
 #log p{margin:0}
 #log p .d{color:var(--accent)}
+#ctl{display:flex;gap:4px;margin-top:8px;pointer-events:auto}
+#ctl button{font:inherit;font-size:10px;line-height:1;padding:4px 6px;min-width:26px;background:#fff8e6;color:var(--ink);border:2px solid var(--ink);box-shadow:2px 2px 0 rgba(20,14,30,.45);cursor:pointer}
+#ctl button:hover{background:#ffe9b8}
+#ctl button[aria-pressed="true"]{background:var(--ink);color:var(--board);box-shadow:none;transform:translate(2px,2px)}
+#ctl button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 @media (max-width:520px){#sign h1{font-size:18px}#stats{font-size:10px;gap:3px 8px}#log{font-size:9px}}
 </style>
 </head>
@@ -38,7 +43,7 @@ body{margin:0;overflow:hidden;background:var(--night);color:var(--ink);font-fami
 <div id="sky"></div>
 <canvas id="stars"></canvas>
 <canvas id="view"></canvas>
-<div class="board" id="sign"><h1>Meepleton</h1><div id="clock">Day 1 · 06:00</div><div id="stats"></div></div>
+<div class="board" id="sign"><h1>Meepleton</h1><div id="clock">Day 1 · 06:00</div><div id="stats"></div><div id="ctl" role="group" aria-label="Simulation speed"><button type="button" data-speed="0" aria-label="Pause" title="Pause (Space)">II</button><button type="button" data-speed="1" title="Normal speed (1)">1x</button><button type="button" data-speed="2" title="Double speed (2)">2x</button><button type="button" data-speed="4" title="Fast (3)">4x</button></div></div>
 <div class="board" id="log"><h2>Town chronicle</h2><div id="logList"></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
@@ -1473,7 +1478,7 @@ function onBuildingDone(b) {
   if (b.T.cap > 0) {
     logEvent(`A new ${b.T.label} stands ${where}.`);
     const n = b.T.cap === 2 ? 1 : 2;
-    for (let k = 0; k < n && meeples.length < MAXPOP; k++) setTimeout(() => spawnArrival(b), (k * 2500 + 1500) / SPEED);
+    for (let k = 0; k < n && meeples.length < MAXPOP; k++) after(k * 2.5 + 1.5, () => spawnArrival(b));
   } else if (b.type === 'field') logEvent(`A wheat field was sown ${where}.`);
   else if (b.type === 'tavern') logEvent(`The tavern ${where} opens its doors. Songs tonight!`);
   else if (b.type === 'hall') logEvent(`The town hall rings its bell ${where}. Meepleton is a proper town.`);
@@ -1664,7 +1669,7 @@ function logEvent(html) {
 function updHUD() {
   const t = dayT(), mins = Math.floor(t * 24 * 60), hh = String(Math.floor(mins / 60)).padStart(2, '0'), mm = String(Math.floor(mins % 60 / 10) * 10).padStart(2, '0');
   const ph = { night: 'Night', dawn: 'Dawn', work: 'Workday', evening: 'Evening' }[phase()];
-  clockEl.textContent = `Day ${dayN} · ${hh}:${mm} · ${ph}`;
+  clockEl.textContent = `Day ${dayN} · ${hh}:${mm} · ${simSpeed === 0 ? 'Paused' : ph}`;
   statEls.meeple.textContent = meeples.length;
   statEls.house.textContent = buildings.filter(b => b.done && b.T.cap > 0).length;
   statEls.star.textContent = buildings.filter(b => b.done).length;
@@ -1707,8 +1712,27 @@ function setupTown() {
 }
 
 let reachT = 0, waterT = 0, birthT = 6, hudT = 0, stumpT = 0;
+const timers = [];
+function after(sec, fn) { timers.push({ at: clock + sec, fn }); }
+function runTimers() {
+  for (let k = timers.length - 1; k >= 0; k--) if (timers[k].at <= clock) { const t = timers[k]; timers.splice(k, 1); t.fn(); }
+}
+let simSpeed = 1, lastSpeed = 1;
+const speedBtns = [...document.querySelectorAll('#ctl button')];
+function setSpeed(v) {
+  if (v > 0) lastSpeed = v;
+  simSpeed = v;
+  for (const b of speedBtns) b.setAttribute('aria-pressed', String(Number(b.dataset.speed) === v));
+  updHUD();
+}
+for (const b of speedBtns) b.addEventListener('click', () => setSpeed(Number(b.dataset.speed)));
+addEventListener('keydown', e => {
+  if (e.target.closest && e.target.closest('button,input,textarea')) return;
+  if (e.code === 'Space') { e.preventDefault(); setSpeed(simSpeed ? 0 : lastSpeed); }
+  else if (e.key === '1') setSpeed(1); else if (e.key === '2') setSpeed(2); else if (e.key === '3') setSpeed(4);
+});
 function simStep(dt, now) {
-  const prevDay = Math.floor(clock / DAY); clock += dt;
+  const prevDay = Math.floor(clock / DAY); clock += dt; runTimers();
   if (Math.floor(clock / DAY) > prevDay) { dayN++; const eat = Math.min(stock.food, Math.ceil(meeples.length / 2)); stock.food -= eat; updPile(); logEvent(pick(['The rooster crows. A new day in Meepleton.', 'Morning mist rolls off the pond.', 'Smoke curls up from the chimneys.', 'Sunrise over the rooftops.'])); }
   for (const m of meeples) {
     m.moving = false;
@@ -1731,7 +1755,7 @@ let last = performance.now();
 function frame(now) {
   requestAnimationFrame(frame);
   const raw = clamp((now - last) / 1000, 0, 0.05); last = now;
-  const dt = raw * SPEED, steps = Math.max(1, Math.ceil(dt / 0.05)), sdt = dt / steps;
+  const dt = raw * SPEED * simSpeed, steps = Math.max(1, Math.ceil(dt / 0.05)), sdt = dt / steps;
   for (let s = 0; s < steps; s++) simStep(sdt, now);
   for (const m of meeples) animMeeple(m, dt);
   updParticles(dt); updSky(dt); updBuildings(dt, now); updAmbient(dt, now); updCamera(raw);
@@ -1739,7 +1763,7 @@ function frame(now) {
   hudT -= raw; if (hudT <= 0) { hudT = 0.5; updHUD(); }
   renderer.render(scene, camera);
 }
-setupTown(); resize(); updSky(0); updHUD();
+setupTown(); resize(); updSky(0); setSpeed(1);
 if (window.__MEEPLE_WARMUP) { for (let k = 0; k < window.__MEEPLE_WARMUP * 20; k++) simStep(0.05, performance.now()); }
 requestAnimationFrame(frame);
 if (window.__MEEPLE_FAST) window.__mt = { astar, accessTile, passable, PILE, quarryTiles, rocks, meeples, buildings, stock, plannedRoads, logLines, trees, phase, dayT, get day() { return dayN; } };

@@ -178,7 +178,7 @@ function part(parent, geo, color, x = 0, y = 0, z = 0, ol = false) {
   if (ol) outline(m, (typeof ol === 'number' && ol < 0.2) ? ol : 0.03);
   return m;
 }
-function shade(hex, f) { const c = new THREE.Color(hex); c.multiplyScalar(f); return '#' + c.getHexString(); }
+function shade(hex, f) { const c = new THREE.Color(hex); c.setRGB(Math.min(1, c.r * f), Math.min(1, c.g * f), Math.min(1, c.b * f)); return '#' + c.getHexString(); }
 
 const PAL = { R: '#e34b4b', K: '#1b1426', B: '#3f7fd9', W: '#8a5a2e', G: '#7d8190', g: '#c3c6cf', Y: '#f2c230', O: '#b7862a', T: '#37b3a3', C: '#f6ecd2', P: '#6b5bd6', w: '#ffffff', L: '#5bb04a' };
 const ICONS = {
@@ -227,7 +227,13 @@ function iconCanvas(name, scale = 2) {
 const gcv = document.createElement('canvas'); gcv.width = gcv.height = N * TPX;
 const gx = gcv.getContext('2d');
 const gtex = new THREE.CanvasTexture(gcv); gtex.magFilter = THREE.NearestFilter; gtex.minFilter = THREE.NearestFilter; gtex.generateMipmaps = false;
-let waterPhase = 0;
+let waterPhase = 0, groundSeason = 0;
+const GP = [
+  { grass: ['#72b84f', '#6bb04a', '#78bc55'], dark: '#5a9a40', light: '#9ad46e', tuft: '#4f8a38', flowers: 0.22, fc: ['#fff4e0', '#f28bb8', '#f7b6d2', '#b9a7ff', '#ffd84a'], sand: '#e6d193', water: ['#3d82c4', '#3a7ebf'] },
+  { grass: ['#6db24f', '#67ab4a', '#72b654'], dark: '#58963f', light: '#8ccc66', tuft: '#4f8a38', flowers: 0.12, fc: ['#fff4e0', '#ffd84a', '#f28bb8', '#b9a7ff'], sand: '#e6d193', water: ['#3d82c4', '#3a7ebf'] },
+  { grass: ['#93a84a', '#8aa046', '#9aae50'], dark: '#7a8c3a', light: '#c9a84a', tuft: '#6d7a32', flowers: 0.16, fc: ['#e39b3c', '#d9663a', '#e8c048', '#b8443c'], leaf: true, sand: '#e0c98c', water: ['#3a78b5', '#3774b0'] },
+  { grass: ['#eef3f7', '#e8eef3', '#f4f7fa'], dark: '#d3dde6', light: '#ffffff', tuft: '#c4d0da', flowers: 0, fc: [], sand: '#e9e6dc', water: ['#5d93c4', '#5a8fbf'] },
+];
 function px(x, y, c) { gx.fillStyle = c; gx.fillRect(x, y, 1, 1); }
 const isRoad = (i, j) => inb(i, j) && road[id(i, j)] >= 2;
 function drawTile(i, j) {
@@ -262,7 +268,7 @@ function drawTile(i, j) {
     return;
   }
   if (g === G_WATER) {
-    rect(h(1) < 0.5 ? '#3d82c4' : '#3a7ebf');
+    rect(GP[groundSeason].water[h(1) < 0.5 ? 0 : 1]);
     px(X + Math.floor(h(2) * 8), Y + Math.floor(h(3) * 8), '#336fb0');
     px(X + Math.floor(h(4) * 8), Y + Math.floor(h(5) * 8), '#336fb0');
     const yy = Math.floor(h(6) * 8 + waterPhase) % 8, xx = Math.floor(h(7) * 5);
@@ -279,18 +285,23 @@ function drawTile(i, j) {
     }
     return;
   }
+  const gp = GP[groundSeason];
   if (g === G_SAND) {
-    rect('#e6d193');
+    rect(gp.sand);
     for (let n = 0; n < 4; n++) px(X + Math.floor(h(20 + n) * 8), Y + Math.floor(h(30 + n) * 8), n % 2 ? '#d2b976' : '#f1e2ad');
   } else if (g === G_DIRT) {
     rect('#9b6a43');
     for (let n = 0; n < 5; n++) px(X + Math.floor(h(20 + n) * 8), Y + Math.floor(h(30 + n) * 8), n % 2 ? '#86593a' : '#b07d51');
   } else {
-    rect(['#6db24f', '#67ab4a', '#72b654'][Math.floor(h(1) * 3)]);
-    for (let n = 0; n < 5; n++) px(X + Math.floor(h(20 + n) * 8), Y + Math.floor(h(30 + n) * 8), '#58963f');
-    for (let n = 0; n < 2; n++) px(X + Math.floor(h(40 + n) * 8), Y + Math.floor(h(50 + n) * 8), '#8ccc66');
-    if (h(60) < 0.35) { const tx = X + 1 + Math.floor(h(61) * 5), ty = Y + 2 + Math.floor(h(62) * 5); px(tx, ty, '#4f8a38'); px(tx + 1, ty - 1, '#4f8a38'); px(tx + 2, ty, '#4f8a38'); }
-    if (h(70) < 0.12) { const fx = X + 1 + Math.floor(h(71) * 6), fy = Y + 1 + Math.floor(h(72) * 5); const fc = ['#fff4e0', '#ffd84a', '#f28bb8', '#b9a7ff'][Math.floor(h(73) * 4)]; px(fx, fy + 1, '#3f7a2e'); px(fx, fy, fc); px(fx - 1, fy, fc); px(fx + 1, fy, fc); px(fx, fy - 1, fc); px(fx, fy, '#f2c230'); }
+    rect(gp.grass[Math.floor(h(1) * 3)]);
+    for (let n = 0; n < 5; n++) px(X + Math.floor(h(20 + n) * 8), Y + Math.floor(h(30 + n) * 8), gp.dark);
+    for (let n = 0; n < 2; n++) px(X + Math.floor(h(40 + n) * 8), Y + Math.floor(h(50 + n) * 8), gp.light);
+    if (h(60) < 0.35) { const tx = X + 1 + Math.floor(h(61) * 5), ty = Y + 2 + Math.floor(h(62) * 5); px(tx, ty, gp.tuft); px(tx + 1, ty - 1, gp.tuft); px(tx + 2, ty, gp.tuft); }
+    if (h(70) < gp.flowers) {
+      const fx = X + 1 + Math.floor(h(71) * 6), fy = Y + 1 + Math.floor(h(72) * 5), fc = gp.fc[Math.floor(h(73) * gp.fc.length)];
+      if (gp.leaf) { px(fx, fy, fc); px(fx + 1, fy, fc); px(fx, fy + 1, shade(fc, 0.8)); }
+      else { px(fx, fy + 1, '#3f7a2e'); px(fx, fy, fc); px(fx - 1, fy, fc); px(fx + 1, fy, fc); px(fx, fy - 1, fc); px(fx, fy, '#f2c230'); }
+    }
   }
   if (road[k] === 1) {
     px(X + 1, Y + 1, '#8a5a2e'); px(X + 6, Y + 1, '#8a5a2e'); px(X + 1, Y + 6, '#8a5a2e'); px(X + 6, Y + 6, '#8a5a2e');
@@ -402,12 +413,26 @@ function addTree(i, j, grow = 1) {
   if (slot >= TCAP) return null;
   const kind = forestZone[id(i, j)] > 0.62 ? (chance(0.8) ? 'pine' : 'oak') : (chance(0.3) ? 'pine' : 'oak');
   const t = { slot, i, j, kind, x: wx(i) + rr(-0.12, 0.12), z: wz(j) + rr(-0.12, 0.12), rot: rr(0, 6.28), sc: rr(0.85, 1.2), grow, state: grow < 1 ? 'sapling' : 'standing', shake: 0, fall: 0, fdx: 0, fdz: 1, res: 0, marked: false, stumpT: 0 };
-  const green = t.kind === 'pine' ? pick(['#3f8a4a', '#3a7f45', '#458f50', '#2f7a47']) : pick(['#5aa84a', '#6cbb52', '#4f9d45', '#7cc05a', chance(0.08) ? '#eaa0c0' : '#62b04c', chance(0.06) ? '#e39b3c' : '#5aa84a']);
+  t.green = t.kind === 'pine' ? pick(['#3f8a4a', '#3a7f45', '#458f50', '#2f7a47']) : pick(['#5aa84a', '#6cbb52', '#4f9d45', '#7cc05a', '#62b04c', '#5aa84a']);
+  t.tint = rnd();
   TI.trunk.setColorAt(slot, _col.set('#7a4a2a'));
-  for (const k of ['a', 'b', 'c', 'd']) TI[k].setColorAt(slot, _col.set(green).multiplyScalar(k === 'b' || k === 'd' ? 1.12 : 1));
-  for (const k in TI) TI[k].instanceColor.needsUpdate = true;
+  paintTree(t, seasonNow());
   trees[slot] = t; occ[id(i, j)] = O_TREE; occRef[id(i, j)] = t;
   treeMatrix(t); return t;
+}
+const BLOSSOM = ['#eaa0c0', '#f4b8d0', '#ffffff'], AUTUMN = ['#e39b3c', '#d9663a', '#e8c048', '#c94f3a', '#b8803a'];
+function treeTones(t, se) {
+  if (t.kind === 'pine') return se === 3 ? [t.green, '#e9f0f5'] : [t.green, shade(t.green, 1.12)];
+  if (se === 0) return t.tint < 0.3 ? [BLOSSOM[Math.floor(t.tint * 10) % 3], '#f7d3e2'] : [shade(t.green, 1.08), shade(t.green, 1.2)];
+  if (se === 2) { const c = t.tint < 0.15 ? t.green : AUTUMN[Math.floor(t.tint * 23) % AUTUMN.length]; return [c, shade(c, 1.12)]; }
+  if (se === 3) return ['#b9c6cf', '#f1f5f8'];
+  return [t.green, shade(t.green, 1.12)];
+}
+function paintTree(t, se) {
+  const [lo, hi] = treeTones(t, se);
+  TI.a.setColorAt(t.slot, _col.set(lo)); TI.c.setColorAt(t.slot, _col.set(lo));
+  TI.b.setColorAt(t.slot, _col.set(hi)); TI.d.setColorAt(t.slot, _col.set(hi));
+  for (const k in TI) TI[k].instanceColor.needsUpdate = true;
 }
 const _q2 = new THREE.Quaternion(), _q3 = new THREE.Quaternion(), _ax = new V3(), _up = new V3(0, 1, 0);
 function treeMatrix(t) {
@@ -956,7 +981,25 @@ function animMeeple(m, dt) {
   for (let k = m.emotes.length - 1; k >= 0; k--) { const e = m.emotes[k]; e.s.position.y = 0.95 * grown + 0.1; if (!updEmoteSprite(e, dt)) { m.g.remove(e.s); e.s.material.dispose(); m.emotes.splice(k, 1); } }
 }
 
-const DAY = 160; let clock = DAY * 0.3, dayN = 1;
+const DAY = 160, SEASON_DAYS = 3; let clock = DAY * 0.3, dayN = 1;
+const SEASON_NAMES = ['Spring', 'Summer', 'Autumn', 'Winter'];
+const seasonNow = () => Math.floor((dayN - 1) / SEASON_DAYS) % 4;
+const SEASON_LINES = [
+  ['Spring returns. Blossom drifts across Meepleton.', 'The thaw breaks. Spring is here.'],
+  ['Summer settles in, long and golden.', 'Summer arrives. The pond glitters.'],
+  ['Autumn paints the woods amber.', 'The leaves turn. Autumn has come.'],
+  ['Winter arrives. Snow blankets the island.', 'The first snow falls on Meepleton.'],
+];
+let sweepRow = N, treeSweep = [];
+function startSeason(se) {
+  groundSeason = se; sweepRow = 0;
+  treeSweep = trees.filter(t => t && t.state !== 'gone').sort((a, b) => (a.i + a.j) - (b.i + b.j));
+  logEvent(pick(SEASON_LINES[se]));
+}
+function updSeasonSweep() {
+  if (sweepRow < N) { for (let r = 0; r < 2 && sweepRow < N; r++, sweepRow++) for (let i = 0; i < N; i++) drawTile(i, sweepRow); gtex.needsUpdate = true; }
+  if (treeSweep.length) { const se = seasonNow(); for (const t of treeSweep.splice(0, 25)) if (t.state !== 'gone') paintTree(t, se); }
+}
 const dayT = () => (clock % DAY) / DAY;
 function phase() { const t = dayT(); if (t < 0.23 || t >= 0.875) return 'night'; if (t < 0.28) return 'dawn'; if (t < 0.72) return 'work'; return 'evening'; }
 const plannedRoads = new Set(), roadRes = new Int32Array(N * N);
@@ -1379,7 +1422,7 @@ function pickLeisure(m) {
     const o = meeples.find(o => o !== m && o.busy === 'idle' && !o.inside && Math.hypot(o.x - m.x, o.z - m.z) < 9);
     if (o) opts.push([5, () => rChat(m, o)]);
   }
-  if (shoreTiles.length && m.age >= 1) opts.push([1.6, () => rFish(m)]);
+  if (shoreTiles.length && m.age >= 1 && seasonNow() !== 3) opts.push([1.6, () => rFish(m)]);
   if (buildings.some(b => b.type === 'well' && b.done)) opts.push([1.2, () => rWell(m)]);
   if (buildings.some(b => b.type === 'stall' && b.done)) opts.push([1.2, () => rStall(m)]);
   if (m.home && m.home.done) opts.push([1, () => rBreak(m)]);
@@ -1625,7 +1668,7 @@ function updAmbient(dt, now) {
   if (nightF > 0) for (let k = 0; k < FF; k++) { const [x, y, z, p] = ffBase[k], t = now / 1000 + p; ffPos[k * 3] = x + Math.sin(t * 0.7) * 0.6; ffPos[k * 3 + 1] = y + Math.sin(t * 1.3) * 0.2; ffPos[k * 3 + 2] = z + Math.cos(t * 0.5) * 0.6; }
   ffGeo.attributes.position.needsUpdate = true;
   fishT -= dt;
-  if (!fishJump && fishT < 0 && nightF < 0.5) {
+  if (!fishJump && fishT < 0 && nightF < 0.5 && seasonNow() !== 3) {
     fishT = rr(4, 9);
     const deep = waterTiles.filter(([i, j]) => DIRS.every(([dx, dz]) => inb(i + dx, j + dz) && ground[id(i + dx, j + dz)] === G_WATER));
     if (deep.length) { const [i, j] = pick(deep); const a = rr(0, 6.28); fishJump = { x: wx(i), z: wz(j), dx: Math.cos(a), dz: Math.sin(a), t: 0 }; emit(fishJump.x, 0.02, fishJump.z, { n: 8, color: ['#cfeaf8', '#ffffff'], v: 0.5, vy: [1, 1.8], size: 0.04, life: [0.3, 0.6] }); }
@@ -1655,7 +1698,7 @@ function updBuildings(dt, now) {
     }
     if (ph === 'night' && b.T.cap > 0 && b.occupants > 0) { b.zzzT -= dt; if (b.zzzT < 0) { b.zzzT = rr(5, 9); worldEmote(b.cx + rr(-.2, .2), (b.roofTop || 1) + 0.25, b.cz, 'zzz', 2.4, 0.4); } }
     if (b.type === 'field') {
-      if (b.grow < 1) { b.grow = Math.min(1, b.grow + dt / (DAY * 0.8) * (b.tend > 0 ? 2.2 : 1)); b.tend -= dt; }
+      if (b.grow < 1 && seasonNow() !== 3) { b.grow = Math.min(1, b.grow + dt / (DAY * 0.8) * (b.tend > 0 ? 2.2 : 1) * (seasonNow() === 2 ? 1.3 : 1)); b.tend -= dt; }
       if (Math.floor(b.grow * 40) !== b.growQ) { b.growQ = Math.floor(b.grow * 40); updCrops(b); }
     }
   }
@@ -1870,7 +1913,7 @@ function logEvent(html) {
 function updHUD() {
   const t = dayT(), mins = Math.floor(t * 24 * 60), hh = String(Math.floor(mins / 60)).padStart(2, '0'), mm = String(Math.floor(mins % 60 / 10) * 10).padStart(2, '0');
   const ph = { night: 'Night', dawn: 'Dawn', work: 'Workday', evening: 'Evening' }[phase()];
-  clockEl.textContent = `Day ${dayN} · ${hh}:${mm} · ${simSpeed === 0 ? 'Paused' : ph}`;
+  clockEl.textContent = `Day ${dayN} · ${SEASON_NAMES[seasonNow()]} · ${hh}:${mm} · ${simSpeed === 0 ? 'Paused' : ph}`;
   statEls.meeple.textContent = meeples.length;
   statEls.house.textContent = buildings.filter(b => b.done && b.T.cap > 0).length;
   statEls.star.textContent = buildings.filter(b => b.done).length;
@@ -1934,7 +1977,10 @@ addEventListener('keydown', e => {
 });
 function simStep(dt, now) {
   const prevDay = Math.floor(clock / DAY); clock += dt; runTimers();
-  if (Math.floor(clock / DAY) > prevDay) { dayN++; const eat = Math.min(stock.food, Math.ceil(meeples.length / 2)); stock.food -= eat; updPile(); logEvent(pick(['The rooster crows. A new day in Meepleton.', 'Morning mist rolls off the pond.', 'Smoke curls up from the chimneys.', 'Sunrise over the rooftops.'])); }
+  if (Math.floor(clock / DAY) > prevDay) { dayN++; const eat = Math.min(stock.food, Math.ceil(meeples.length / 2)); stock.food -= eat; updPile();
+    if (seasonNow() !== groundSeason) startSeason(seasonNow());
+    else logEvent(pick(['The rooster crows. A new day in Meepleton.', 'Morning mist rolls off the pond.', 'Smoke curls up from the chimneys.', 'Sunrise over the rooftops.']));
+  }
   for (const m of meeples) {
     m.moving = false;
     if (!m.co) m.co = nextRoutine(m);
@@ -1959,7 +2005,7 @@ function frame(now) {
   const dt = raw * SPEED * simSpeed, steps = Math.max(1, Math.ceil(dt / 0.05)), sdt = dt / steps;
   for (let s = 0; s < steps; s++) simStep(sdt, now);
   for (const m of meeples) animMeeple(m, dt);
-  updParticles(dt); updSky(dt); updBuildings(dt, now); updAmbient(dt, now); updCamera(raw); updSelection(raw);
+  updSeasonSweep(); updParticles(dt); updSky(dt); updBuildings(dt, now); updAmbient(dt, now); updCamera(raw); updSelection(raw);
   waterT -= raw; if (waterT <= 0) { waterT = 0.45; waterPhase = (waterPhase + 1) % 8; for (const [i, j] of waterTiles) drawTile(i, j); gtex.needsUpdate = true; }
   hudT -= raw; if (hudT <= 0) { hudT = 0.5; updHUD(); }
   renderer.render(scene, camera);
@@ -1967,7 +2013,7 @@ function frame(now) {
 setupTown(); resize(); updSky(0); setSpeed(1);
 if (window.__MEEPLE_WARMUP) { for (let k = 0; k < window.__MEEPLE_WARMUP * 20; k++) simStep(0.05, performance.now()); }
 requestAnimationFrame(frame);
-if (window.__MEEPLE_FAST) window.__mt = { camera, select, THREE, nextShot: () => { camTimer = 0; }, astar, accessTile, passable, PILE, quarryTiles, rocks, meeples, buildings, stock, plannedRoads, logLines, trees, phase, dayT, get day() { return dayN; } };
+if (window.__MEEPLE_FAST) window.__mt = { season: (n) => { dayN = n * SEASON_DAYS + 1; startSeason(seasonNow()); }, camera, select, THREE, nextShot: () => { camTimer = 0; }, astar, accessTile, passable, PILE, quarryTiles, rocks, meeples, buildings, stock, plannedRoads, logLines, trees, phase, dayT, get day() { return dayN; } };
 })();
 </script>
 

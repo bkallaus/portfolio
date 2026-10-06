@@ -607,7 +607,7 @@ function updPile() {
 }
 
 const lamps = [];
-const lampOn = new THREE.MeshBasicMaterial({ color: 0xffd772 });
+const lampOn = new THREE.MeshBasicMaterial({ color: 0xffd772 }), lampOff = new THREE.MeshBasicMaterial({ color: 0x4a4458 });
 const glowTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 16; const x = c.getContext('2d'); const g = x.createRadialGradient(8, 8, 0, 8, 8, 8); g.addColorStop(0, 'rgba(255,220,120,0.9)'); g.addColorStop(1, 'rgba(255,200,100,0)'); x.fillStyle = g; x.fillRect(0, 0, 16, 16); const t = new THREE.CanvasTexture(c); return t; })();
 const glowMat = new THREE.SpriteMaterial({ map: glowTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0 });
 function addLamp(i, j) {
@@ -617,8 +617,11 @@ function addLamp(i, j) {
   part(g, cylG(0.025, 0.03, 0.7, 5), '#2b2238', 0, 0, 0);
   part(g, boxG(0.12, 0.13, 0.12), lampOn, 0, 0.68, 0);
   part(g, cylG(0.0, 0.1, 0.07, 4), '#2b2238', 0, 0.81, 0).rotation.y = Math.PI / 4;
-  const sp = new THREE.Sprite(glowMat); sp.scale.set(1.3, 1.3, 1); sp.position.y = 0.74; g.add(sp);
-  bakeStatic(g); lamps.push({ i, j, g });
+  const sp = new THREE.Sprite(glowMat.clone()); sp.scale.set(1.3, 1.3, 1); sp.position.y = 0.74; g.add(sp);
+  bakeStatic(g);
+  let bulb = null; g.traverse(o => { if (o.isMesh && o.material === lampOn) bulb = o; });
+  const lamp = { i, j, g, x: g.position.x, z: g.position.z, glow: sp, bulb, lit: nightF > 0.5, glowA: 0, offT: rnd(), res: 0 };
+  lamps.push(lamp);
 }
 function lampNear(i, j, r) { return lamps.some(l => Math.abs(l.i - i) <= r && Math.abs(l.j - j) <= r); }
 
@@ -991,6 +994,7 @@ const TOOLS = {
   hammer(g) { part(g, cylG(0.014, 0.014, 0.24, 4), '#8a5a2e', 0, 0, 0); part(g, boxG(0.05, 0.05, 0.12), '#7d8190', 0, 0.22, 0, 0.012); },
   pick(g) { part(g, cylG(0.014, 0.014, 0.3, 4), '#8a5a2e', 0, 0, 0); const h = part(g, boxG(0.025, 0.025, 0.26), '#7d8190', 0, 0.27, 0, 0.012); },
   hoe(g) { part(g, cylG(0.012, 0.012, 0.42, 4), '#8a5a2e', 0, 0, 0); part(g, boxG(0.08, 0.02, 0.07), '#7d8190', 0, 0.41, 0.04, 0.01); },
+  pole(g) { part(g, cylG(0.01, 0.012, 0.75, 4), '#6b4428', 0, 0, 0); part(g, new THREE.IcosahedronGeometry(0.03, 0), new THREE.MeshBasicMaterial({ color: 0xffd772 }), 0, 0.77, 0); },
   rod(g) { const r = part(g, cylG(0.008, 0.012, 0.62, 4), '#8a5a2e', 0, 0, 0); },
 };
 const CARRY = {
@@ -1484,6 +1488,45 @@ function* rSleep(m) {
   yield* wait(rr(0, 6));
   yield* exitB(m);
   yield* doAct(m, 'stretch', 1.2); emote(m, 'sun', 1.6);
+}
+function* rLamplight(m, route) {
+  m.doing = 'Lighting the lamps'; m.busy = 'work';
+  try {
+    yield* goOut(m); setTool(m, 'pole');
+    for (const l of route) {
+      if (l.lit || phase() === 'night') continue;
+      if (!(yield* walkNear(m, l.i, l.j))) continue;
+      faceTo(m, l.x, l.z); m.toolPiv.rotation.x = -0.6;
+      yield* doAct(m, 'stretch', 0.7);
+      if (!l.lit) { l.lit = true; emit(l.x, 0.75, l.z, { n: 6, color: ['#ffe066', '#fff4b0'], v: 0.5, vy: [0.3, 0.8], size: 0.03, life: [0.3, 0.6], glow: true, grav: 0.5 }); }
+    }
+  } finally { setTool(m, null); for (const l of route) l.res = 0; }
+  yield* rEvening(m);
+}
+let lampDay = 0;
+function lampTick() {
+  const t = dayT();
+  for (const l of lamps) {
+    if (!l.lit && (t > 0.865 || t < 0.2)) l.lit = true;
+    if (l.lit && t > 0.25 + l.offT * 0.05 && t < 0.7) l.lit = false;
+  }
+}
+function assignLamplighters() {
+  if (lampDay === dayN || phase() !== 'evening' || lamps.length < 3) return;
+  lampDay = dayN;
+  const free = meeples.filter(m => m.age >= 1 && !m.inside && m.busy !== 'chat' && m.busy !== 'arrive');
+  const crews = Math.min(3, Math.ceil(lamps.length / 8), free.length);
+  const todo = lamps.filter(l => !l.lit);
+  for (let c = 0; c < crews && todo.length; c++) {
+    const m = free.splice(Math.floor(rnd() * free.length), 1)[0];
+    const route = []; let px = m.x, pz = m.z;
+    while (todo.length && route.length < Math.ceil(lamps.length / crews)) {
+      let bi = 0, bd = 1e9; todo.forEach((l, k) => { const d = Math.hypot(l.x - px, l.z - pz); if (d < bd) { bd = d; bi = k; } });
+      const l = todo.splice(bi, 1)[0]; l.res = m.id; route.push(l); px = l.x; pz = l.z;
+    }
+    if (m.co) m.co.return(); m.act = null; m.co = rLamplight(m, route);
+    if (c === 0) logEvent(`${m.name} shoulders the lamplighter's pole as dusk falls.`);
+  }
 }
 function* rArrive(m, home) {
   m.doing = `Moving in on ${home.street}`;
@@ -2051,8 +2094,11 @@ function updBuildings(dt, now) {
   const fl = 0.85 + Math.sin(now / 90) * 0.1 + Math.sin(now / 37) * 0.06;
   flame1.scale.set(fl, fl * (1 + nightF * 0.2), fl); flame2.scale.set(2 - fl, fl * 1.1, 2 - fl); flame1.rotation.y += dt * 2;
   fireLight.intensity = (nightF * 1.6 + (ph === 'evening' ? 0.5 : 0)) * fl;
-  lampOn.color.copy(cA.set('#4a4458').lerp(cB.set('#ffd772'), nightF));
-  glowMat.opacity = nightF * 0.75;
+  for (const l of lamps) {
+    l.glowA += ((l.lit ? nightF * 0.75 + 0.15 : 0) - l.glowA) * Math.min(1, dt * 4);
+    l.glow.material.opacity = l.glowA;
+    if (l.bulb) l.bulb.material = l.lit ? lampOn : lampOff;
+  }
   if (chance(dt * (2 + nightF * 4))) emit(FIRE.x, 0.3, FIRE.z, { n: 1, color: ['#ffb040', '#ffe066', '#ff7a2a'], v: 0.15, vy: [0.6, 1.2], size: 0.035, life: [0.6, 1.1], grav: -0.2, glow: true, spread: 0.08 });
   if (chance(dt * 1.2)) emit(FIRE.x, 0.45, FIRE.z, { n: 1, color: ['#bdb8c4', '#9a96a2'], v: 0.05, vy: [0.3, 0.45], size: 0.09, life: [1.4, 2], grav: 0, grow: 2, spread: 0.03 });
 }
@@ -2407,7 +2453,7 @@ function simStep(dt, now) {
     stumpT = 2;
     for (let k = stumps.length - 1; k >= 0; k--) { const s = stumps[k]; s.stumpT += 2; const o = occ[id(s.i, s.j)]; if (s.state !== 'stump') { stumps.splice(k, 1); continue; } if (s.stumpT > 80 || o === O_SITE || o === O_BLD) { removeTree(s); stumps.splice(k, 1); } }
   }
-  updTrees(dt); weatherTick(dt); growFields(dt);
+  updTrees(dt); weatherTick(dt); growFields(dt); lampTick(); assignLamplighters();
   for (const r of rocks) if (r.shake > 0) { r.shake -= dt; rockMatrix(r); }
 }
 let last = performance.now();

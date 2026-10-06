@@ -1678,7 +1678,7 @@ function onBuildingDone(b) {
     logEvent(`A new ${b.T.label} stands ${where}.`);
     const n = b.T.cap === 2 ? 1 : 2;
     for (let k = 0; k < n && meeples.length < MAXPOP; k++) after(k * 2.5 + 1.5, () => spawnArrival(b));
-  } else if (b.type === 'field') logEvent(`A wheat field was sown ${where}.`);
+  } else if (b.type === 'field') { logEvent(`A wheat field was sown ${where}.`); spawnChickens(b); }
   else if (b.type === 'tavern') logEvent(`The tavern ${where} opens its doors. Songs tonight!`);
   else if (b.type === 'hall') logEvent(`The town hall rings its bell ${where}. Meepleton is a proper town.`);
   else if (b.type === 'statue') {
@@ -1802,6 +1802,71 @@ function updPrecip(dt) {
   }
   if (snow) { snowGeo.setDrawRange(0, n); snowGeo.attributes.position.needsUpdate = true; }
   else { rainGeo.setDrawRange(0, n * 2); rainGeo.attributes.position.needsUpdate = true; }
+}
+const critters = [];
+function makeCritter(kind, x, z, home) {
+  const g = new THREE.Group(), b = new THREE.Group(); g.add(b); scene.add(g);
+  if (kind === 'duck' || kind === 'duckling') {
+    const s = kind === 'duck' ? 1 : 0.6, body = kind === 'duck' ? '#f4efe6' : '#f2d04a';
+    part(b, boxG(0.2 * s, 0.1 * s, 0.13 * s), body, 0, 0, 0, 0.012);
+    part(b, boxG(0.09 * s, 0.1 * s, 0.09 * s), kind === 'duck' && chance(0.5) ? '#2f8f5a' : body, 0.09 * s, 0.08 * s, 0, 0.012);
+    part(b, boxG(0.06 * s, 0.025 * s, 0.05 * s), '#f08a2b', 0.16 * s, 0.11 * s, 0);
+    part(b, boxG(0.06 * s, 0.05 * s, 0.1 * s), shade(body, 0.85), -0.1 * s, 0.07 * s, 0);
+  } else {
+    part(b, boxG(0.14, 0.12, 0.1), chance(0.7) ? '#f6f1e6' : '#c98a4a', 0, 0.06, 0, 0.012);
+    part(b, boxG(0.07, 0.08, 0.07), '#f6f1e6', 0.07, 0.15, 0, 0.012);
+    part(b, boxG(0.03, 0.04, 0.02), '#e0443e', 0.08, 0.23, 0);
+    part(b, boxG(0.035, 0.02, 0.03), '#f2a23a', 0.12, 0.16, 0);
+    part(b, boxG(0.03, 0.06, 0.06), '#e8e2d6', -0.08, 0.12, 0);
+    for (const sz of [-0.03, 0.03]) part(b, boxG(0.015, 0.06, 0.015), '#f2a23a', 0, 0, sz);
+  }
+  b.traverse(o => o.castShadow = false);
+  const c = { kind, g, b, x, z, tx: x, tz: z, t: rr(0, 3), face: rr(0, 6.28), home, peck: 0 };
+  g.position.set(x, 0, z); critters.push(c); return c;
+}
+const isDeep = (x, z) => { const i = tI(x), j = tJ(z); return inb(i, j) && ground[id(i, j)] === G_WATER && !bridge[id(i, j)] && DIRS.every(([dx, dz]) => inb(i + dx, j + dz) && ground[id(i + dx, j + dz)] === G_WATER); };
+const isWet = (x, z) => { const i = tI(x), j = tJ(z); return inb(i, j) && ground[id(i, j)] === G_WATER && !bridge[id(i, j)]; };
+function spawnDucks() {
+  const deep = waterTiles.filter(([i, j]) => isDeep(wx(i), wz(j))); if (deep.length < 4) return;
+  const [i, j] = pick(deep), lead = makeCritter('duck', wx(i), wz(j), null);
+  let prev = lead;
+  for (let k = 0, n = ri(2, 4); k < n; k++) { const d = makeCritter(k === 0 ? 'duck' : 'duckling', lead.x, lead.z, null); d.follow = prev; prev = d; }
+}
+function spawnChickens(f) {
+  if (critters.filter(c => c.kind === 'hen').length >= 16) return;
+  for (let k = 0; k < 2; k++) makeCritter('hen', f.cx + rr(-1, 1), f.cz + rr(-1, 1), f);
+}
+function updCritters(dt, now) {
+  const winter = seasonNow() === 3, night = phase() === 'night';
+  for (const c of critters) {
+    const duck = c.kind !== 'hen';
+    c.g.visible = duck ? !winter : !c.home.scrapped;
+    if (!c.g.visible || dt === 0) continue;
+    let moving = false;
+    if (c.follow) {
+      const f = c.follow, dx = f.x - c.x, dz = f.z - c.z, d = Math.hypot(dx, dz);
+      if (d > 0.26) { const sp = Math.min(d - 0.26, dt * 0.6); c.x += dx / d * sp; c.z += dz / d * sp; c.face = Math.atan2(dx, dz); moving = true; }
+    } else {
+      const dx = c.tx - c.x, dz = c.tz - c.z, d = Math.hypot(dx, dz), sp = dt * (duck ? 0.32 : 0.45);
+      if (d > 0.05 && !(night && !duck)) {
+        const nx = c.x + dx / d * Math.min(sp, d), nz = c.z + dz / d * Math.min(sp, d);
+        if (duck ? isWet(nx, nz) : passable(tI(nx), tJ(nz))) { c.x = nx; c.z = nz; moving = true; } else c.t = 0;
+        c.face = Math.atan2(dx, dz);
+      }
+      c.t -= dt;
+      if (c.t <= 0) {
+        c.t = rr(2, 6);
+        if (duck) { for (let k = 0; k < 8; k++) { const x = c.x + rr(-2.5, 2.5), z = c.z + rr(-2.5, 2.5); if (isDeep(x, z)) { c.tx = x; c.tz = z; break; } } }
+        else { c.tx = c.home.cx + rr(-1.6, 1.6); c.tz = c.home.cz + rr(-1.6, 1.6); if (chance(0.4)) c.peck = 1.2; }
+      }
+    }
+    c.peck = Math.max(0, c.peck - dt);
+    let da = c.face - Math.PI / 2 - c.g.rotation.y; da = Math.atan2(Math.sin(da), Math.cos(da)); c.g.rotation.y += da * Math.min(1, dt * 6);
+    c.g.position.set(c.x, duck ? 0.01 + Math.sin(now / 400 + c.x * 3) * 0.012 : 0, c.z);
+    c.b.rotation.z = !duck && c.peck > 0 ? -0.6 * Math.abs(Math.sin(c.peck * 9)) : 0;
+    c.b.position.y = !duck && moving ? Math.abs(Math.sin(now / 70 + c.x * 5)) * 0.03 : 0;
+    c.b.scale.y = !duck && night ? 0.8 : 1;
+  }
 }
 const clouds = [];
 const cloudMat = new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false });
@@ -2115,7 +2180,7 @@ function setupTown() {
     const m = makeMeeple({ x: FIRE.x + Math.cos(ang) * 1.4, z: FIRE.z + Math.sin(ang) * 1.4, role: r, home, color: C.meeple[k] });
     home.residents.push(m);
   });
-  updPile(); computeReach();
+  updPile(); computeReach(); spawnDucks();
   logEvent('Four meeples lit a fire and founded <b>Meepleton</b>.');
 }
 
@@ -2172,7 +2237,7 @@ function frame(now) {
   const dt = raw * SPEED * simSpeed, steps = Math.max(1, Math.ceil(dt / 0.05)), sdt = dt / steps;
   for (let s = 0; s < steps; s++) simStep(sdt, now);
   for (const m of meeples) animMeeple(m, dt);
-  updSeasonSweep(); updPrecip(dt); updParticles(dt); updSky(dt); updBuildings(dt, now); updAmbient(dt, now); updCamera(raw); updSelection(raw);
+  updSeasonSweep(); updPrecip(dt); updCritters(dt, now); updParticles(dt); updSky(dt); updBuildings(dt, now); updAmbient(dt, now); updCamera(raw); updSelection(raw);
   waterT -= raw; if (waterT <= 0) { waterT = 0.45; waterPhase = (waterPhase + 1) % 8; for (const [i, j] of waterTiles) drawTile(i, j); gtex.needsUpdate = true; }
   hudT -= raw; if (hudT <= 0) { hudT = 0.5; updHUD(); }
   renderer.render(scene, camera);
@@ -2180,7 +2245,7 @@ function frame(now) {
 setupTown(); resize(); updSky(0); setSpeed(1);
 if (window.__MEEPLE_WARMUP) { for (let k = 0; k < window.__MEEPLE_WARMUP * 20; k++) simStep(0.05, performance.now()); }
 requestAnimationFrame(frame);
-if (window.__MEEPLE_FAST) window.__mt = { step: (sec) => { for (let k = 0; k < sec * 20; k++) simStep(0.05, performance.now()); }, planBridge, bridge, road, reach, computeReach, weather: (w) => { wx_.want = w; wx_.t = 999; }, wx: wx_, season: (n) => { dayN = n * SEASON_DAYS + 1; startSeason(seasonNow()); }, camera, select, THREE, nextShot: () => { camTimer = 0; }, astar, accessTile, passable, PILE, quarryTiles, rocks, meeples, buildings, stock, plannedRoads, logLines, trees, phase, dayT, get day() { return dayN; } };
+if (window.__MEEPLE_FAST) window.__mt = { critters, ground, step: (sec) => { for (let k = 0; k < sec * 20; k++) simStep(0.05, performance.now()); }, planBridge, bridge, road, reach, computeReach, weather: (w) => { wx_.want = w; wx_.t = 999; }, wx: wx_, season: (n) => { dayN = n * SEASON_DAYS + 1; startSeason(seasonNow()); }, camera, select, THREE, nextShot: () => { camTimer = 0; }, astar, accessTile, passable, PILE, quarryTiles, rocks, meeples, buildings, stock, plannedRoads, logLines, trees, phase, dayT, get day() { return dayN; } };
 })();
 </script>
 

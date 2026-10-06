@@ -8,7 +8,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Silkscreen&display=swap">
 <style>
-/* Layout: one full-bleed pixelated diorama; two painted signboards pinned to the left corners */
 :root{
   --night:#141a36; --ink:#1b1426; --board:#f4e6c4; --board-edge:#c9a46c; --accent:#c8443f; --muted:#6d5a48;
   --f-display:"Pixelify Sans","Silkscreen",ui-monospace,monospace;
@@ -45,7 +44,6 @@ body{margin:0;overflow:hidden;background:var(--night);color:var(--ink);font-fami
 <script>
 (function(){
 "use strict";
-// ================= core =================
 const N = 40, HALF = N / 2, TPX = 8;
 const SPEED = window.__MEEPLE_FAST || 1;
 let _s = (Math.random() * 4294967296) >>> 0;
@@ -77,7 +75,6 @@ function makeNoise(scale) {
   };
 }
 
-// ================= terrain =================
 let lakeC = null, quarryC = null;
 const quarryTiles = [];
 function genTerrain() {
@@ -89,7 +86,6 @@ function genTerrain() {
     const d = Math.hypot(i - lakeC[0], j - lakeC[1]) + (n2(i, j) - 0.5) * 3;
     if (d < lr) ground[id(i, j)] = G_WATER; else if (d < lr + 1.3) ground[id(i, j)] = G_SAND;
   }
-  // stream from lake to the nearest edge
   let ci = lakeC[0], cj = lakeC[1];
   const vx = lakeC[0] < HALF ? -1 : 1;
   while (inb(ci, cj)) {
@@ -98,7 +94,6 @@ function genTerrain() {
     if (chance(0.35)) { const nj = cj + (chance(0.5) ? 1 : -1); if (inb(ci, nj)) { ground[id(ci, nj)] = G_WATER; cj = nj; } }
     ci += vx;
   }
-  // quarry on the opposite corner
   const q2 = 3 - q;
   quarryC = [(q2 & 1 ? N - 5 : 3), (q2 & 2 ? N - 5 : 3)];
   for (let dj = 0; dj < 3; dj++) for (let di = 0; di < 3; di++) {
@@ -111,7 +106,6 @@ function genTerrain() {
   }
 }
 
-// ================= palette / materials =================
 const C = {
   ink: 0x1b1426, trunk: '#7a4a2a', timber: '#6b4428', door: '#7a4a2a', stone: '#a4a1ab', stoneD: '#86838e', gold: '#f2c230',
   walls: ['#f3e3c3', '#ead3ae', '#dfe8ef', '#f1d8cf', '#e7e1ba', '#d9e6cf'],
@@ -137,7 +131,6 @@ function outline(m, t = 0.03) {
   const s = new V3(); g.boundingBox.getSize(s);
   const o = new THREE.Mesh(g, outlineMat);
   o.scale.set(1 + 2 * t / Math.max(s.x, .01), 1 + 2 * t / Math.max(s.y, .01), 1 + 2 * t / Math.max(s.z, .01));
-  // keep the hull centred on the geometry's own bbox centre
   const c = new V3(); g.boundingBox.getCenter(c);
   o.position.set(-c.x * (o.scale.x - 1), -c.y * (o.scale.y - 1), -c.z * (o.scale.z - 1));
   m.add(o); return o;
@@ -150,7 +143,6 @@ function part(parent, geo, color, x = 0, y = 0, z = 0, ol = false) {
 }
 function shade(hex, f) { const c = new THREE.Color(hex); c.multiplyScalar(f); return '#' + c.getHexString(); }
 
-// ================= pixel icons =================
 const PAL = { R: '#e34b4b', K: '#1b1426', B: '#3f7fd9', W: '#8a5a2e', G: '#7d8190', g: '#c3c6cf', Y: '#f2c230', O: '#b7862a', T: '#37b3a3', C: '#f6ecd2', P: '#6b5bd6', w: '#ffffff', L: '#5bb04a' };
 const ICONS = {
   heart: ['.RR..RR.', 'RRRRRRRR', 'RRRRRRRR', 'RRRRRRRR', '.RRRRRR.', '..RRRR..', '...RR...', '........'],
@@ -195,7 +187,6 @@ function iconCanvas(name, scale = 2) {
   const c = document.createElement('canvas'); c.width = 8; c.height = 8; drawIcon(c.getContext('2d'), name, 0, 0); return c;
 }
 
-// ================= ground texture =================
 const gcv = document.createElement('canvas'); gcv.width = gcv.height = N * TPX;
 const gx = gcv.getContext('2d');
 const gtex = new THREE.CanvasTexture(gcv); gtex.magFilter = THREE.NearestFilter; gtex.minFilter = THREE.NearestFilter; gtex.generateMipmaps = false;
@@ -206,7 +197,7 @@ function drawTile(i, j) {
   const X = i * TPX, Y = j * TPX, k = id(i, j), g = ground[k], h = (n) => hash(i, j, n);
   const rect = (c) => { gx.fillStyle = c; gx.fillRect(X, Y, TPX, TPX); };
   if (road[k] >= 2) {
-    if (road[k] === 3) { // plaza flagstones
+    if (road[k] === 3) {
       rect('#a79886');
       for (let a = 0; a < 2; a++) for (let b = 0; b < 2; b++) {
         gx.fillStyle = ['#cbbba3', '#c2b299', '#d4c6b0'][Math.floor(h(a * 2 + b) * 3)];
@@ -264,7 +255,7 @@ function drawTile(i, j) {
     if (h(60) < 0.35) { const tx = X + 1 + Math.floor(h(61) * 5), ty = Y + 2 + Math.floor(h(62) * 5); px(tx, ty, '#4f8a38'); px(tx + 1, ty - 1, '#4f8a38'); px(tx + 2, ty, '#4f8a38'); }
     if (h(70) < 0.12) { const fx = X + 1 + Math.floor(h(71) * 6), fy = Y + 1 + Math.floor(h(72) * 5); const fc = ['#fff4e0', '#ffd84a', '#f28bb8', '#b9a7ff'][Math.floor(h(73) * 4)]; px(fx, fy + 1, '#3f7a2e'); px(fx, fy, fc); px(fx - 1, fy, fc); px(fx + 1, fy, fc); px(fx, fy - 1, fc); px(fx, fy, '#f2c230'); }
   }
-  if (road[k] === 1) { // planned road: survey stakes + chalk line
+  if (road[k] === 1) {
     px(X + 1, Y + 1, '#8a5a2e'); px(X + 6, Y + 1, '#8a5a2e'); px(X + 1, Y + 6, '#8a5a2e'); px(X + 6, Y + 6, '#8a5a2e');
     px(X + 3, Y + 3, '#efe3c0'); px(X + 4, Y + 4, '#efe3c0');
   }
@@ -273,7 +264,6 @@ function redrawAll() { for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) d
 function redrawAround(i, j) { for (let b = j - 1; b <= j + 1; b++) for (let a = i - 1; a <= i + 1; a++) if (inb(a, b)) drawTile(a, b); gtex.needsUpdate = true; }
 const waterTiles = [];
 
-// side strata texture for the diorama base
 function sideTexture() {
   const c = document.createElement('canvas'); c.width = N * TPX; c.height = 3 * TPX; const x = c.getContext('2d');
   for (let y = 0; y < c.height; y++) for (let X = 0; X < c.width; X++) {
@@ -291,7 +281,6 @@ function sideTexture() {
   const t = new THREE.CanvasTexture(c); t.magFilter = t.minFilter = THREE.NearestFilter; t.generateMipmaps = false; return t;
 }
 
-// ================= particles =================
 const PMAX = 700;
 const pMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: 0xffffff }), PMAX);
 pMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage); pMesh.frustumCulled = false;
@@ -330,7 +319,6 @@ function updParticles(dt) {
   pMesh.instanceMatrix.needsUpdate = true;
 }
 
-// ================= scene =================
 const canvasEl = document.getElementById('view');
 const renderer = new THREE.WebGLRenderer({ canvas: canvasEl, antialias: false, alpha: true, preserveDrawingBuffer: false });
 renderer.setClearColor(0x000000, 0); renderer.setPixelRatio(1);
@@ -355,7 +343,6 @@ groundMesh.rotation.x = -Math.PI / 2; groundMesh.receiveShadow = true; scene.add
   base.position.y = -1.502; base.receiveShadow = true; scene.add(base);
 }
 
-// ================= trees (instanced) =================
 const TCAP = 1300;
 function inst(geo, cap) {
   const m = new THREE.InstancedMesh(geo, new THREE.MeshToonMaterial({ color: 0xffffff, gradientMap: gradMap }), cap);
@@ -430,7 +417,6 @@ function updTrees(dt) {
   }
 }
 
-// ================= rocks & quarry =================
 const rockMesh = inst(new THREE.DodecahedronGeometry(0.3, 0), 80);
 const rocks = [];
 function addRock(i, j) {
@@ -455,13 +441,11 @@ function buildQuarry() {
     }
     if (chance(0.5)) part(g, boxG(0.12, 0.08, 0.1), '#6d6a76', wx(i) + rr(-.4, .4), 0, wz(j) + 0.5);
   }
-  // a pickaxe leaning in the rock and a crate of cut stone
   const sgn = [Math.sign(HALF - quarryC[0]), Math.sign(HALF - quarryC[1])];
   const cx = wx(quarryC[0]) + sgn[0] * 1.55, cz = wz(quarryC[1]) + sgn[1] * 1.55;
   if (inb(tI(cx), tJ(cz)) && occ[id(tI(cx), tJ(cz))] === O_NONE) { part(g, boxG(0.34, 0.18, 0.26), '#8a5a2e', cx, 0, cz, 0.02); for (let k = 0; k < 3; k++) part(g, boxG(0.1, 0.08, 0.1), '#b3b0b8', cx - 0.1 + k * 0.1, 0.18, cz); }
 }
 
-// ================= campfire, stockpile, lamps =================
 const FIRE = { i: HALF, j: HALF, x: wx(HALF), z: wz(HALF) };
 const fireG = new THREE.Group(); fireG.position.set(FIRE.x, 0, FIRE.z); scene.add(fireG);
 for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2; part(fireG, boxG(0.1, 0.08, 0.1), k % 2 ? '#8f8c98' : '#a9a6ae', Math.cos(a) * 0.26, 0, Math.sin(a) * 0.26); }
@@ -504,7 +488,6 @@ function addLamp(i, j) {
 }
 function lampNear(i, j, r) { return lamps.some(l => Math.abs(l.i - i) <= r && Math.abs(l.j - j) <= r); }
 
-// ================= buildings =================
 const BT = {
   cottage: { size: 1, cost: { wood: 3, stone: 1 }, work: 10, cap: 2, label: 'cottage' },
   house: { size: 2, cost: { wood: 6, stone: 3 }, work: 18, cap: 4, label: 'townhouse' },
@@ -558,7 +541,7 @@ const BUILD = {
     b.R.position.y = 0.9;
     const r = part(b.R, roofG(1.56, 0.6, 1.8), roof, 0, 0, 0, 1); r.rotation.y = Math.PI / 2;
     const rr2 = part(b.R, boxG(1.84, 0.06, 0.08), shade(roof, 0.7), 0, 0.56, 0);
-    part(b.R, roofG(0.5, 0.3, 0.4), roof, 0.35, 0.05, 0.62, 1); // dormer roof
+    part(b.R, roofG(0.5, 0.3, 0.4), roof, 0.35, 0.05, 0.62, 1);
     addDoor(b, 0.26, 0.38, 0.66, true);
     part(b.D, boxG(0.46, 0.04, 0.2), roof, 0, 0.44, 0.75);
     for (const x of [-0.5, 0.5]) winBox(b, 0.18, 0.16, x, 0.26, 0.66);
@@ -589,7 +572,6 @@ const BUILD = {
     }
     part(b.D, boxG(1.92, 0.03, 0.03), C.timber, 0, 0.15, -0.95);
     part(b.D, boxG(0.03, 0.03, 1.92), C.timber, -0.95, 0.15, 0); part(b.D, boxG(0.03, 0.03, 1.92), C.timber, 0.95, 0.15, 0);
-    // scarecrow
     const s = new THREE.Group(); s.position.set(0.6, 0, -0.55); s.rotation.y = rr(-0.5, 0.5); b.D.add(s);
     part(s, boxG(0.04, 0.55, 0.04), C.timber, 0, 0, 0); part(s, boxG(0.4, 0.04, 0.04), C.timber, 0, 0.36, 0);
     part(s, boxG(0.16, 0.2, 0.08), pick(['#3b78d8', '#e0443e', '#8b5cc7']), 0, 0.26, 0, 1);
@@ -640,7 +622,6 @@ const BUILD = {
     for (const x of [-0.55, -0.28, 0.28, 0.55]) winBox(b, 0.16, 0.16, x, 0.42, 0.71);
     for (const z of [-0.35, 0.35]) { winBox(b, 0.18, 0.16, 0.83, 0.42, z, true); winBox(b, 0.18, 0.16, -0.83, 0.42, z, true); }
     part(b.D, boxG(0.18, 0.5, 0.18), C.stone, 0.55, 0.9, -0.3, 1); b.chimney = new V3(0.55, 1.45, -0.3);
-    // hanging sign with a mug
     part(b.D, boxG(0.04, 0.04, 0.3), C.timber, 0.35, 0.72, 0.84);
     const sg = new THREE.Sprite(new THREE.SpriteMaterial({ map: emoteTexture('mug') })); sg.scale.set(0.3, 0.3, 1); sg.position.set(0.35, 0.55, 0.98); b.D.add(sg);
     for (const x of [-0.72, -0.56]) { part(b.D, cylG(0.08, 0.08, 0.2, 8), '#8a5a2e', x, 0, 0.86, 1); part(b.D, cylG(0.083, 0.083, 0.02, 8), '#4a4458', x, 0.1, 0.86); }
@@ -690,7 +671,6 @@ function createBuilding(type, i0, j0, o, entry, street, instant) {
   b.cropMat = new THREE.MeshToonMaterial({ color: '#6cbf4a', gradientMap: gradMap });
   BUILD[type](b);
   b.D.traverse(o => { if (o.isMesh && o.geometry.boundingSphere === null) o.geometry.computeBoundingSphere(); if (o.isMesh && o.geometry.boundingSphere.radius < 0.12) o.castShadow = false; });
-  // door world position
   const dz = (b.doorZ ?? (s * 0.5 - 0.05)) + 0.06, [dx0, dz0] = DIRS[o];
   b.doorWorld = { x: b.cx + dx0 * dz, z: b.cz + dz0 * dz };
   b.trees = [];
@@ -702,7 +682,6 @@ function createBuilding(type, i0, j0, o, entry, street, instant) {
   }
   redrawAround(i0, j0); if (s > 1) redrawAround(i0 + 1, j0 + 1);
   if (!instant) {
-    // survey stakes, rope, flag, scaffolding
     b.site = new THREE.Group(); b.g.add(b.site);
     const e = s * 0.5 - 0.06;
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) part(b.site, boxG(0.04, 0.22, 0.04), '#c9a26a', sx * e, 0, sz * e);
@@ -711,11 +690,9 @@ function createBuilding(type, i0, j0, o, entry, street, instant) {
     const sh = (b.wallH || 0.5) + 0.15, se = s * 0.5 - 0.02;
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) part(b.scaf, boxG(0.035, sh, 0.035), '#c9a26a', sx * se, 0, sz * se);
     for (let y = 0.25; y < sh; y += 0.3) { part(b.scaf, boxG(se * 2, 0.025, 0.08), '#b58a55', 0, y, se); part(b.scaf, boxG(0.08, 0.025, se * 2), '#b58a55', se, y, 0); }
-    // material piles on site
     b.mLogs = []; b.mStones = [];
     for (let k = 0; k < T.cost.wood; k++) { const l = part(b.site, cylG(0.04, 0.04, 0.32, 6), '#8a5a2e', -e + 0.12, 0.05 + Math.floor(k / 3) * 0.08, -e + 0.12 + (k % 3) * 0.09); l.rotation.z = Math.PI / 2; l.position.x = -e + 0.28; l.visible = false; b.mLogs.push(l); }
     for (let k = 0; k < T.cost.stone; k++) { const r = part(b.site, new THREE.DodecahedronGeometry(0.06, 0), '#a4a1ab', e - 0.15 - (k % 3) * 0.1, 0.05 + Math.floor(k / 3) * 0.08, -e + 0.14); r.visible = false; b.mStones.push(r); }
-    // floating sign + progress bar
     b.icon = new THREE.Sprite(new THREE.SpriteMaterial({ map: emoteTexture('hammer'), depthTest: false })); b.icon.renderOrder = 8;
     b.icon.scale.set(0.42, 0.42, 1); b.icon.position.set(b.cx, (b.roofTop || 1) + 0.55, b.cz); scene.add(b.icon);
     b.barBg = new THREE.Sprite(new THREE.SpriteMaterial({ color: 0x1b1426, depthTest: false })); b.barBg.renderOrder = 8;
@@ -749,12 +726,10 @@ function finishBuilding(b) {
   for (const o of [b.icon, b.barBg, b.barFg]) if (o) { scene.remove(o); o.material.dispose(); }
   for (let a = 0; a < b.size; a++) for (let c = 0; c < b.size; c++) occ[id(b.i0 + a, b.j0 + c)] = O_BLD;
   setStage(b);
-  // celebratory confetti
   emit(b.cx, (b.roofTop || 1) + 0.2, b.cz, { n: 40, color: ['#e34b4b', '#f2c230', '#3f7fd9', '#49a84f', '#ffffff', '#ef7fb0'], v: 1.6, vy: [2, 3.5], size: 0.06, life: [1, 1.6], grav: 4, glow: true, drag: 1.2 });
   onBuildingDone(b);
 }
 
-// ================= pathfinding =================
 function passable(i, j) {
   if (!inb(i, j)) return false; const k = id(i, j);
   if (ground[k] === G_WATER) return false;
@@ -766,7 +741,7 @@ const gS = new Float32Array(N * N), came = new Int32Array(N * N), stampA = new U
 function astar(si, sj, ti, tj) {
   if (!passable(ti, tj)) return null;
   stamp++; const start = id(si, sj), goal = id(ti, tj);
-  const heap = [], hf = []; // binary heap of node ids by f
+  const heap = [], hf = [];
   const push = (n, f) => { heap.push(n); hf.push(f); let c = heap.length - 1; while (c > 0) { const p = (c - 1) >> 1; if (hf[p] <= hf[c]) break; [heap[p], heap[c]] = [heap[c], heap[p]]; [hf[p], hf[c]] = [hf[c], hf[p]]; c = p; } };
   const pop = () => { const top = heap[0], ln = heap.pop(), lf = hf.pop(); if (heap.length) { heap[0] = ln; hf[0] = lf; let c = 0; for (;;) { const l = c * 2 + 1, r = l + 1; let m = c; if (l < heap.length && hf[l] < hf[m]) m = l; if (r < heap.length && hf[r] < hf[m]) m = r; if (m === c) break; [heap[m], heap[c]] = [heap[c], heap[m]]; [hf[m], hf[c]] = [hf[c], hf[m]]; c = m; } } return top; };
   const H = (i, j) => { const dx = Math.abs(i - ti), dz = Math.abs(j - tj); return 0.6 * (dx + dz) - 0.35 * Math.min(dx, dz); };
@@ -814,7 +789,6 @@ function nearestReached(i, j) {
   for (let r = 1; r < 6; r++) for (let a = -r; a <= r; a++) for (let c = -r; c <= r; c++) if (inb(i + a, j + c) && reach[id(i + a, j + c)] && passable(i + a, j + c)) return [i + a, j + c];
   return null;
 }
-// nearest passable neighbour of (i,j) as seen from meeple m
 function accessTile(i, j, m, size = 1) {
   let best = null, bd = 1e9;
   for (let a = -1; a <= size; a++) for (let c = -1; c <= size; c++) {
@@ -826,7 +800,6 @@ function accessTile(i, j, m, size = 1) {
   return best;
 }
 
-// ================= meeples =================
 const meepleGeo = (() => {
   const s = new THREE.Shape();
   s.moveTo(-0.2, 0); s.lineTo(-0.06, 0); s.quadraticCurveTo(0, 0.11, 0.06, 0); s.lineTo(0.2, 0);
@@ -895,7 +868,6 @@ function setCarry(m, c) {
   if (c) { const g = new THREE.Group(); CARRY[c](g); if (c === 'log' || c === 'wheat' || c === 'bindle') g.position.x = c === 'bindle' ? -0.15 : -0.19; m.carryG.add(g); }
 }
 function placeMeeple(m) { m.g.position.set(m.x, 0, m.z); }
-// ---- emotes ----
 function emote(m, name, dur = 1.8) {
   if (m.inside) return worldEmote(m.inside.cx, (m.inside.roofTop || 1) + 0.3, m.inside.cz, name, dur);
   for (const e of m.emotes) { m.g.remove(e.s); e.s.material.dispose(); } m.emotes.length = 0;
@@ -914,11 +886,9 @@ function updEmoteSprite(e, dt, sz = 0.42) {
   const k = t < 0.18 ? (t / 0.18) * 1.25 : t < 0.28 ? 1.25 - (t - 0.18) / 0.1 * 0.25 : t > d - 0.2 ? Math.max(0, (d - t) / 0.2) : 1;
   e.s.scale.set(sz * k, sz * k, 1); return t < d;
 }
-// ---- per-frame animation ----
 const BEAT = { chop: 0.55, hammer: 0.4, mine: 0.6, hoe: 0.7, pave: 0.35, dance: 0.5, crank: 0.5, plant: 0.6 };
 function animMeeple(m, dt) {
   const grown = 0.58 + 0.42 * m.age;
-  // facing (shortest angle)
   let da = m.face - m.g.rotation.y; da = Math.atan2(Math.sin(da), Math.cos(da)); m.g.rotation.y += da * Math.min(1, dt * 10);
   m.g.position.set(m.x, 0, m.z);
   const b = m.b; let y = 0, rz = 0, rx = 0, sy = 1;
@@ -939,20 +909,16 @@ function animMeeple(m, dt) {
     else if (m.act === 'sit') { y = -0.08; sy = 0.82; }
     else if (m.act === 'stretch') { sy = 1 + Math.sin(m.actT * 4) * 0.08; }
   } else {
-    // idle breathing + little look-around
     sy = 1 + Math.sin(performance.now() / 600 + m.id) * 0.02;
   }
   if (m.hop > 0) { m.hop = Math.max(0, m.hop - dt); if (m.act !== 'chat') y += Math.sin(m.hop / 0.3 * Math.PI) * 0.12; }
   b.position.y = y; b.rotation.set(rx, 0, rz); b.scale.set(grown * (2 - sy) ** 0.5, grown * sy, grown);
   if (!m.act || m.act === 'chat' || m.act === 'dance') { m.toolPiv.rotation.x *= 0.8; }
-  // blink
   m.blinkT -= dt; const bl = m.blinkT < 0.12 ? 0.15 : 1; if (m.blinkT < 0) m.blinkT = rr(2, 5);
   m.eyes[0].scale.y = m.eyes[1].scale.y = bl;
-  // emotes
   for (let k = m.emotes.length - 1; k >= 0; k--) { const e = m.emotes[k]; e.s.position.y = 0.95 * grown + 0.1; if (!updEmoteSprite(e, dt)) { m.g.remove(e.s); e.s.material.dispose(); m.emotes.splice(k, 1); } }
 }
 
-// ================= time =================
 const DAY = 160; let clock = DAY * 0.3, dayN = 1;
 const dayT = () => (clock % DAY) / DAY;
 function phase() { const t = dayT(); if (t < 0.23 || t >= 0.875) return 'night'; if (t < 0.28) return 'dawn'; if (t < 0.72) return 'work'; return 'evening'; }
@@ -961,7 +927,6 @@ const inflight = { wood: 0, stone: 0 };
 const stumps = [];
 let shoreTiles = [];
 
-// ================= behaviour primitives (generators receive dt) =================
 function* wait(t) { while (t > 0) t -= yield; }
 function faceTo(m, x, z) { m.face = Math.atan2(x - m.x, z - m.z); }
 function* moveTo(m, x, z, mul = 1) {
@@ -1019,7 +984,6 @@ function* deliver(m, res, n) {
   emit(PILE.x, 0.25, PILE.z, { n: 5, color: '#d9c49a', v: 0.6, vy: [0.5, 1], size: 0.04, life: [0.3, 0.6] });
 }
 
-// ================= work routines =================
 function* rChop(m, t) {
   inflight.wood++;
   try {
@@ -1161,7 +1125,6 @@ function* rPlant(m) {
   } finally { if (m.carry === 'sapling') setCarry(m, null); }
 }
 
-// ================= leisure & daily rhythm =================
 function* rWander(m) {
   yield* goOut(m); m.busy = 'idle';
   const ci = tI(m.x), cj = tJ(m.z); let tgt = null;
@@ -1304,7 +1267,6 @@ function* rArrive(m, home) {
   setCarry(m, null);
 }
 
-// ================= job board =================
 function nearestTree(m) {
   let best = null, bd = 1e9;
   for (const t of trees) { if (!t || t.state !== 'standing' || t.res || t.failUntil > clock || !nearReach(t.i, t.j)) continue; const d = Math.hypot(t.x - m.x, t.z - m.z) - (t.marked ? 6 : 0) + (Math.hypot(t.x, t.z) < 6 ? 8 : 0); if (d < bd) { bd = d; best = t; } }
@@ -1380,7 +1342,6 @@ function nextRoutine(m) {
   return seq(m, j || pickLeisure(m));
 }
 
-// ================= town planner =================
 const MAXPOP = 64;
 const STREETS = ['Elm Row', 'Birch Lane', 'Mill Road', 'Pebble Way', 'Lantern Street', 'Clover Lane', 'Brook Road', 'Hollow Way', 'Juniper Row', 'Maple Street', 'Tinker Lane', 'Fern Walk', 'Acorn Way', 'Thistle Road', 'Willow Bend', 'Cobble Row', 'Bramble Close', 'Honey Lane', 'Kettle Street', 'Pumpkin Row', 'Moss Walk', 'Owl Lane', 'Saffron Way', 'Pine Court', 'Button Lane', 'Wren Street'];
 for (let k = STREETS.length - 1; k > 0; k--) { const r = Math.floor(rnd() * (k + 1)); [STREETS[k], STREETS[r]] = [STREETS[r], STREETS[k]]; }
@@ -1548,7 +1509,6 @@ function updCrops(f) {
   f.cropMat.color.set('#6cbf4a').lerp(_col.set('#e8c55a'), clamp((g - 0.55) / 0.4, 0, 1));
 }
 
-// ================= sky, light & ambient life =================
 const SKY = [
   [0.00, '#0d1030', '#26305e', '#8fa8ff', 0.3, '#3a4a8a', '#1a1f33', 0.34],
   [0.22, '#0d1030', '#26305e', '#8fa8ff', 0.3, '#3a4a8a', '#1a1f33', 0.34],
@@ -1579,7 +1539,6 @@ function drawStars() {
   const x = starsEl.getContext('2d'); x.clearRect(0, 0, starsEl.width, starsEl.height);
   for (let k = 0; k < starsEl.width * starsEl.height / 180; k++) { x.fillStyle = pick(['#ffffff', '#fff4c8', '#cfe0ff']); const X = Math.floor(rnd() * starsEl.width), Y = Math.floor(rnd() * starsEl.height * 0.8); x.fillRect(X, Y, 1, 1); if (chance(0.06)) { x.fillRect(X - 1, Y, 3, 1); x.fillRect(X, Y - 1, 1, 3); } }
 }
-// shadow-only clouds drifting over the town
 const clouds = [];
 const cloudMat = new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false });
 for (let k = 0; k < 6; k++) {
@@ -1587,17 +1546,14 @@ for (let k = 0; k < 6; k++) {
   for (let p = 0; p < n; p++) { const w = rr(1.5, 3.2); const m = new THREE.Mesh(new THREE.BoxGeometry(w, 0.6, rr(1.2, 2.4)), cloudMat); m.position.set(p * 1.1 - n * 0.5, rr(-0.2, 0.2), rr(-0.8, 0.8)); m.castShadow = true; g.add(m); }
   g.position.set(rr(-N, N), 12, rr(-N / 2, N / 2)); scene.add(g); clouds.push({ g, v: rr(0.25, 0.5) });
 }
-// birds
 const birdTex = ['K.....K|.K...K.|..K.K..|...K...', '.......|KKK.KKK|...K...|.......'].map(f => { const c = document.createElement('canvas'); c.width = 7; c.height = 4; const x = c.getContext('2d'); x.fillStyle = '#1b1426'; f.split('|').forEach((r, y) => [...r].forEach((ch, X) => { if (ch === 'K') x.fillRect(X, y, 1, 1); })); const t = new THREE.CanvasTexture(c); t.magFilter = t.minFilter = THREE.NearestFilter; return t; });
 const birds = [];
 for (let k = 0; k < 4; k++) { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: birdTex[0], transparent: true })); s.scale.set(0.45, 0.26, 1); scene.add(s); birds.push({ s, x: rr(-N, N), z: rr(-N / 2, N / 2), y: rr(4, 6), v: rr(1.6, 2.4), dir: rr(0, 6.28), f: rr(0, 1) }); }
-// fireflies
 const FF = 40, ffGeo = new THREE.BufferGeometry(), ffPos = new Float32Array(FF * 3), ffBase = [];
 for (let k = 0; k < FF; k++) { let i, j, tries = 0; do { i = ri(1, N - 2); j = ri(1, N - 2); } while (forestZone[id(i, j)] < 0.45 && tries++ < 50); ffBase.push([wx(i), rr(0.3, 1), wz(j), rr(0, 6)]); }
 ffGeo.setAttribute('position', new THREE.BufferAttribute(ffPos, 3));
 const ffMat = new THREE.PointsMaterial({ color: 0xe8ff7a, size: 2, sizeAttenuation: false, transparent: true, opacity: 0, depthWrite: false });
 const fireflies = new THREE.Points(ffGeo, ffMat); fireflies.frustumCulled = false; scene.add(fireflies);
-// jumping fish in the pond
 const fishMesh = part(scene, boxG(0.18, 0.08, 0.06), '#f08a2b', 0, 0, 0, 0.015); fishMesh.visible = false;
 part(fishMesh, boxG(0.06, 0.1, 0.02), '#d0701a', -0.11, -0.01, 0);
 let fishT = 4, fishJump = null;
@@ -1612,7 +1568,6 @@ function updAmbient(dt, now) {
   ffMat.opacity = nightF * 0.95;
   if (nightF > 0) for (let k = 0; k < FF; k++) { const [x, y, z, p] = ffBase[k], t = now / 1000 + p; ffPos[k * 3] = x + Math.sin(t * 0.7) * 0.6; ffPos[k * 3 + 1] = y + Math.sin(t * 1.3) * 0.2; ffPos[k * 3 + 2] = z + Math.cos(t * 0.5) * 0.6; }
   ffGeo.attributes.position.needsUpdate = true;
-  // fish
   fishT -= dt;
   if (!fishJump && fishT < 0 && nightF < 0.5) {
     fishT = rr(4, 9);
@@ -1626,7 +1581,6 @@ function updAmbient(dt, now) {
     if (f.t >= 1) { emit(fishMesh.position.x, 0.02, fishMesh.position.z, { n: 10, color: ['#cfeaf8', '#ffffff', '#8cc9f2'], v: 0.6, vy: [1, 2], size: 0.04, life: [0.3, 0.6] }); fishJump = null; fishMesh.visible = false; }
   }
 }
-// ================= building life =================
 const _cw = new V3();
 function updBuildings(dt, now) {
   const ph = phase();
@@ -1650,7 +1604,6 @@ function updBuildings(dt, now) {
     }
   }
   for (let k = worldEmotes.length - 1; k >= 0; k--) { const e = worldEmotes[k]; e.s.position.y = e.y0 + e.t * e.rise; if (!updEmoteSprite(e, dt)) { scene.remove(e.s); e.s.material.dispose(); worldEmotes.splice(k, 1); } }
-  // fire & lamps
   const fl = 0.85 + Math.sin(now / 90) * 0.1 + Math.sin(now / 37) * 0.06;
   flame1.scale.set(fl, fl * (1 + nightF * 0.2), fl); flame2.scale.set(2 - fl, fl * 1.1, 2 - fl); flame1.rotation.y += dt * 2;
   fireLight.intensity = (nightF * 1.6 + (ph === 'evening' ? 0.5 : 0)) * fl;
@@ -1660,8 +1613,6 @@ function updBuildings(dt, now) {
   if (chance(dt * 1.2)) emit(FIRE.x, 0.45, FIRE.z, { n: 1, color: ['#bdb8c4', '#9a96a2'], v: 0.05, vy: [0.3, 0.45], size: 0.09, life: [1.4, 2], grav: 0, grow: 2, spread: 0.03 });
 }
 
-// ================= camera =================
-// Cycle: town overview -> close-up on a meeple or build site -> town -> close-up -> whole island.
 let W = innerWidth, H = innerHeight, az = Math.PI * 0.25, camHalf = 12, halfGoal = 12, camTimer = 20, camStep = 0, follow = null, extent = 8, extT = 0;
 const camFocus = new V3(0, 0, 0), focusGoal = new V3(0, 0, 0);
 const CYCLE = ['town', 'close', 'town', 'close', 'island'];
@@ -1694,7 +1645,6 @@ function resize() {
 }
 addEventListener('resize', resize);
 
-// ================= HUD =================
 const statDefs = [['meeple', 'Meeples'], ['house', 'Homes'], ['star', 'Built'], ['wood', 'Wood'], ['stone', 'Stone'], ['wheat', 'Food']];
 const statEls = {};
 {
@@ -1721,7 +1671,6 @@ function updHUD() {
   statEls.wood.textContent = stock.wood; statEls.stone.textContent = stock.stone; statEls.wheat.textContent = stock.food;
 }
 
-// ================= setup =================
 function setupTown() {
   for (let i = HALF - 6; i <= HALF + 6; i++) { road[id(i, HALF)] = 2; roadName[id(i, HALF)] = 'Hearth Road'; }
   for (let j = HALF - 5; j <= HALF + 5; j++) { road[id(HALF, j)] = 2; roadName[id(HALF, j)] = 'Old Lane'; }
@@ -1757,7 +1706,6 @@ function setupTown() {
   logEvent('Four meeples lit a fire and founded <b>Meepleton</b>.');
 }
 
-// ================= main loop =================
 let reachT = 0, waterT = 0, birthT = 6, hudT = 0, stumpT = 0;
 function simStep(dt, now) {
   const prevDay = Math.floor(clock / DAY); clock += dt;

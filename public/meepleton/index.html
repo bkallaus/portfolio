@@ -36,6 +36,19 @@ body{margin:0;overflow:hidden;background:var(--night);color:var(--ink);font-fami
 #ctl button:hover{background:#ffe9b8}
 #ctl button[aria-pressed="true"]{background:var(--ink);color:var(--board);box-shadow:none;transform:translate(2px,2px)}
 #ctl button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#card{top:calc(12px + env(safe-area-inset-top,0px));right:12px;width:min(250px,calc(100vw - 48px));pointer-events:auto;font-size:10px;line-height:1.5}
+#card[hidden]{display:none}
+#card h3{font-family:var(--f-display);font-size:18px;margin:0 22px 0 0;line-height:1.1;display:flex;align-items:center;gap:6px}
+#card .sw{display:inline-block;width:12px;height:12px;border:2px solid var(--ink)}
+#card .sub{color:var(--muted);letter-spacing:.06em;margin:2px 0 6px}
+#card .doing{background:#fff8e6;border:2px solid var(--ink);padding:4px 6px;margin-bottom:6px}
+#card dl{display:grid;grid-template-columns:auto 1fr;gap:1px 8px;margin:0}
+#card dt{color:var(--muted)}#card dd{margin:0;font-variant-numeric:tabular-nums}
+#card .bar{height:8px;border:2px solid var(--ink);background:#fff8e6;margin:4px 0 6px}
+#card .bar i{display:block;height:100%;background:#7ed957}
+#card .who{font:inherit;background:none;border:0;padding:0;color:var(--accent);cursor:pointer;text-decoration:underline}
+#cardClose{position:absolute;top:4px;right:4px;font-family:var(--f-ui);font-size:12px;width:22px;height:22px;padding:0;display:grid;place-items:center;color:var(--ink);background:#fff8e6;border:2px solid var(--ink);cursor:pointer;line-height:1}
+#cardClose:hover{background:#ffe9b8}
 @media (max-width:520px){#sign h1{font-size:18px}#stats{font-size:10px;gap:3px 8px}#log{font-size:9px}}
 </style>
 </head>
@@ -45,6 +58,7 @@ body{margin:0;overflow:hidden;background:var(--night);color:var(--ink);font-fami
 <canvas id="stars"></canvas>
 <canvas id="view"></canvas>
 <div class="board" id="sign"><h1>Meepleton</h1><div id="clock">Day 1 · 06:00</div><div id="stats"></div><div id="ctl" role="group" aria-label="Simulation speed"><button type="button" data-speed="0" aria-label="Pause" title="Pause (Space)">II</button><button type="button" data-speed="1" title="Normal speed (1)">1x</button><button type="button" data-speed="2" title="Double speed (2)">2x</button><button type="button" data-speed="4" title="Fast (3)">4x</button></div></div>
+<div class="board" id="card" hidden aria-live="polite"><button type="button" id="cardClose" aria-label="Close" title="Close (Esc)">X</button><div id="cardBody"></div></div>
 <div class="board" id="log"><h2>Town chronicle</h2><div id="logList"></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
@@ -671,7 +685,7 @@ function createBuilding(type, i0, j0, o, entry, street, instant) {
   const T = BT[type], s = T.size;
   const b = { id: ++bldId, type, T, i0, j0, size: s, o, entry, street, prog: instant ? 1 : 0, done: !!instant, delivered: { wood: 0, stone: 0 }, pending: { wood: 0, stone: 0 }, builders: 0, residents: [], occupants: 0, doorT: 0, smokeT: rr(0, 1), zzzT: rr(0, 4) };
   b.cx = wx(i0) + (s - 1) / 2; b.cz = wz(j0) + (s - 1) / 2;
-  b.g = new THREE.Group(); b.g.position.set(b.cx, 0, b.cz); b.g.rotation.y = o * Math.PI / 2; scene.add(b.g);
+  b.g = new THREE.Group(); b.g.userData.bld = b; b.g.position.set(b.cx, 0, b.cz); b.g.rotation.y = o * Math.PI / 2; scene.add(b.g);
   b.W = new THREE.Group(); b.R = new THREE.Group(); b.D = new THREE.Group(); b.g.add(b.W, b.R, b.D);
   b.winMat = new THREE.MeshBasicMaterial({ color: WIN_DAY.clone() });
   b.cropMat = new THREE.MeshToonMaterial({ color: '#6cbf4a', gradientMap: gradMap });
@@ -848,8 +862,8 @@ const CARRY = {
 };
 const meeples = []; let meepleId = 0;
 function makeMeeple(opts) {
-  const m = { id: ++meepleId, name: opts.name || NAMES[(meepleId * 7 + ri(0, 50)) % NAMES.length], role: opts.role || pick(ROLES), color: opts.color || pick(C.meeple), home: opts.home || null, x: opts.x, z: opts.z, face: rr(0, 6.28), faceV: 0, speed: rr(1.35, 1.7), phase: rr(0, 6), co: null, inside: null, moving: false, act: null, actT: 0, emotes: [], social: rr(0, 1), age: opts.baby ? 0 : 1, blinkT: rr(1, 4), hop: 0, lane: { x: rr(-0.14, 0.14), z: rr(-0.14, 0.14) }, busy: '', talkT: 0 };
-  m.g = new THREE.Group(); m.b = new THREE.Group(); m.g.add(m.b); scene.add(m.g);
+  const m = { id: ++meepleId, name: opts.name || NAMES[(meepleId * 7 + ri(0, 50)) % NAMES.length], role: opts.role || pick(ROLES), color: opts.color || pick(C.meeple), home: opts.home || null, x: opts.x, z: opts.z, face: rr(0, 6.28), faceV: 0, speed: rr(1.35, 1.7), phase: rr(0, 6), co: null, inside: null, moving: false, act: null, actT: 0, emotes: [], social: rr(0, 1), age: opts.baby ? 0 : 1, blinkT: rr(1, 4), hop: 0, lane: { x: rr(-0.14, 0.14), z: rr(-0.14, 0.14) }, busy: '', talkT: 0, doing: 'Looking around', since: dayN, tally: { trees: 0, stone: 0, build: 0, pave: 0, food: 0, plant: 0 } };
+  m.g = new THREE.Group(); m.b = new THREE.Group(); m.g.add(m.b); scene.add(m.g); m.g.userData.meeple = m;
   const body = part(m.b, meepleGeo, m.color, 0, 0, 0, 0.022);
   const eyeM = M('#1b1426');
   m.eyes = [part(m.b, eyeGeo, eyeM, -0.035, 0.47, 0.086), part(m.b, eyeGeo, eyeM, 0.035, 0.47, 0.086)];
@@ -991,6 +1005,7 @@ function* deliver(m, res, n) {
 }
 
 function* rChop(m, t) {
+  m.doing = `Felling ${t.kind === 'pine' ? 'a pine' : 'an oak'}`;
   inflight.wood++;
   try {
     yield* goOut(m);
@@ -1007,11 +1022,12 @@ function* rChop(m, t) {
     t.state = 'stump'; t.fall = 0; t.stumpT = 0; treeMatrix(t); stumps.push(t);
     if (occRef[id(t.i, t.j)] === t) { occ[id(t.i, t.j)] = O_NONE; occRef[id(t.i, t.j)] = null; }
     for (const b of buildings) if (!b.done && b.trees.includes(t)) setStage(b);
-    setTool(m, null); setCarry(m, 'log');
+    setTool(m, null); setCarry(m, 'log'); m.tally.trees++;
     yield* deliver(m, 'wood', 1);
   } finally { t.res = 0; inflight.wood--; setTool(m, null); if (m.carry === 'log') setCarry(m, null); }
 }
 function* rMine(m, r) {
+  m.doing = r.quarry ? 'Cutting stone at the quarry' : 'Breaking up a boulder';
   inflight.stone++;
   try {
     yield* goOut(m);
@@ -1030,11 +1046,12 @@ function* rMine(m, r) {
       if (r.amt <= 0) { r.gone = true; occ[id(r.i, r.j)] = O_NONE; occRef[id(r.i, r.j)] = null; emit(r.x, 0.2, r.z, { n: 14, color: ['#a4a1ab', '#86838e', '#c3c6cf'], v: 1.3, vy: [1, 2], size: 0.07, life: [0.5, 1] }); }
       rockMatrix(r);
     }
-    setTool(m, null); setCarry(m, 'stone');
+    setTool(m, null); setCarry(m, 'stone'); m.tally.stone++;
     yield* deliver(m, 'stone', 1);
   } finally { r.res = 0; inflight.stone--; setTool(m, null); if (m.carry === 'stone') setCarry(m, null); }
 }
 function* rHaul(m, b, res) {
+  m.doing = `Hauling ${res} to the ${b.T.label}`;
   let resHeld = true, pendHeld = true, carrying = false;
   try {
     yield* goOut(m);
@@ -1055,6 +1072,7 @@ function* rHaul(m, b, res) {
   }
 }
 function* rBuild(m, b) {
+  m.doing = `Building the ${b.T.label} on ${b.street}`;
   try {
     yield* goOut(m);
     if (!(yield* walkNear(m, b.i0, b.j0, b.size))) return;
@@ -1069,11 +1087,12 @@ function* rBuild(m, b) {
         emit(hx, hy, hz, { n: 2, color: ['#ffe066', '#ffffff'], v: 1, vy: [0.8, 1.6], size: 0.03, life: [0.15, 0.35], glow: true });
         if (beat % 3 === 0) emit(hx, 0.05, hz, { n: 3, color: '#d9c49a', v: 0.5, vy: [0.3, 0.8], size: 0.06, life: [0.4, 0.8], grav: 1, grow: 1 });
       }
-      if (b.prog >= 1 && !b.done) { finishBuilding(b); emote(m, 'star', 2); m.hop = 0.3; for (const o of meeples) if (o !== m && !o.inside && Math.hypot(o.x - b.cx, o.z - b.cz) < 4) { o.hop = 0.3; if (chance(0.5)) emote(o, pick(['heart', 'smile', 'exclaim'])); } }
+      if (b.prog >= 1 && !b.done) { m.tally.build++; finishBuilding(b); emote(m, 'star', 2); m.hop = 0.3; for (const o of meeples) if (o !== m && !o.inside && Math.hypot(o.x - b.cx, o.z - b.cz) < 4) { o.hop = 0.3; if (chance(0.5)) emote(o, pick(['heart', 'smile', 'exclaim'])); } }
     }
   } finally { m.act = null; b.builders--; setTool(m, null); }
 }
 function* rPave(m, k) {
+  m.doing = `Paving ${roadName[k] || 'a new street'}`;
   const i = k % N, j = Math.floor(k / N);
   let took = false;
   try {
@@ -1088,7 +1107,7 @@ function* rPave(m, k) {
     if (road[k] !== 1) return;
     const st = occRef[k]; if (st && st.kind && st.state === 'stump') removeTree(st);
     for (const s of stumps) if (s.i === i && s.j === j && s.state === 'stump') removeTree(s);
-    road[k] = 2; plannedRoads.delete(k); redrawAround(i, j);
+    road[k] = 2; plannedRoads.delete(k); redrawAround(i, j); m.tally.pave++;
     if (!lampNear(i, j, 3) && chance(0.45)) addLamp(i, j);
     const nm = roadName[k];
     if (nm && ![...plannedRoads].some(q => roadName[q] === nm) && !streetsDone.has(nm)) { streetsDone.add(nm); logEvent(`${m.name}'s crew finished paving <b>${nm}</b>.`); }
@@ -1097,13 +1116,14 @@ function* rPave(m, k) {
 const streetsDone = new Set();
 function fieldTile(f, m) { let best = null, bd = 1e9; for (let a = 0; a < 2; a++) for (let c = 0; c < 2; c++) { const i = f.i0 + a, j = f.j0 + c, d = Math.hypot(wx(i) - m.x, wz(j) - m.z); if (d < bd) { bd = d; best = [i, j]; } } return best; }
 function* rField(m, f, harvest) {
+  m.doing = harvest ? 'Harvesting wheat' : 'Tending the wheat field';
   try {
     yield* goOut(m);
     const t = fieldTile(f, m); if (!(yield* walkTo(m, t[0], t[1]))) return;
     m.busy = 'work'; setTool(m, 'hoe'); m.face = f.o * Math.PI / 2 + (chance(0.5) ? 0 : Math.PI);
     if (harvest) {
       yield* doAct(m, 'hoe', 3.5, () => emit(m.x + Math.sin(m.face) * 0.3, 0.2, m.z + Math.cos(m.face) * 0.3, { n: 5, color: ['#e3c877', '#f2d98a', '#c9a84a'], v: 0.9, vy: [0.8, 1.6], size: 0.045, life: [0.5, 1], grav: 3 }));
-      f.grow = 0; updCrops(f); setTool(m, null); setCarry(m, 'wheat'); emote(m, 'wheat', 1.4);
+      f.grow = 0; updCrops(f); setTool(m, null); setCarry(m, 'wheat'); emote(m, 'wheat', 1.4); m.tally.food += 3;
       yield* deliver(m, 'food', 3);
     } else {
       yield* doAct(m, 'hoe', 3, () => emit(m.x + Math.sin(m.face) * 0.3, 0.06, m.z + Math.cos(m.face) * 0.3, { n: 3, color: ['#8a5a36', '#6d4428'], v: 0.5, vy: [0.6, 1.2], size: 0.04, life: [0.3, 0.6] }));
@@ -1113,6 +1133,7 @@ function* rField(m, f, harvest) {
   } finally { f.worker = 0; setTool(m, null); if (m.carry === 'wheat') setCarry(m, null); }
 }
 function* rPlant(m) {
+  m.doing = 'Planting a sapling';
   let spot = null;
   for (let k = 0; k < 60 && !spot; k++) {
     const i = ri(1, N - 2), j = ri(1, N - 2), kk = id(i, j);
@@ -1127,11 +1148,12 @@ function* rPlant(m) {
     if (!passable(spot[0], spot[1]) || road[id(spot[0], spot[1])]) return;
     m.busy = 'work'; faceTo(m, wx(spot[0]), wz(spot[1])); setCarry(m, null);
     yield* doAct(m, 'plant', 1.8, () => emit(wx(spot[0]), 0.05, wz(spot[1]), { n: 3, color: '#8a5a36', v: 0.4, vy: [0.4, 0.8], size: 0.04, life: [0.3, 0.5] }));
-    const t = addTree(spot[0], spot[1], 0.15); if (t) { animTrees.add(t); emote(m, 'leaf', 1.4); }
+    const t = addTree(spot[0], spot[1], 0.15); if (t) { animTrees.add(t); emote(m, 'leaf', 1.4); m.tally.plant++; }
   } finally { if (m.carry === 'sapling') setCarry(m, null); }
 }
 
 function* rWander(m) {
+  m.doing = pick(['Taking a stroll', 'Wandering about', 'Stretching their legs', 'Admiring the view']);
   yield* goOut(m); m.busy = 'idle';
   const ci = tI(m.x), cj = tJ(m.z); let tgt = null;
   for (let k = 0; k < 25 && !tgt; k++) {
@@ -1144,6 +1166,7 @@ function* rWander(m) {
   for (let k = 0; k < looks; k++) { m.face += rr(-1.5, 1.5); yield* wait(rr(0.6, 1.6)); if (chance(0.15)) emote(m, pick(['music', 'sun', 'smile', 'leaf'])); }
 }
 function* rChat(m, o) {
+  m.doing = `Chatting with ${o.name}`; o.doing = `Chatting with ${m.name}`;
   const conv = { done: false };
   if (o.co) o.co.return(); o.co = rListen(o, m, conv); o.busy = 'chat'; m.busy = 'chat';
   try {
@@ -1178,6 +1201,7 @@ function nearestShore(m) {
 }
 const bobberGeo = new THREE.SphereGeometry(0.035, 6, 4);
 function* rFish(m) {
+  m.doing = 'Fishing at the pond';
   const s = nearestShore(m); if (!s) return;
   s.res = m.id; let bob = null;
   try {
@@ -1194,7 +1218,7 @@ function* rFish(m) {
     if (chance(0.55)) {
       emit(bob.position.x, 0.05, bob.position.z, { n: 12, color: ['#cfeaf8', '#ffffff', '#8cc9f2'], v: 0.8, vy: [1, 2], size: 0.04, life: [0.4, 0.7] });
       scene.remove(bob); bob = null; m.toolPiv.rotation.x = -0.8; emote(m, 'fish', 1.6); m.hop = 0.3; setTool(m, null); setCarry(m, 'fish');
-      yield* wait(0.8);
+      yield* wait(0.8); m.tally.food++;
       yield* deliver(m, 'food', 1);
     } else { emote(m, 'chat', 1.2); }
   } finally { s.res = 0; m.act = null; if (bob) scene.remove(bob); setTool(m, null); if (m.carry === 'fish') setCarry(m, null); }
@@ -1205,6 +1229,7 @@ function nearestB(m, type, pred) {
   return best;
 }
 function* rWell(m) {
+  m.doing = 'Fetching water from the well';
   const w = nearestB(m, 'well'); if (!w) return;
   yield* goOut(m); m.busy = 'idle';
   if (!(yield* walkTo(m, w.entry.i, w.entry.j))) return;
@@ -1216,12 +1241,14 @@ function* rWell(m) {
   setCarry(m, null);
 }
 function* rStall(m) {
+  m.doing = 'Browsing the market stall';
   const s = nearestB(m, 'stall'); if (!s) return;
   yield* goOut(m); m.busy = 'idle';
   if (!(yield* walkTo(m, s.entry.i, s.entry.j))) return;
   faceTo(m, s.cx, s.cz); yield* wait(rr(1, 2)); emote(m, pick(['heart', 'smile', 'star', 'wheat', 'question'])); yield* wait(rr(1, 2));
 }
 function* rGarden(m) {
+  m.doing = 'Resting in the garden';
   const g = nearestB(m, 'garden'); if (!g) return;
   yield* goOut(m); m.busy = 'idle';
   if (!(yield* walkTo(m, g.entry.i, g.entry.j))) return;
@@ -1229,13 +1256,16 @@ function* rGarden(m) {
   yield* doAct(m, 'sit', rr(3, 6));
 }
 function* rBreak(m) {
+  m.doing = 'Taking a break at home';
   if (!m.home || !m.home.done) return;
   m.busy = 'idle';
   if (yield* enterB(m, m.home)) { yield* wait(rr(5, 12)); yield* exitB(m); }
 }
 function* rEvening(m) {
+  m.doing = 'Gathering at the hearth';
   const tav = nearestB(m, 'tavern');
   if (tav && m.age >= 1 && chance(0.4)) {
+    m.doing = 'Singing at the tavern';
     if (yield* enterB(m, tav)) {
       while (phase() === 'evening') { yield* wait(rr(2, 5)); if (chance(0.3)) worldEmote(tav.cx + rr(-.4, .4), tav.roofTop + 0.3, tav.cz, pick(['music', 'mug', 'smile']), 1.8); }
     }
@@ -1251,22 +1281,25 @@ function* rEvening(m) {
   while (phase() === 'evening') {
     faceTo(m, FIRE.x, FIRE.z);
     const r = rnd();
-    if (r < 0.35) { emote(m, 'music', 1.4); yield* doAct(m, 'dance', rr(2, 3.5)); }
-    else if (r < 0.7) { yield* doAct(m, 'sit', rr(3, 6)); }
+    if (r < 0.35) { m.doing = 'Dancing by the fire'; emote(m, 'music', 1.4); yield* doAct(m, 'dance', rr(2, 3.5)); }
+    else if (r < 0.7) { m.doing = 'Warming up by the fire'; yield* doAct(m, 'sit', rr(3, 6)); }
     else { emote(m, pick(['smile', 'chat', 'heart', 'star']), 1.5); yield* wait(rr(1.5, 3)); }
   }
   yield* rSleep(m);
 }
 function* rSleep(m) {
+  m.doing = 'Heading to bed';
   m.busy = 'sleep';
   if (!m.home || !m.home.done) { yield* goOut(m); yield* doAct(m, 'sit', 6); return; }
   if (!(yield* enterB(m, m.home))) { yield* wait(2); return; }
+  m.doing = 'Fast asleep';
   while (phase() === 'night' || phase() === 'evening') yield* wait(1);
   yield* wait(rr(0, 6));
   yield* exitB(m);
   yield* doAct(m, 'stretch', 1.2); emote(m, 'sun', 1.6);
 }
 function* rArrive(m, home) {
+  m.doing = `Moving in on ${home.street}`;
   setCarry(m, 'bindle'); m.busy = 'arrive';
   yield* wait(0.3);
   if (yield* enterB(m, home)) { worldEmote(home.cx, home.roofTop + 0.3, home.cz, 'heart', 2); yield* wait(rr(2, 4)); yield* exitB(m); }
@@ -1642,6 +1675,10 @@ function updCamera(dt) {
   zoomMax = fullHalf * 1.15;
   if (manual) halfGoal = clamp(halfGoal, ZOOM_MIN, zoomMax);
   else halfGoal = mode === 'close' ? 4.6 / port : mode === 'island' ? fullHalf : Math.min(fullHalf, (extent * 0.95 + 1.5) / port);
+  if (selected && selFollow) {
+    manualT = Math.max(manualT, 1);
+    if (selected.g && selected.T) { follow = null; focusGoal.set(selected.cx, 0.3, selected.cz); } else follow = selected;
+  }
   if (follow) { const f = follow.inside; focusGoal.set(f ? f.cx : follow.x, 0.3, f ? f.cz : follow.z); }
   camFocus.lerp(focusGoal, 1 - Math.exp(-dt * (manual ? 10 : 1.2))); camHalf += (halfGoal - camHalf) * (1 - Math.exp(-dt * (manual ? 9 : 0.7)));
   const el = 0.6155, D = 90;
@@ -1654,9 +1691,83 @@ function resize() {
   renderer.setSize(Math.ceil(W / PX), Math.ceil(H / PX), false); drawStars();
 }
 addEventListener('resize', resize);
+let selected = null, selFollow = false, cardT = 0;
+const raycaster = new THREE.Raycaster(), _ndc = new THREE.Vector2();
+const selRing = new THREE.Mesh(new THREE.RingGeometry(0.3, 0.38, 20), new THREE.MeshBasicMaterial({ color: 0xc8443f, transparent: true, opacity: 0.9, depthWrite: false }));
+selRing.rotation.x = -Math.PI / 2; selRing.renderOrder = 7; selRing.visible = false; scene.add(selRing);
+const cardEl = document.getElementById('card'), cardBody = document.getElementById('cardBody');
+function ownerOf(o) { while (o) { if (o.userData.meeple) return o.userData.meeple; if (o.userData.bld) return o.userData.bld; o = o.parent; } return null; }
+function pickAt(cx, cy) {
+  const r = canvasEl.getBoundingClientRect();
+  _ndc.set((cx - r.left) / r.width * 2 - 1, -((cy - r.top) / r.height) * 2 + 1);
+  raycaster.setFromCamera(_ndc, camera);
+  const targets = [];
+  for (const m of meeples) if (m.g.visible) targets.push(m.g);
+  for (const b of buildings) targets.push(b.g);
+  const hits = raycaster.intersectObjects(targets, true);
+  let best = null;
+  for (const h of hits) { const o = ownerOf(h.object); if (o) { best = o; break; } }
+  if (!best) {
+    let bd = 0.45;
+    for (const m of meeples) {
+      if (!m.g.visible) continue;
+      _v.set(m.x, 0.3, m.z).project(camera);
+      const d = Math.hypot((_v.x - _ndc.x) * r.width / 2, (_v.y - _ndc.y) * r.height / 2) / (r.height / (2 * camHalf));
+      if (d < bd) { bd = d; best = m; }
+    }
+  }
+  select(best);
+}
+function select(o) {
+  selected = o; selFollow = !!o; cardT = 0;
+  if (!o) { cardEl.hidden = true; selRing.visible = false; if (manualT > 0) manualT = 0.01; return; }
+  if (manualT <= 0) halfGoal = camHalf;
+  halfGoal = Math.min(halfGoal, o.T ? 6 : 4.2); manualT = IDLE_RESUME;
+  cardEl.hidden = false; renderCard();
+}
+const ROLE_LABEL = { builder: 'Builder', woodcutter: 'Woodcutter', miner: 'Miner', farmer: 'Farmer' };
+const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+function tallyLine(m) {
+  const t = m.tally, parts = [];
+  if (t.build) parts.push(`${t.build} built`); if (t.trees) parts.push(`${t.trees} trees felled`); if (t.stone) parts.push(`${t.stone} stone cut`);
+  if (t.pave) parts.push(`${t.pave} tiles paved`); if (t.food) parts.push(`${t.food} food gathered`); if (t.plant) parts.push(`${t.plant} saplings`);
+  return parts.length ? parts.join(', ') : 'Just getting started';
+}
+function buildingStatus(b) {
+  if (b.type === 'field' && b.done) return b.grow >= 1 ? 'Ripe and ready to harvest' : `Growing, ${Math.round(b.grow * 100)}%`;
+  if (b.done) return b.occupants ? `${b.occupants} inside` : 'Quiet for now';
+  if (footprintHasTree(b)) return 'Waiting for the lot to be cleared';
+  if (b.delivered.wood < b.T.cost.wood || b.delivered.stone < b.T.cost.stone) return `Materials: wood ${b.delivered.wood}/${b.T.cost.wood}, stone ${b.delivered.stone}/${b.T.cost.stone}`;
+  return b.builders ? `${b.builders} at work` : 'Ready for builders';
+}
+function renderCard() {
+  const o = selected; if (!o) return;
+  if (o.T) {
+    if (o.scrapped) { select(null); return; }
+    const res = o.residents.map(m => `<button type="button" class="who" data-id="${m.id}">${esc(m.name)}</button>`).join(', ');
+    cardBody.innerHTML = `<h3>${esc(o.T.label[0].toUpperCase() + o.T.label.slice(1))}</h3><div class="sub">${esc(o.street)}</div>` +
+      (o.done ? '' : `<div class="bar"><i style="width:${Math.round(o.prog * 100)}%"></i></div>`) +
+      `<div class="doing">${esc(buildingStatus(o))}</div><dl>` + (o.T.cap ? `<dt>Home to</dt><dd>${res || 'nobody yet'}</dd>` : '') + `</dl>`;
+  } else {
+    const home = o.home ? esc(o.home.street) : 'Nowhere yet';
+    cardBody.innerHTML = `<h3><span class="sw" style="background:${o.color}"></span>${esc(o.name)}</h3><div class="sub">${o.age < 1 ? 'Youngster' : ROLE_LABEL[o.role]} · since day ${o.since}</div>` +
+      `<div class="doing">${esc(o.doing)}</div><dl><dt>Home</dt><dd>${home}</dd><dt>Record</dt><dd>${esc(tallyLine(o))}</dd></dl>`;
+  }
+}
+cardBody.addEventListener('click', e => { const b = e.target.closest('.who'); if (b) select(meeples.find(m => m.id === Number(b.dataset.id)) || null); });
+document.getElementById('cardClose').addEventListener('click', () => select(null));
+addEventListener('keydown', e => { if (e.key === 'Escape' && selected) select(null); });
+function updSelection(dt) {
+  if (!selected) return;
+  cardT -= dt; if (cardT <= 0) { cardT = 0.3; renderCard(); }
+  const o = selected;
+  if (o.T) { selRing.visible = true; selRing.position.set(o.cx, 0.03, o.cz); selRing.scale.setScalar(o.size * 1.6); }
+  else { selRing.visible = !o.inside; selRing.position.set(o.x, 0.03, o.z); selRing.scale.setScalar(0.9 + 0.08 * Math.sin(performance.now() / 180)); }
+}
 const ZOOM_MIN = 2.2, IDLE_RESUME = 18, EL_SIN = Math.sin(0.6155);
 let manualT = 0, zoomMax = 30;
 function takeControl(keepFollow) {
+  if (!keepFollow) selFollow = false;
   if (manualT <= 0) halfGoal = camHalf;
   manualT = IDLE_RESUME;
   if (!keepFollow) { if (follow) { const f = follow.inside; focusGoal.set(f ? f.cx : follow.x, 0.3, f ? f.cz : follow.z); } follow = null; }
@@ -1686,7 +1797,8 @@ canvasEl.addEventListener('pointermove', e => {
   } else if (rotateDrag) rotateBy(dx * 0.006);
   else panBy(dx, dy);
 });
-function endPtr(e) { ptrs.delete(e.pointerId); pinch0 = 0; if (!ptrs.size) canvasEl.classList.remove('dragging'); }
+function endPtr(e) {
+  if (ptrs.size === 1 && dragMoved < 6 && !rotateDrag) pickAt(e.clientX, e.clientY); ptrs.delete(e.pointerId); pinch0 = 0; if (!ptrs.size) canvasEl.classList.remove('dragging'); }
 canvasEl.addEventListener('pointerup', endPtr); canvasEl.addEventListener('pointercancel', endPtr);
 canvasEl.addEventListener('wheel', e => { e.preventDefault(); zoomBy(Math.exp(clamp(e.deltaY, -120, 120) * 0.0015)); }, { passive: false });
 addEventListener('keydown', e => {
@@ -1808,7 +1920,7 @@ function frame(now) {
   const dt = raw * SPEED * simSpeed, steps = Math.max(1, Math.ceil(dt / 0.05)), sdt = dt / steps;
   for (let s = 0; s < steps; s++) simStep(sdt, now);
   for (const m of meeples) animMeeple(m, dt);
-  updParticles(dt); updSky(dt); updBuildings(dt, now); updAmbient(dt, now); updCamera(raw);
+  updParticles(dt); updSky(dt); updBuildings(dt, now); updAmbient(dt, now); updCamera(raw); updSelection(raw);
   waterT -= raw; if (waterT <= 0) { waterT = 0.45; waterPhase = (waterPhase + 1) % 8; for (const [i, j] of waterTiles) drawTile(i, j); gtex.needsUpdate = true; }
   hudT -= raw; if (hudT <= 0) { hudT = 0.5; updHUD(); }
   renderer.render(scene, camera);
@@ -1816,7 +1928,7 @@ function frame(now) {
 setupTown(); resize(); updSky(0); setSpeed(1);
 if (window.__MEEPLE_WARMUP) { for (let k = 0; k < window.__MEEPLE_WARMUP * 20; k++) simStep(0.05, performance.now()); }
 requestAnimationFrame(frame);
-if (window.__MEEPLE_FAST) window.__mt = { astar, accessTile, passable, PILE, quarryTiles, rocks, meeples, buildings, stock, plannedRoads, logLines, trees, phase, dayT, get day() { return dayN; } };
+if (window.__MEEPLE_FAST) window.__mt = { camera, select, THREE, astar, accessTile, passable, PILE, quarryTiles, rocks, meeples, buildings, stock, plannedRoads, logLines, trees, phase, dayT, get day() { return dayN; } };
 })();
 </script>
 

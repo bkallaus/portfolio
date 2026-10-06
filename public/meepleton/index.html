@@ -1200,8 +1200,9 @@ function* rField(m, f, harvest) {
     m.busy = 'work'; setTool(m, 'hoe'); m.face = f.o * Math.PI / 2 + (chance(0.5) ? 0 : Math.PI);
     if (harvest) {
       yield* doAct(m, 'hoe', 3.5, () => emit(m.x + Math.sin(m.face) * 0.3, 0.2, m.z + Math.cos(m.face) * 0.3, { n: 5, color: ['#e3c877', '#f2d98a', '#c9a84a'], v: 0.9, vy: [0.8, 1.6], size: 0.045, life: [0.5, 1], grav: 3 }));
-      f.grow = 0; updCrops(f); setTool(m, null); setCarry(m, 'wheat'); emote(m, 'wheat', 1.4); m.tally.food += 3;
-      yield* deliver(m, 'food', 3);
+      const mills = buildings.filter(b => b.done && b.type === 'windmill' && Math.hypot(b.cx - f.cx, b.cz - f.cz) < 9).length, yieldN = 3 + Math.min(2, mills);
+      f.grow = 0; updCrops(f); setTool(m, null); setCarry(m, 'wheat'); emote(m, 'wheat', 1.4); m.tally.food += yieldN;
+      yield* deliver(m, 'food', yieldN);
     } else {
       yield* doAct(m, 'hoe', 3, () => emit(m.x + Math.sin(m.face) * 0.3, 0.06, m.z + Math.cos(m.face) * 0.3, { n: 3, color: ['#8a5a36', '#6d4428'], v: 0.5, vy: [0.6, 1.2], size: 0.04, life: [0.3, 0.6] }));
       f.tend = 25; emote(m, 'drop', 1.2);
@@ -1423,7 +1424,7 @@ function findWork(m) {
   if (stock.stone + inflight.stone < needS + 4 + Math.min(6, plannedRoads.size / 3)) { const r = nearestRock(m); if (r) { const t = r[0]; c.push({ s: 7 + rb('miner') * 1.3 - r[1] * 0.05, go: () => { if (!t.quarry) t.res = m.id; return rMine(m, t); } }); } }
   for (const f of buildings) {
     if (f.type !== 'field' || !f.done || f.worker) continue;
-    if (f.grow >= 1) c.push({ s: 10 + rb('farmer') - D(f.cx, f.cz) * 0.05, go: () => { f.worker = m.id; return rField(m, f, true); } });
+    if (f.grow >= 1 && stock.food < 12 + meeples.length) c.push({ s: 10 + rb('farmer') + (stock.food < meeples.length / 3 ? 4 : 0) - D(f.cx, f.cz) * 0.05, go: () => { f.worker = m.id; return rField(m, f, true); } });
     else if (f.tend <= 0 && f.grow > 0.05) c.push({ s: 5 + rb('farmer') * 1.5 - D(f.cx, f.cz) * 0.05, go: () => { f.worker = m.id; return rField(m, f, false); } });
   }
   let live = 0; for (const t of trees) if (t && (t.state === 'standing' || t.state === 'sapling')) live++;
@@ -1655,7 +1656,7 @@ function spawnArrival(home) {
   logEvent(`${m.name} the ${m.role} arrived with a bindle and moved in ${'on <b>' + home.street + '</b>'}.`);
 }
 function birthTick() {
-  if (stock.food < 4 || meeples.length >= MAXPOP || !chance(0.5)) return;
+  if (stock.food < 4 + Math.ceil(meeples.length / 3) || meeples.length >= MAXPOP || !chance(0.5)) return;
   const homes = buildings.filter(b => b.done && b.T.cap > 0 && b.residents.length < b.T.cap && b.residents.length > 0);
   if (!homes.length) return;
   const h = pick(homes); stock.food -= 4; updPile();
@@ -1664,6 +1665,11 @@ function birthTick() {
   worldEmote(h.cx, h.roofTop + 0.3, h.cz, 'heart', 2.5);
   for (const p of h.residents) if (p !== m && !p.inside) { emote(p, 'heart'); p.hop = 0.3; }
   logEvent(`Little ${m.name} was born ${'on <b>' + h.street + '</b>'}.`);
+}
+function growFields(dt) {
+  const se = seasonNow(); if (se === 3) return;
+  const rate = dt / (DAY * 0.8) * (se === 2 ? 1.3 : 1), wet = isRaining();
+  for (const b of buildings) if (b.type === 'field' && b.done) { if (b.grow < 1) b.grow = Math.min(1, b.grow + rate * (b.tend > 0 || wet ? 2.2 : 1)); b.tend -= dt; }
 }
 function updCrops(f) {
   const g = f.grow; f.crops.forEach((c, k) => { c.scale.y = 0.08 + g * (0.85 + (k % 3) * 0.08); });
@@ -1806,10 +1812,7 @@ function updBuildings(dt, now) {
       if (b.smokeT < 0) { b.smokeT = rr(0.35, 0.7); b.g.localToWorld(_cw.copy(b.chimney)); emit(_cw.x, _cw.y, _cw.z, { n: 1, color: ['#e8e4ec', '#d4d0da', '#c3bfc9'], v: 0.08, vx: 0.15, vy: [0.35, 0.5], size: 0.11, life: [1.8, 2.6], grav: 0, grow: 2.2, spread: 0.03 }); }
     }
     if (ph === 'night' && b.T.cap > 0 && b.occupants > 0) { b.zzzT -= dt; if (b.zzzT < 0) { b.zzzT = rr(5, 9); worldEmote(b.cx + rr(-.2, .2), (b.roofTop || 1) + 0.25, b.cz, 'zzz', 2.4, 0.4); } }
-    if (b.type === 'field') {
-      if (b.grow < 1 && seasonNow() !== 3) { b.grow = Math.min(1, b.grow + dt / (DAY * 0.8) * (b.tend > 0 || isRaining() ? 2.2 : 1) * (seasonNow() === 2 ? 1.3 : 1)); b.tend -= dt; }
-      if (Math.floor(b.grow * 40) !== b.growQ) { b.growQ = Math.floor(b.grow * 40); updCrops(b); }
-    }
+    if (b.type === 'field' && Math.floor(b.grow * 40) !== b.growQ) { b.growQ = Math.floor(b.grow * 40); updCrops(b); }
   }
   for (let k = worldEmotes.length - 1; k >= 0; k--) { const e = worldEmotes[k]; e.s.position.y = e.y0 + e.t * e.rise; if (!updEmoteSprite(e, dt)) { scene.remove(e.s); e.s.material.dispose(); worldEmotes.splice(k, 1); } }
   const fl = 0.85 + Math.sin(now / 90) * 0.1 + Math.sin(now / 37) * 0.06;
@@ -2064,7 +2067,7 @@ function setupTown() {
   logEvent('Four meeples lit a fire and founded <b>Meepleton</b>.');
 }
 
-let reachT = 0, waterT = 0, birthT = 6, hudT = 0, stumpT = 0;
+let reachT = 0, waterT = 0, birthT = 6, hudT = 0, stumpT = 0, hungryLogged = false;
 const timers = [];
 function after(sec, fn) { timers.push({ at: clock + sec, fn }); }
 function runTimers() {
@@ -2086,7 +2089,10 @@ addEventListener('keydown', e => {
 });
 function simStep(dt, now) {
   const prevDay = Math.floor(clock / DAY); clock += dt; runTimers();
-  if (Math.floor(clock / DAY) > prevDay) { dayN++; const eat = Math.min(stock.food, Math.ceil(meeples.length / 2)); stock.food -= eat; updPile();
+  if (Math.floor(clock / DAY) > prevDay) {
+    dayN++; const need = Math.ceil(meeples.length / 3), eat = Math.min(stock.food, need); stock.food -= eat; updPile();
+    if (eat < need && !hungryLogged) { hungryLogged = true; logEvent(pick(['The pantry is bare. Tummies rumble across town.', 'Not enough bread to go round this morning.'])); }
+    else if (eat >= need) hungryLogged = false;
     if (seasonNow() !== groundSeason) startSeason(seasonNow());
     else logEvent(pick(['The rooster crows. A new day in Meepleton.', 'Morning mist rolls off the pond.', 'Smoke curls up from the chimneys.', 'Sunrise over the rooftops.']));
   }
@@ -2104,7 +2110,7 @@ function simStep(dt, now) {
     stumpT = 2;
     for (let k = stumps.length - 1; k >= 0; k--) { const s = stumps[k]; s.stumpT += 2; const o = occ[id(s.i, s.j)]; if (s.state !== 'stump') { stumps.splice(k, 1); continue; } if (s.stumpT > 80 || o === O_SITE || o === O_BLD) { removeTree(s); stumps.splice(k, 1); } }
   }
-  updTrees(dt); weatherTick(dt);
+  updTrees(dt); weatherTick(dt); growFields(dt);
   for (const r of rocks) if (r.shake > 0) { r.shake -= dt; rockMatrix(r); }
 }
 let last = performance.now();

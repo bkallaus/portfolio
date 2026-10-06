@@ -18,7 +18,8 @@ html,body{height:100%}
 body{margin:0;overflow:hidden;background:var(--night);color:var(--ink);font-family:var(--f-ui)}
 #sky{position:fixed;inset:0;background:linear-gradient(#5aa0e0,#cfe9f7)}
 #stars{position:fixed;inset:0;width:100%;height:100%;image-rendering:pixelated;opacity:0;pointer-events:none}
-#view{position:fixed;inset:0;width:100%;height:100%;image-rendering:pixelated;display:block}
+#view{position:fixed;inset:0;width:100%;height:100%;image-rendering:pixelated;display:block;touch-action:none;cursor:grab}
+#view.dragging{cursor:grabbing}
 .board{position:fixed;background:var(--board);border:3px solid var(--ink);box-shadow:inset 0 0 0 2px var(--board-edge),4px 4px 0 rgba(20,14,30,.55);padding:8px 10px;pointer-events:none}
 #sign{top:calc(12px + env(safe-area-inset-top,0px));left:12px}
 #sign h1{font-family:var(--f-display);font-weight:700;font-size:22px;margin:0;letter-spacing:.02em;line-height:1}
@@ -1625,8 +1626,10 @@ function updCamera(dt) {
   az += dt * 0.03;
   extT -= dt; if (extT <= 0) { extT = 2; let e = 7; for (const b of buildings) e = Math.max(e, Math.hypot(b.cx, b.cz) + b.size); for (let k = 0; k < N * N; k++) if (road[k] >= 2) e = Math.max(e, Math.hypot(wx(k % N), wz(Math.floor(k / N))) + 1); extent = e; }
   const aspect = W / H, fullHalf = Math.max(22.5, 30 / aspect), port = Math.min(1, aspect);
-  camTimer -= dt;
-  if (camTimer <= 0) {
+  const manual = manualT > 0;
+  if (manual) { manualT -= dt; if (manualT <= 0) camTimer = 0; }
+  else camTimer -= dt;
+  if (!manual && camTimer <= 0) {
     camStep = (camStep + 1) % CYCLE.length; const mode = CYCLE[camStep]; follow = null;
     if (mode === 'close') {
       const sites = buildings.filter(b => !b.done && b.prog > 0), outs = meeples.filter(m => !m.inside && m.g.visible && m.busy !== 'sleep');
@@ -1636,9 +1639,11 @@ function updCamera(dt) {
     } else { focusGoal.set(0, 0, 0); camTimer = mode === 'island' ? 12 : 22; }
   }
   const mode = CYCLE[camStep];
-  halfGoal = mode === 'close' ? 4.6 / port : mode === 'island' ? fullHalf : Math.min(fullHalf, (extent * 0.95 + 1.5) / port);
+  zoomMax = fullHalf * 1.15;
+  if (manual) halfGoal = clamp(halfGoal, ZOOM_MIN, zoomMax);
+  else halfGoal = mode === 'close' ? 4.6 / port : mode === 'island' ? fullHalf : Math.min(fullHalf, (extent * 0.95 + 1.5) / port);
   if (follow) { const f = follow.inside; focusGoal.set(f ? f.cx : follow.x, 0.3, f ? f.cz : follow.z); }
-  camFocus.lerp(focusGoal, 1 - Math.exp(-dt * 1.2)); camHalf += (halfGoal - camHalf) * (1 - Math.exp(-dt * 0.7));
+  camFocus.lerp(focusGoal, 1 - Math.exp(-dt * (manual ? 10 : 1.2))); camHalf += (halfGoal - camHalf) * (1 - Math.exp(-dt * (manual ? 9 : 0.7)));
   const el = 0.6155, D = 90;
   camera.position.set(camFocus.x + Math.sin(az) * Math.cos(el) * D, camFocus.y + Math.sin(el) * D, camFocus.z + Math.cos(az) * Math.cos(el) * D);
   camera.lookAt(camFocus);
@@ -1649,6 +1654,51 @@ function resize() {
   renderer.setSize(Math.ceil(W / PX), Math.ceil(H / PX), false); drawStars();
 }
 addEventListener('resize', resize);
+const ZOOM_MIN = 2.2, IDLE_RESUME = 18, EL_SIN = Math.sin(0.6155);
+let manualT = 0, zoomMax = 30;
+function takeControl(keepFollow) {
+  if (manualT <= 0) halfGoal = camHalf;
+  manualT = IDLE_RESUME;
+  if (!keepFollow) { if (follow) { const f = follow.inside; focusGoal.set(f ? f.cx : follow.x, 0.3, f ? f.cz : follow.z); } follow = null; }
+}
+function panBy(dxPx, dyPx) {
+  takeControl(false);
+  const upp = 2 * camHalf / (canvasEl.clientHeight || H), rx = Math.cos(az), rz = -Math.sin(az), fx = -Math.sin(az), fz = -Math.cos(az);
+  const a = -dxPx * upp, b = dyPx * upp / EL_SIN;
+  focusGoal.x = clamp(focusGoal.x + rx * a + fx * b, -HALF, HALF); focusGoal.z = clamp(focusGoal.z + rz * a + fz * b, -HALF, HALF);
+  camFocus.x = focusGoal.x; camFocus.z = focusGoal.z;
+}
+function zoomBy(f) { takeControl(true); halfGoal = clamp(halfGoal * f, ZOOM_MIN, zoomMax); }
+function rotateBy(r) { takeControl(true); az += r; }
+const ptrs = new Map(); let pinch0 = 0, dragMoved = 0, rotateDrag = false;
+canvasEl.addEventListener('contextmenu', e => e.preventDefault());
+canvasEl.addEventListener('pointerdown', e => {
+  canvasEl.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  dragMoved = 0; rotateDrag = e.button === 2 || e.shiftKey; canvasEl.classList.add('dragging');
+  if (ptrs.size === 2) { const [p, q] = [...ptrs.values()]; pinch0 = Math.hypot(p.x - q.x, p.y - q.y); }
+});
+canvasEl.addEventListener('pointermove', e => {
+  const p = ptrs.get(e.pointerId); if (!p) return;
+  const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY; dragMoved += Math.abs(dx) + Math.abs(dy);
+  if (ptrs.size === 2) {
+    const [a, b] = [...ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y);
+    if (pinch0 > 0 && d > 0) zoomBy(pinch0 / d); pinch0 = d; panBy(dx / 2, dy / 2);
+  } else if (rotateDrag) rotateBy(dx * 0.006);
+  else panBy(dx, dy);
+});
+function endPtr(e) { ptrs.delete(e.pointerId); pinch0 = 0; if (!ptrs.size) canvasEl.classList.remove('dragging'); }
+canvasEl.addEventListener('pointerup', endPtr); canvasEl.addEventListener('pointercancel', endPtr);
+canvasEl.addEventListener('wheel', e => { e.preventDefault(); zoomBy(Math.exp(clamp(e.deltaY, -120, 120) * 0.0015)); }, { passive: false });
+addEventListener('keydown', e => {
+  if (e.target.closest && e.target.closest('input,textarea')) return;
+  const k = e.key.toLowerCase(), step = 40;
+  if (k === 'q') rotateBy(-0.12); else if (k === 'e') rotateBy(0.12);
+  else if (k === '+' || k === '=') zoomBy(0.85); else if (k === '-' || k === '_') zoomBy(1 / 0.85);
+  else if (k === 'arrowleft' || k === 'a') panBy(step, 0); else if (k === 'arrowright' || k === 'd') panBy(-step, 0);
+  else if (k === 'arrowup' || k === 'w') panBy(0, step); else if (k === 'arrowdown' || k === 's') panBy(0, -step);
+  else return;
+  e.preventDefault();
+});
 
 const statDefs = [['meeple', 'Meeples'], ['house', 'Homes'], ['star', 'Built'], ['wood', 'Wood'], ['stone', 'Stone'], ['wheat', 'Food']];
 const statEls = {};

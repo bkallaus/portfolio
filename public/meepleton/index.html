@@ -31,6 +31,10 @@ body{margin:0;overflow:hidden;background:var(--night);color:var(--ink);font-fami
 #log h2{font-family:var(--f-display);font-size:12px;margin:0 0 4px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.12em}
 #log p{margin:0}
 #log p .d{color:var(--accent)}
+#seedRow{display:flex;align-items:center;gap:8px;margin-top:3px;font-size:9px;letter-spacing:.06em;pointer-events:auto}
+#seedLink{color:var(--muted);text-decoration:none;border-bottom:1px dotted var(--muted);font-variant-numeric:tabular-nums}
+#seedLink:hover{color:var(--accent);border-color:var(--accent)}
+#newTown{font:inherit;font-size:9px;background:none;border:0;padding:0;color:var(--accent);cursor:pointer;text-decoration:underline}
 #ctl{display:flex;gap:4px;margin-top:8px;pointer-events:auto}
 #ctl button{font:inherit;font-size:10px;line-height:1;padding:4px 6px;min-width:26px;background:#fff8e6;color:var(--ink);border:2px solid var(--ink);box-shadow:2px 2px 0 rgba(20,14,30,.45);cursor:pointer}
 #ctl button:hover{background:#ffe9b8}
@@ -63,7 +67,7 @@ body{margin:0;overflow:hidden;background:var(--night);color:var(--ink);font-fami
 <div id="sky"></div>
 <canvas id="stars"></canvas>
 <canvas id="view"></canvas>
-<div class="board" id="sign"><h1>Meepleton</h1><div id="clock">Day 1 · 06:00</div><div id="stats"></div><div id="ctl" role="group" aria-label="Simulation speed"><button type="button" data-speed="0" aria-label="Pause" title="Pause (Space)">II</button><button type="button" data-speed="1" title="Normal speed (1)">1x</button><button type="button" data-speed="2" title="Double speed (2)">2x</button><button type="button" data-speed="4" title="Fast (3)">4x</button></div></div>
+<div class="board" id="sign"><h1>Meepleton</h1><div id="clock">Day 1 · 06:00</div><div id="seedRow"><a id="seedLink" title="Permalink to this island">Island #</a><button type="button" id="newTown" title="Found a new island">New island</button></div><div id="stats"></div><div id="ctl" role="group" aria-label="Simulation speed"><button type="button" data-speed="0" aria-label="Pause" title="Pause (Space)">II</button><button type="button" data-speed="1" title="Normal speed (1)">1x</button><button type="button" data-speed="2" title="Double speed (2)">2x</button><button type="button" data-speed="4" title="Fast (3)">4x</button></div></div>
 <div class="board" id="card" hidden aria-live="polite"><button type="button" id="cardClose" aria-label="Close" title="Close (Esc)">X</button><div id="cardBody"></div></div>
 <button type="button" class="board" id="caption" hidden></button>
 <div class="board" id="log"><h2>Town chronicle</h2><div id="logList"></div></div>
@@ -73,7 +77,13 @@ body{margin:0;overflow:hidden;background:var(--night);color:var(--ink);font-fami
 "use strict";
 const N = 40, HALF = N / 2, TPX = 8;
 const SPEED = window.__MEEPLE_FAST || 1;
-let _s = (Math.random() * 4294967296) >>> 0;
+const SEED = (() => {
+  const q = new URLSearchParams(location.search).get('seed');
+  if (q && /^\d{1,9}$/.test(q)) return Number(q);
+  if (q) { let h = 2166136261; for (const ch of q) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0; return h % 1e9; }
+  return Math.floor(Math.random() * 1e6);
+})();
+let _s = SEED >>> 0;
 function rnd() { _s |= 0; _s = (_s + 0x6D2B79F5) | 0; let t = Math.imul(_s ^ (_s >>> 15), 1 | _s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }
 const rr = (a, b) => a + rnd() * (b - a), ri = (a, b) => Math.floor(rr(a, b + 1)), pick = a => a[Math.floor(rnd() * a.length)], chance = p => rnd() < p;
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v, lerp = (a, b, t) => a + (b - a) * t, smooth = t => t * t * (3 - 2 * t);
@@ -1845,6 +1855,11 @@ const statEls = {};
     const c = iconCanvas(ic); d.appendChild(c);
     const s = document.createElement('span'); d.appendChild(s); box.appendChild(d); statEls[ic] = s;
   }
+}
+{
+  const link = document.getElementById('seedLink'), u = new URL(location.href);
+  u.searchParams.set('seed', SEED); link.href = u.pathname + u.search; link.textContent = `Island #${SEED}`;
+  document.getElementById('newTown').addEventListener('click', () => { const n = new URL(location.href); n.searchParams.set('seed', Math.floor(Math.random() * 1e6)); location.href = n.pathname + n.search; });
 }
 const clockEl = document.getElementById('clock'), logEl = document.getElementById('logList');
 const logLines = [];

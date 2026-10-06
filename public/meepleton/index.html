@@ -49,6 +49,12 @@ body{margin:0;overflow:hidden;background:var(--night);color:var(--ink);font-fami
 #card .who{font:inherit;background:none;border:0;padding:0;color:var(--accent);cursor:pointer;text-decoration:underline}
 #cardClose{position:absolute;top:4px;right:4px;font-family:var(--f-ui);font-size:12px;width:22px;height:22px;padding:0;display:grid;place-items:center;color:var(--ink);background:#fff8e6;border:2px solid var(--ink);cursor:pointer;line-height:1}
 #cardClose:hover{background:#ffe9b8}
+#caption{right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));pointer-events:auto;cursor:pointer;font:inherit;font-size:10px;color:var(--ink);text-align:left;max-width:min(300px,calc(100vw - 48px));opacity:0;transform:translateY(6px);transition:opacity .4s,transform .4s}
+#caption.on{opacity:1;transform:none}
+#caption[hidden]{display:none}
+#caption b{font-family:var(--f-display);font-size:14px;display:block}
+#caption .sw{display:inline-block;width:9px;height:9px;border:2px solid var(--ink);margin-right:5px;vertical-align:-1px}
+@media (max-width:700px){#caption{bottom:auto;top:calc(12px + env(safe-area-inset-top,0px))}}
 @media (max-width:520px){#sign h1{font-size:18px}#stats{font-size:10px;gap:3px 8px}#log{font-size:9px}}
 </style>
 </head>
@@ -59,6 +65,7 @@ body{margin:0;overflow:hidden;background:var(--night);color:var(--ink);font-fami
 <canvas id="view"></canvas>
 <div class="board" id="sign"><h1>Meepleton</h1><div id="clock">Day 1 · 06:00</div><div id="stats"></div><div id="ctl" role="group" aria-label="Simulation speed"><button type="button" data-speed="0" aria-label="Pause" title="Pause (Space)">II</button><button type="button" data-speed="1" title="Normal speed (1)">1x</button><button type="button" data-speed="2" title="Double speed (2)">2x</button><button type="button" data-speed="4" title="Fast (3)">4x</button></div></div>
 <div class="board" id="card" hidden aria-live="polite"><button type="button" id="cardClose" aria-label="Close" title="Close (Esc)">X</button><div id="cardBody"></div></div>
+<button type="button" class="board" id="caption" hidden></button>
 <div class="board" id="log"><h2>Town chronicle</h2><div id="logList"></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
@@ -1757,7 +1764,24 @@ function renderCard() {
 cardBody.addEventListener('click', e => { const b = e.target.closest('.who'); if (b) select(meeples.find(m => m.id === Number(b.dataset.id)) || null); });
 document.getElementById('cardClose').addEventListener('click', () => select(null));
 addEventListener('keydown', e => { if (e.key === 'Escape' && selected) select(null); });
+const captionEl = document.getElementById('caption');
+let captionFor = null, captionT = 0;
+captionEl.addEventListener('click', () => { if (captionFor) select(captionFor); });
+function updCaption(dt) {
+  const who = !selected && manualT <= 0 && follow && CYCLE[camStep] === 'close' ? follow : null;
+  if (who !== captionFor) {
+    captionFor = who;
+    if (who) { captionEl.hidden = false; requestAnimationFrame(() => captionEl.classList.add('on')); captionT = 0; }
+    else { captionEl.classList.remove('on'); setTimeout(() => { if (!captionFor) captionEl.hidden = true; }, 420); }
+  }
+  if (!who) return;
+  captionT -= dt; if (captionT > 0) return; captionT = 0.4;
+  const role = who.age < 1 ? 'youngster' : who.role;
+  captionEl.innerHTML = `<b><span class="sw" style="background:${who.color}"></span>${esc(who.name)} the ${role}</b>${esc(who.doing)}`;
+  captionEl.setAttribute('aria-label', `${who.name} the ${role}: ${who.doing}. Open details.`);
+}
 function updSelection(dt) {
+  updCaption(dt);
   if (!selected) return;
   cardT -= dt; if (cardT <= 0) { cardT = 0.3; renderCard(); }
   const o = selected;
@@ -1928,7 +1952,7 @@ function frame(now) {
 setupTown(); resize(); updSky(0); setSpeed(1);
 if (window.__MEEPLE_WARMUP) { for (let k = 0; k < window.__MEEPLE_WARMUP * 20; k++) simStep(0.05, performance.now()); }
 requestAnimationFrame(frame);
-if (window.__MEEPLE_FAST) window.__mt = { camera, select, THREE, astar, accessTile, passable, PILE, quarryTiles, rocks, meeples, buildings, stock, plannedRoads, logLines, trees, phase, dayT, get day() { return dayN; } };
+if (window.__MEEPLE_FAST) window.__mt = { camera, select, THREE, nextShot: () => { camTimer = 0; }, astar, accessTile, passable, PILE, quarryTiles, rocks, meeples, buildings, stock, plannedRoads, logLines, trees, phase, dayT, get day() { return dayN; } };
 })();
 </script>
 

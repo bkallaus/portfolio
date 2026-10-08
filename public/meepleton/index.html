@@ -129,7 +129,7 @@ const inb = (i, j) => i >= 0 && j >= 0 && i < N && j < N;
 const id = (i, j) => j * N + i;
 const DIRS = [[0, 1], [1, 0], [0, -1], [-1, 0]];
 const DIR8 = [[0, 1], [1, 0], [0, -1], [-1, 0], [1, 1], [1, -1], [-1, 1], [-1, -1]];
-const G_GRASS = 0, G_WATER = 1, G_SAND = 2, G_DIRT = 3;
+const G_GRASS = 0, G_WATER = 1, G_SAND = 2, G_DIRT = 3, G_COBBLE = 4;
 const O_NONE = 0, O_TREE = 1, O_ROCK = 2, O_BLD = 3, O_SITE = 4, O_FIRE = 5, O_PILE = 6, O_DECO = 7;
 const ground = new Uint8Array(N * N), road = new Uint8Array(N * N), occ = new Uint8Array(N * N), bridge = new Uint8Array(N * N);
 const occRef = new Array(N * N).fill(null), roadName = new Array(N * N).fill(null);
@@ -199,6 +199,39 @@ function roofG(w, h, d) {
   const s = new THREE.Shape(); s.moveTo(-w / 2, 0); s.lineTo(w / 2, 0); s.lineTo(0, h); s.lineTo(-w / 2, 0);
   const g = new THREE.ExtrudeGeometry(s, { depth: d, bevelEnabled: false }); g.translate(0, 0, -d / 2);
   return geoCache[k] = g;
+}
+function timber(b, w, h, d, y0, braces) {
+  const c = C.timber;
+  for (const sz of [-1, 1]) part(b.W, boxG(w + 0.02, 0.04, 0.02), c, 0, y0 + h * 0.5, sz * (d / 2 + 0.005));
+  for (const sx of [-1, 1]) part(b.W, boxG(0.02, 0.04, d + 0.02), c, sx * (w / 2 + 0.005), y0 + h * 0.5, 0);
+  if (!braces) return;
+  for (const sx of [-1, 1]) for (const k of [-1, 1]) {
+    const len = Math.hypot(d / 2 - 0.08, h * 0.5) * 0.9, br = part(b.W, boxG(0.02, len, 0.03), c, sx * (w / 2 + 0.006), y0 + h * 0.5, k * (d / 4));
+    br.rotation.x = k * Math.atan2(d / 2 - 0.08, h * 0.5); br.position.y = y0 + h * 0.5 - len * Math.cos(br.rotation.x) * 0.5 * 0; br.castShadow = false;
+  }
+}
+function barrel(g, x, z, y = 0) { part(g, cylG(0.075, 0.075, 0.2, 8), '#9a6a40', x, y, z, 0.012); for (const hy of [0.04, 0.15]) part(g, cylG(0.079, 0.079, 0.02, 8), '#4a4458', x, y + hy, z); part(g, cylG(0.06, 0.06, 0.005, 8), '#7a4a2a', x, y + 0.2, z); }
+function crate(g, x, z, y = 0, s = 0.16, fill) {
+  part(g, boxG(s, s, s), '#b5874f', x, y, z, 0.012);
+  for (const sz of [-1, 1]) { part(g, boxG(s + 0.004, 0.025, 0.01), '#7a4a2a', x, y + s * 0.85, z + sz * s / 2); part(g, boxG(s + 0.004, 0.025, 0.01), '#7a4a2a', x, y + 0.01, z + sz * s / 2); }
+  if (fill) for (let k = 0; k < 3; k++) part(g, new THREE.IcosahedronGeometry(s * 0.2, 0), fill, x - s * 0.25 + k * s * 0.25, y + s, z + (k % 2 ? 0.02 : -0.02));
+}
+function sack(g, x, z) { part(g, new THREE.IcosahedronGeometry(0.07, 0), '#d9c08a', x, 0.06, z, 0.012).scale.set(1, 1.2, 1); part(g, cylG(0.02, 0.03, 0.04, 5), '#b8a06a', x, 0.13, z); }
+function props(b, x, z) {
+  const r = rnd(), g = b.D;
+  if (r < 0.3) barrel(g, x, z);
+  else if (r < 0.55) { crate(g, x, z); crate(g, x + 0.04, z - 0.02, 0.16, 0.12); }
+  else if (r < 0.75) { barrel(g, x, z); crate(g, x + 0.17, z, 0, 0.13, pick(['#e34b4b', '#f08a2b', '#9ad14b'])); }
+  else { sack(g, x, z); sack(g, x + 0.12, z + 0.03); }
+}
+function roofRows(parent, w, h, d, color, n, rotY = 0) {
+  const g = new THREE.Group(); g.rotation.y = rotY; parent.add(g);
+  const slope = Math.hypot(w / 2, h), ang = Math.atan2(h, w / 2), c = shade(color, 0.8);
+  for (const side of [-1, 1]) for (let k = 1; k <= n; k++) {
+    const t = k / (n + 1), x = side * (w / 2) * (1 - t), y = h * t;
+    const r = part(g, boxG(0.035, 0.016, d + 0.01), c, x + side * 0.008, y + 0.004, 0); r.rotation.z = -side * (Math.PI / 2 - ang) * 0 + side * ang; r.castShadow = false;
+  }
+  return g;
 }
 function outline(m, t = 0.03) {
   const g = m.geometry; if (!g.boundingBox) g.computeBoundingBox();
@@ -304,38 +337,38 @@ const gx = gcv.getContext('2d');
 const gtex = new THREE.CanvasTexture(gcv); gtex.magFilter = THREE.NearestFilter; gtex.minFilter = THREE.NearestFilter; gtex.generateMipmaps = false;
 let waterPhase = 0, groundSeason = 0;
 const GP = [
-  { grass: ['#72b84f', '#6bb04a', '#78bc55'], dark: '#5a9a40', light: '#9ad46e', tuft: '#4f8a38', flowers: 0.22, fc: ['#fff4e0', '#f28bb8', '#f7b6d2', '#b9a7ff', '#ffd84a'], sand: '#e6d193', water: ['#3d82c4', '#3a7ebf'] },
-  { grass: ['#6db24f', '#67ab4a', '#72b654'], dark: '#58963f', light: '#8ccc66', tuft: '#4f8a38', flowers: 0.12, fc: ['#fff4e0', '#ffd84a', '#f28bb8', '#b9a7ff'], sand: '#e6d193', water: ['#3d82c4', '#3a7ebf'] },
+  { grass: ['#6cc84c', '#66c148', '#72cd52'], dark: '#5bb342', light: '#94dc6c', tuft: '#4f9e3a', flowers: 0.22, fc: ['#fff4e0', '#f28bb8', '#f7b6d2', '#b9a7ff', '#ffd84a'], sand: '#e6d193', water: ['#3f95da', '#3c90d4'] },
+  { grass: ['#6fcb4a', '#69c446', '#76d050'], dark: '#5eb641', light: '#98de6a', tuft: '#4f9e3a', flowers: 0.12, fc: ['#fff4e0', '#ffd84a', '#f28bb8', '#b9a7ff'], sand: '#e6d193', water: ['#3f95da', '#3c90d4'] },
   { grass: ['#93a84a', '#8aa046', '#9aae50'], dark: '#7a8c3a', light: '#c9a84a', tuft: '#6d7a32', flowers: 0.16, fc: ['#e39b3c', '#d9663a', '#e8c048', '#b8443c'], leaf: true, sand: '#e0c98c', water: ['#3a78b5', '#3774b0'] },
   { grass: ['#eef3f7', '#e8eef3', '#f4f7fa'], dark: '#d3dde6', light: '#ffffff', tuft: '#c4d0da', flowers: 0, fc: [], sand: '#e9e6dc', water: ['#5d93c4', '#5a8fbf'] },
 ];
 function px(x, y, c) { gx.fillStyle = c; gx.fillRect(x, y, 1, 1); }
-const isRoad = (i, j) => inb(i, j) && road[id(i, j)] >= 2;
+const isRoad = (i, j) => inb(i, j) && (road[id(i, j)] >= 2 || ground[id(i, j)] === G_COBBLE);
 function drawTile(i, j) {
   const X = i * TPX, Y = j * TPX, k = id(i, j), g = ground[k], h = (n) => hash(i, j, n);
   const rect = (c) => { gx.fillStyle = c; gx.fillRect(X, Y, TPX, TPX); };
-  if (road[k] >= 2 && !bridge[k]) {
-    if (road[k] === 3) {
-      rect('#a79886');
+  if ((road[k] >= 2 || g === G_COBBLE) && !bridge[k]) {
+    if (road[k] === 3 || g === G_COBBLE) {
+      rect('#7f7c87');
       for (let a = 0; a < 2; a++) for (let b = 0; b < 2; b++) {
-        gx.fillStyle = ['#cbbba3', '#c2b299', '#d4c6b0'][Math.floor(h(a * 2 + b) * 3)];
-        gx.fillRect(X + a * 4, Y + b * 4, 3, 3); px(X + a * 4, Y + b * 4, '#e2d6c2');
+        const sx = X + a * 4, sy = Y + b * 4;
+        gx.fillStyle = ['#cfcdd4', '#c4c2ca', '#d8d6dc'][Math.floor(h(a * 2 + b) * 3)];
+        gx.fillRect(sx, sy, 3, 3); px(sx, sy, '#e9e8ed'); px(sx + 2, sy + 2, '#aaa7b1');
       }
     } else {
-      rect('#8f7c66');
+      rect('#77737f');
       for (let r = 0; r < 3; r++) {
-        const off = ((r + j) % 2) * 2;
-        for (let s = -1; s < 3; s++) {
-          const sx = s * 4 - off, y0 = r * 3;
-          const x0 = Math.max(0, sx), x1 = Math.min(TPX, sx + 3);
+        const off = ((r + j) % 2) * 2, y0 = r * 3 - (r === 2 ? 1 : 0), hh = r === 2 ? 3 : 2;
+        for (let st = -1; st < 3; st++) {
+          const sx = st * 3 + off + (r === 1 ? 1 : 0), x0 = Math.max(0, sx), x1 = Math.min(TPX, sx + 2);
           if (x1 <= x0) continue;
-          gx.fillStyle = ['#c9b699', '#bfab8e', '#d3c2a6'][Math.floor(h(r * 5 + s + 2) * 3)];
-          gx.fillRect(X + x0, Y + y0, x1 - x0, Math.min(2, TPX - y0));
-          px(X + x0, Y + y0, '#e2d4bb');
+          gx.fillStyle = ['#c4c1ca', '#b3b0ba', '#cfccd4', '#a8a5b0'][Math.floor(h(r * 5 + st + 2) * 4)];
+          gx.fillRect(X + x0, Y + y0, x1 - x0, hh);
+          px(X + x0, Y + y0, '#e3e1e7');
         }
       }
     }
-    gx.fillStyle = '#6d5b47';
+    gx.fillStyle = '#8e8b96';
     if (!isRoad(i, j - 1)) gx.fillRect(X, Y, TPX, 1);
     if (!isRoad(i, j + 1)) gx.fillRect(X, Y + TPX - 1, TPX, 1);
     if (!isRoad(i - 1, j)) gx.fillRect(X, Y, 1, TPX);
@@ -358,10 +391,10 @@ function drawTile(i, j) {
   }
   if (g === G_WATER) {
     rect(GP[groundSeason].water[h(1) < 0.5 ? 0 : 1]);
-    px(X + Math.floor(h(2) * 8), Y + Math.floor(h(3) * 8), '#336fb0');
-    px(X + Math.floor(h(4) * 8), Y + Math.floor(h(5) * 8), '#336fb0');
+    px(X + Math.floor(h(2) * 8), Y + Math.floor(h(3) * 8), '#3482c7');
+    px(X + Math.floor(h(4) * 8), Y + Math.floor(h(5) * 8), '#3482c7');
     const yy = Math.floor(h(6) * 8 + waterPhase) % 8, xx = Math.floor(h(7) * 5);
-    gx.fillStyle = '#8cc9f2'; gx.fillRect(X + xx, Y + yy, 2 + Math.floor(h(8) * 2), 1);
+    gx.fillStyle = '#9ad8ff'; gx.fillRect(X + xx, Y + yy, 2 + Math.floor(h(8) * 2), 1);
     if (Math.floor(waterPhase + h(9) * 8) % 8 === 0) px(X + Math.floor(h(10) * 8), Y + Math.floor(h(11) * 8), '#ffffff');
     const land = (a, b) => inb(a, b) && ground[id(a, b)] !== G_WATER;
     gx.fillStyle = '#cfeaf8';
@@ -380,11 +413,11 @@ function drawTile(i, j) {
     rect(gp.sand);
     for (let n = 0; n < 4; n++) px(X + Math.floor(h(20 + n) * 8), Y + Math.floor(h(30 + n) * 8), n % 2 ? '#d2b976' : '#f1e2ad');
   } else if (g === G_DIRT) {
-    rect('#9b6a43');
-    for (let n = 0; n < 5; n++) px(X + Math.floor(h(20 + n) * 8), Y + Math.floor(h(30 + n) * 8), n % 2 ? '#86593a' : '#b07d51');
+    rect('#ae8559');
+    for (let n = 0; n < 5; n++) px(X + Math.floor(h(20 + n) * 8), Y + Math.floor(h(30 + n) * 8), n % 2 ? '#977049' : '#c09a6c');
   } else {
     rect(gp.grass[Math.floor(h(1) * 3)]);
-    for (let n = 0; n < 5; n++) px(X + Math.floor(h(20 + n) * 8), Y + Math.floor(h(30 + n) * 8), gp.dark);
+    for (let n = 0; n < 3; n++) px(X + Math.floor(h(20 + n) * 8), Y + Math.floor(h(30 + n) * 8), gp.dark);
     for (let n = 0; n < 2; n++) px(X + Math.floor(h(40 + n) * 8), Y + Math.floor(h(50 + n) * 8), gp.light);
     if (h(60) < 0.35) { const tx = X + 1 + Math.floor(h(61) * 5), ty = Y + 2 + Math.floor(h(62) * 5); px(tx, ty, gp.tuft); px(tx + 1, ty - 1, gp.tuft); px(tx + 2, ty, gp.tuft); }
     if (h(70) < gp.flowers) {
@@ -633,10 +666,14 @@ function addLamp(i, j) {
   const g = new THREE.Group(); const ox = rnd() < 0.5 ? -0.42 : 0.42, oz = rnd() < 0.5 ? -0.42 : 0.42;
   g.position.set(wx(i) + ox, 0, wz(j) + oz); scene.add(g);
   part(g, boxG(0.1, 0.05, 0.1), '#2b2238', 0, 0, 0);
-  part(g, cylG(0.025, 0.03, 0.7, 5), '#2b2238', 0, 0, 0);
-  part(g, boxG(0.12, 0.13, 0.12), lampOn, 0, 0.68, 0);
-  part(g, cylG(0.0, 0.1, 0.07, 4), '#2b2238', 0, 0.81, 0).rotation.y = Math.PI / 4;
-  const sp = new THREE.Sprite(glowMat.clone()); sp.scale.set(1.3, 1.3, 1); sp.position.y = 0.74; g.add(sp);
+  part(g, cylG(0.025, 0.03, 0.86, 5), '#2b2238', 0, 0, 0);
+  part(g, new THREE.IcosahedronGeometry(0.035, 0), '#2b2238', 0, 0.87, 0);
+  part(g, boxG(0.2, 0.025, 0.025), '#2b2238', 0.08, 0.8, 0);
+  part(g, boxG(0.008, 0.06, 0.008), '#2b2238', 0.15, 0.74, 0);
+  part(g, boxG(0.1, 0.12, 0.1), lampOn, 0.15, 0.6, 0);
+  part(g, cylG(0.0, 0.085, 0.06, 4), '#2b2238', 0.15, 0.72, 0).rotation.y = Math.PI / 4;
+  part(g, boxG(0.11, 0.02, 0.11), '#2b2238', 0.15, 0.59, 0);
+  const sp = new THREE.Sprite(glowMat.clone()); sp.scale.set(1.3, 1.3, 1); sp.position.set(0.15, 0.66, 0); g.add(sp);
   bakeStatic(g);
   let bulb = null; g.traverse(o => { if (o.isMesh && o.material === lampOn) bulb = o; });
   const lamp = { i, j, g, x: g.position.x, z: g.position.z, glow: sp, bulb, lit: nightF > 0.5, glowA: 0, offT: rnd(), res: 0 };
@@ -647,7 +684,7 @@ function lampNear(i, j, r) { return lamps.some(l => Math.abs(l.i - i) <= r && Ma
 const BT = {
   cottage: { size: 1, cost: { wood: 3, stone: 1 }, work: 10, cap: 2, label: 'cottage' },
   house: { size: 2, cost: { wood: 6, stone: 3 }, work: 18, cap: 4, label: 'townhouse' },
-  field: { size: 2, cost: { wood: 1, stone: 0 }, work: 6, cap: 0, label: 'wheat field' },
+  field: { size: 2, cost: { wood: 1, stone: 0 }, work: 6, cap: 0, label: 'field' },
   well: { size: 1, cost: { wood: 1, stone: 3 }, work: 8, cap: 0, label: 'well' },
   stall: { size: 1, cost: { wood: 3, stone: 0 }, work: 7, cap: 0, label: 'market stall' },
   windmill: { size: 1, cost: { wood: 5, stone: 2 }, work: 16, cap: 0, label: 'windmill' },
@@ -657,8 +694,10 @@ const BT = {
   fountain: { size: 1, cost: { wood: 0, stone: 6 }, work: 12, cap: 0, label: 'fountain' },
   bakery: { size: 1, cost: { wood: 4, stone: 2 }, work: 12, cap: 0, label: 'bakery' },
   statue: { size: 1, cost: { wood: 0, stone: 8 }, work: 18, cap: 0, label: 'statue' },
+  pen: { size: 2, cost: { wood: 4, stone: 0 }, work: 9, cap: 0, label: 'sheep pen' },
 };
 const buildings = [];
+const PLAZA = new Set(['well', 'stall', 'fountain', 'statue']);
 const WIN_DAY = new THREE.Color('#6f9ccc'), WIN_DARK = new THREE.Color('#2a3550'), WIN_LIT = new THREE.Color('#ffd772');
 function winBox(b, w, h, x, y, z, side) {
   const g = side ? boxG(0.03, h, w) : boxG(w, h, 0.03);
@@ -675,13 +714,15 @@ function addDoor(b, w, h, z, double) {
 }
 const BUILD = {
   fountain(b) {
+    part(b.W, cylG(0.5, 0.5, 0.025, 12), '#c4c1ca', 0, 0, 0);
     part(b.W, cylG(0.42, 0.45, 0.14, 8), C.stone, 0, 0, 0, 1);
-    part(b.W, cylG(0.36, 0.36, 0.02, 8), '#5aa0e0', 0, 0.12, 0);
+    part(b.W, cylG(0.36, 0.36, 0.02, 8), '#4fb2ef', 0, 0.12, 0);
     part(b.W, cylG(0.06, 0.08, 0.42, 6), C.stoneD, 0, 0.12, 0, 0.02);
     part(b.W, cylG(0.17, 0.11, 0.07, 8), C.stone, 0, 0.5, 0, 0.02);
-    part(b.W, cylG(0.14, 0.14, 0.01, 8), '#8cc9f2', 0, 0.565, 0);
+    part(b.W, cylG(0.14, 0.14, 0.01, 8), '#7fd0fa', 0, 0.565, 0);
+    part(b.W, cylG(0.035, 0.05, 0.16, 6), C.stoneD, 0, 0.57, 0); part(b.W, new THREE.IcosahedronGeometry(0.045, 0), '#7fd0fa', 0, 0.75, 0);
     for (let k = 0; k < 4; k++) { const a = k * Math.PI / 2 + Math.PI / 4; part(b.D, boxG(0.08, 0.1, 0.08), '#86838e', Math.cos(a) * 0.42, 0.12, Math.sin(a) * 0.42); }
-    b.spout = new V3(0, 0.6, 0); b.wallH = 0.6; b.roofTop = 0.75;
+    b.spout = new V3(0, 0.76, 0); b.wallH = 0.6; b.roofTop = 0.85;
   },
   bakery(b) {
     BUILD.cottage(b);
@@ -689,6 +730,7 @@ const BUILD = {
     const sg = new THREE.Sprite(new THREE.SpriteMaterial({ map: emoteTexture('wheat') })); sg.scale.set(0.24, 0.24, 1); sg.position.set(-0.24, 0.62, 0.44); b.D.add(sg);
     part(b.D, boxG(0.3, 0.06, 0.12), '#9a6a40', -0.25, 0.14, 0.44);
     for (let k = 0; k < 3; k++) part(b.D, new THREE.IcosahedronGeometry(0.035, 0), '#d9a35a', -0.34 + k * 0.09, 0.22, 0.44);
+    sack(b.D, 0.5, 0.2); sack(b.D, 0.5, 0.05); barrel(b.D, 0.48, -0.15);
   },
   statue(b) {
     part(b.W, boxG(0.6, 0.12, 0.6), C.stoneD, 0, 0, 0, 1);
@@ -701,10 +743,11 @@ const BUILD = {
   cottage(b) {
     const wall = pick(C.walls), roof = pick(C.roofs);
     part(b.W, boxG(0.78, 0.5, 0.72), wall, 0, 0, 0, 1);
+    part(b.W, boxG(0.84, 0.1, 0.78), C.stone, 0, 0, 0, 0.02); timber(b, 0.78, 0.5, 0.72, 0, false);
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) part(b.W, boxG(0.07, 0.5, 0.07), C.timber, sx * 0.38, 0, sz * 0.35);
     part(b.W, boxG(0.8, 0.05, 0.74), C.timber, 0, 0.45, 0);
     b.R.position.y = 0.5;
-    part(b.R, roofG(1.0, 0.42, 0.9), roof, 0, 0, 0, 1);
+    part(b.R, roofG(1.0, 0.42, 0.9), roof, 0, 0, 0, 1); roofRows(b.R, 1.0, 0.42, 0.9, roof, 4);
     part(b.R, boxG(0.07, 0.05, 0.94), shade(roof, 0.7), 0, 0.39, 0);
     addDoor(b, 0.18, 0.3, 0.36);
     winBox(b, 0.14, 0.13, 0.22, 0.2, 0.37);
@@ -713,16 +756,17 @@ const BUILD = {
     for (let k = 0; k < 3; k++) part(b.D, boxG(0.04, 0.04, 0.04), pick(['#f28bb8', '#ffd84a', '#e34b4b', '#b9a7ff']), 0.16 + k * 0.06, 0.18, 0.4);
     part(b.D, boxG(0.12, 0.38, 0.12), C.stone, 0.22, 0.5, -0.2, 1); b.chimney = new V3(0.22, 0.95, -0.2);
     if (chance(0.5)) part(b.D, cylG(0.05, 0.05, 0.12, 6), '#b5653a', -0.28, 0, 0.45);
+    if (chance(0.7)) props(b, -0.5, -0.12);
     b.wallH = 0.5; b.roofTop = 0.95;
   },
   house(b) {
     const wall = pick(C.walls), roof = pick(C.roofs);
     part(b.W, boxG(1.6, 0.18, 1.36), C.stone, 0, 0, 0, 1);
     part(b.W, boxG(1.54, 0.72, 1.3), wall, 0, 0.18, 0, 1);
-    part(b.W, boxG(1.58, 0.05, 1.34), C.timber, 0, 0.5, 0);
+    part(b.W, boxG(1.58, 0.05, 1.34), C.timber, 0, 0.5, 0); timber(b, 1.54, 0.72, 1.3, 0.18, true);
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) part(b.W, boxG(0.07, 0.72, 0.07), C.timber, sx * 0.76, 0.18, sz * 0.64);
     b.R.position.y = 0.9;
-    const r = part(b.R, roofG(1.56, 0.6, 1.8), roof, 0, 0, 0, 1); r.rotation.y = Math.PI / 2;
+    const r = part(b.R, roofG(1.56, 0.6, 1.8), roof, 0, 0, 0, 1); r.rotation.y = Math.PI / 2; roofRows(b.R, 1.56, 0.6, 1.8, roof, 5, Math.PI / 2);
     const rr2 = part(b.R, boxG(1.84, 0.06, 0.08), shade(roof, 0.7), 0, 0.56, 0);
     part(b.R, roofG(0.5, 0.3, 0.4), roof, 0.35, 0.05, 0.62, 1);
     addDoor(b, 0.26, 0.38, 0.66, true);
@@ -730,8 +774,15 @@ const BUILD = {
     for (const x of [-0.5, 0.5]) winBox(b, 0.18, 0.16, x, 0.26, 0.66);
     for (const x of [-0.5, 0, 0.5]) winBox(b, 0.16, 0.16, x, 0.62, 0.66);
     for (const z of [-0.3, 0.3]) { winBox(b, 0.16, 0.16, 0.78, 0.3, z, true); winBox(b, 0.16, 0.16, -0.78, 0.3, z, true); }
+    const sh = pick(['#3f7fbf', '#4aa37a', '#b8443c', '#6b4428']), fl = ['#f28bb8', '#ffd84a', '#e34b4b', '#b9a7ff'];
+    for (const x of [-0.5, 0.5]) {
+      for (const sx of [-1, 1]) part(b.D, boxG(0.05, 0.18, 0.02), sh, x + sx * 0.13, 0.25, 0.68);
+      part(b.D, boxG(0.22, 0.05, 0.07), '#8a5a2e', x, 0.2, 0.7);
+      for (let k = 0; k < 3; k++) part(b.D, boxG(0.04, 0.04, 0.04), fl[(k + (x > 0 ? 1 : 0)) % 4], x - 0.06 + k * 0.06, 0.25, 0.71);
+    }
     part(b.D, boxG(0.16, 0.5, 0.16), C.stone, -0.5, 1.05, -0.3, 1); b.chimney = new V3(-0.5, 1.58, -0.3);
     for (const x of [-0.72, 0.72]) { part(b.D, boxG(0.14, 0.12, 0.14), '#b5653a', x, 0, 0.8); part(b.D, new THREE.IcosahedronGeometry(0.08, 0), '#4f9d45', x, 0.17, 0.8); }
+    props(b, 0.9, 0.3);
     b.wallH = 0.9; b.roofTop = 1.5;
   },
   well(b) {
@@ -745,36 +796,63 @@ const BUILD = {
     b.wallH = 0.3; b.roofTop = 1.05;
   },
   field(b) {
-    part(b.W, boxG(1.84, 0.05, 1.84), '#8a5a36', 0, 0, 0);
-    for (let k = 0; k < 5; k++) part(b.W, boxG(1.7, 0.04, 0.1), '#7a4c2c', 0, 0.05, -0.72 + k * 0.36);
-    b.crops = [];
-    for (let r = 0; r < 5; r++) for (let c = 0; c < 6; c++) { const m = part(b.W, boxG(0.08, 0.3, 0.08), '#6cbf4a', -0.7 + c * 0.28 + rr(-.03, .03), 0.07, -0.72 + r * 0.36); m.material = b.cropMat; b.crops.push(m); }
-    for (let k = 0; k < 8; k++) {
-      const a = -0.95 + k * 0.27;
-      part(b.D, boxG(0.05, 0.22, 0.05), C.timber, a, 0, -0.95); part(b.D, boxG(0.05, 0.22, 0.05), C.timber, -0.95, 0, a); part(b.D, boxG(0.05, 0.22, 0.05), C.timber, 0.95, 0, a);
+    b.crop = pick(['wheat', 'wheat', 'pumpkin', 'carrot', 'cabbage']);
+    part(b.W, boxG(1.84, 0.05, 1.84), '#7a5032', 0, 0, 0);
+    for (let k = 0; k < 5; k++) part(b.W, boxG(1.7, 0.05, 0.16), '#5e3c24', 0, 0.05, -0.72 + k * 0.36);
+    b.crops = []; b.produce = [];
+    b.prodMat = new THREE.MeshToonMaterial({ color: b.crop === 'pumpkin' ? '#f08a2b' : b.crop === 'carrot' ? '#f27a2a' : '#b9e07a', gradientMap: gradMap });
+    for (let r = 0; r < 5; r++) for (let c = 0; c < 6; c++) {
+      const x = -0.7 + c * 0.28 + rr(-.03, .03), z = -0.72 + r * 0.36;
+      if (b.crop === 'wheat') { const m = part(b.W, boxG(0.08, 0.3, 0.08), '#6cbf4a', x, 0.07, z); m.material = b.cropMat; b.crops.push(m); continue; }
+      const leaf = part(b.W, new THREE.IcosahedronGeometry(b.crop === 'carrot' ? 0.06 : 0.07, 0), '#4f9d45', x, 0.09, z); leaf.material = b.cropMat; leaf.scale.set(1, b.crop === 'carrot' ? 1.8 : 0.8, 1); b.crops.push(leaf);
+      if (b.crop === 'pumpkin' && (r + c) % 2) continue;
+      const pr = part(b.W, b.crop === 'pumpkin' ? new THREE.SphereGeometry(0.1, 8, 5) : b.crop === 'carrot' ? cylG(0.035, 0.0, 0.08, 5) : new THREE.SphereGeometry(0.075, 7, 5), '#f08a2b', x + (b.crop === 'pumpkin' ? 0.05 : 0), b.crop === 'carrot' ? 0.06 : 0.1, z + (b.crop === 'carrot' ? 0 : 0.05));
+      pr.material = b.prodMat; if (b.crop === 'pumpkin') pr.scale.y = 0.75; if (b.crop === 'carrot') pr.rotation.x = Math.PI;
+      b.produce.push(pr);
     }
-    part(b.D, boxG(1.92, 0.03, 0.03), C.timber, 0, 0.15, -0.95);
-    part(b.D, boxG(0.03, 0.03, 1.92), C.timber, -0.95, 0.15, 0); part(b.D, boxG(0.03, 0.03, 1.92), C.timber, 0.95, 0.15, 0);
+    const fence = (x0, z0, x1, z1) => {
+      const len = Math.hypot(x1 - x0, z1 - z0), n = Math.round(len / 0.32), rot = Math.atan2(z1 - z0, x1 - x0);
+      for (let k = 0; k <= n; k++) part(b.D, boxG(0.06, 0.26, 0.06), C.timber, lerp(x0, x1, k / n), 0, lerp(z0, z1, k / n));
+      for (const y of [0.1, 0.2]) part(b.D, boxG(len, 0.035, 0.025), '#8a5a2e', (x0 + x1) / 2, y, (z0 + z1) / 2).rotation.y = -rot;
+    };
+    fence(-0.95, -0.95, 0.95, -0.95); fence(-0.95, -0.95, -0.95, 0.95); fence(0.95, -0.95, 0.95, 0.95);
+    fence(-0.95, 0.95, -0.25, 0.95); fence(0.25, 0.95, 0.95, 0.95);
     const s = new THREE.Group(); s.position.set(0.6, 0, -0.55); s.rotation.y = rr(-0.5, 0.5); b.D.add(s);
     part(s, boxG(0.04, 0.55, 0.04), C.timber, 0, 0, 0); part(s, boxG(0.4, 0.04, 0.04), C.timber, 0, 0.36, 0);
     part(s, boxG(0.16, 0.2, 0.08), pick(['#3b78d8', '#e0443e', '#8b5cc7']), 0, 0.26, 0, 1);
     part(s, new THREE.IcosahedronGeometry(0.07, 0), '#e8c86a', 0, 0.54, 0);
-    part(s, cylG(0.12, 0.12, 0.02, 8), '#d8b25a', 0, 0.58, 0); part(s, cylG(0.05, 0.06, 0.06, 8), '#d8b25a', 0, 0.59, 0);
+    part(s, cylG(0.13, 0.13, 0.02, 8), '#d8b25a', 0, 0.59, 0, 0.012); part(s, cylG(0.055, 0.065, 0.07, 8), '#d8b25a', 0, 0.6, 0); part(s, cylG(0.067, 0.067, 0.02, 8), '#c8443f', 0, 0.61, 0);
+    for (const sx of [-1, 1]) part(s, boxG(0.04, 0.06, 0.03), '#e8c86a', sx * 0.21, 0.32, 0);
+    const hay = (x, z, y = 0, r = 0) => { const h = part(b.D, boxG(0.3, 0.17, 0.2), '#e8c55a', x, y, z, 0.012); h.rotation.y = r; for (const o of [-0.07, 0.07]) part(b.D, boxG(0.012, 0.172, 0.204), '#c9a23a', x + Math.cos(r) * o, y, z - Math.sin(r) * o).rotation.y = r; };
+    hay(-1.12, 0.75, 0, 0.1); hay(-1.12, 0.45, 0, -0.05); hay(-1.12, 0.6, 0.17, 0.05);
     b.wallH = 0.1; b.roofTop = 0.7; b.grow = 0; b.tend = 0;
   },
+  pen(b) {
+    for (let k = 0; k < 7; k++) part(b.W, boxG(0.05, 0.03, 0.05), '#4f9d45', rr(-0.8, 0.8), 0, rr(-0.8, 0.8));
+    const fence = (x0, z0, x1, z1) => {
+      const len = Math.hypot(x1 - x0, z1 - z0), n = Math.max(1, Math.round(len / 0.3)), rot = Math.atan2(z1 - z0, x1 - x0);
+      for (let k = 0; k <= n; k++) part(b.D, boxG(0.07, 0.3, 0.07), C.timber, lerp(x0, x1, k / n), 0, lerp(z0, z1, k / n));
+      for (const y of [0.11, 0.23]) part(b.D, boxG(len, 0.04, 0.03), '#8a5a2e', (x0 + x1) / 2, y, (z0 + z1) / 2).rotation.y = -rot;
+    };
+    fence(-0.92, -0.92, 0.92, -0.92); fence(-0.92, -0.92, -0.92, 0.92); fence(0.92, -0.92, 0.92, 0.92);
+    fence(-0.92, 0.92, -0.2, 0.92); fence(0.2, 0.92, 0.92, 0.92);
+    part(b.D, boxG(0.42, 0.1, 0.14), '#8a5a2e', -0.55, 0, -0.7, 0.012); part(b.D, boxG(0.36, 0.01, 0.09), '#5aa0e0', -0.55, 0.095, -0.7);
+    part(b.D, boxG(0.3, 0.17, 0.2), '#e8c55a', 0.62, 0, -0.66, 0.012);
+    b.wallH = 0.3; b.roofTop = 0.6;
+  },
   stall(b) {
-    const cols = pick([['#e0443e', '#f6ecd2'], ['#3b78d8', '#f6ecd2'], ['#49a84f', '#f1c232']]);
-    part(b.W, boxG(0.72, 0.32, 0.36), C.timber, 0, 0, 0.12, 1);
-    part(b.W, boxG(0.76, 0.03, 0.4), '#9a6a40', 0, 0.32, 0.12);
-    for (const sx of [-1, 1]) for (const sz of [-1, 1]) part(b.W, boxG(0.05, 0.72, 0.05), C.timber, sx * 0.36, 0, sz * 0.28 + 0.02);
-    b.R.position.y = 0.72;
-    const c = document.createElement('canvas'); c.width = 8; c.height = 1; const x = c.getContext('2d');
-    for (let k = 0; k < 8; k++) { x.fillStyle = cols[k % 2]; x.fillRect(k, 0, 1, 1); }
-    const t = new THREE.CanvasTexture(c); t.magFilter = t.minFilter = THREE.NearestFilter;
-    const aw = part(b.R, boxG(0.86, 0.03, 0.72), new THREE.MeshToonMaterial({ map: t, gradientMap: gradMap }), 0, 0, 0.02, 1); aw.rotation.x = 0.2;
-    for (let k = 0; k < 6; k++) part(b.D, new THREE.IcosahedronGeometry(0.045, 0), pick(['#e34b4b', '#f08a2b', '#9ad14b', '#f2c230']), -0.25 + k * 0.1, 0.38, 0.2);
-    part(b.D, boxG(0.2, 0.14, 0.14), '#9a6a40', 0.42, 0, 0.35); for (let k = 0; k < 3; k++) part(b.D, new THREE.IcosahedronGeometry(0.05, 0), '#f08a2b', 0.37 + k * 0.05, 0.16, 0.35);
-    b.wallH = 0.72; b.roofTop = 0.85;
+    const cloth = pick(['#d9463f', '#3f7fd9', '#f2c230', '#efe3c0', '#4aa37a']), trim = shade(cloth, 0.72);
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) part(b.W, boxG(0.045, 0.62, 0.045), C.timber, sx * 0.36, 0, sz * 0.32);
+    part(b.W, boxG(0.7, 0.26, 0.28), '#9a6a40', 0, 0, 0.14, 1);
+    part(b.W, boxG(0.74, 0.03, 0.32), '#b58a55', 0, 0.26, 0.14);
+    for (const sx of [-0.2, 0.06]) { part(b.W, boxG(0.22, 0.08, 0.18), '#8a5a2e', sx, 0.29, 0.13, 0.012); const fc = pick(['#e34b4b', '#f08a2b', '#9ad14b', '#f2c230', '#8b5cc7']); for (let k = 0; k < 4; k++) part(b.D, new THREE.IcosahedronGeometry(0.035, 0), fc, sx - 0.06 + (k % 2) * 0.1, 0.39, 0.09 + Math.floor(k / 2) * 0.08); }
+    b.R.position.y = 0.62;
+    part(b.R, (() => { const g = new THREE.ConeGeometry(0.62, 0.32, 4, 1); g.rotateY(Math.PI / 4); g.translate(0, 0.16, 0); return g; })(), cloth, 0, 0, 0, 1).scale.set(1, 1, 0.9);
+    for (const sz of [-1, 1]) part(b.R, boxG(0.88, 0.07, 0.015), trim, 0, -0.06, sz * 0.395);
+    for (const sx of [-1, 1]) part(b.R, boxG(0.015, 0.07, 0.8), trim, sx * 0.44, -0.06, 0);
+    part(b.D, boxG(0.18, 0.14, 0.18), '#9a6a40', 0.46, 0, 0.32, 0.012); for (let k = 0; k < 3; k++) part(b.D, new THREE.IcosahedronGeometry(0.045, 0), pick(['#f08a2b', '#e34b4b', '#9ad14b']), 0.42 + (k % 2) * 0.07, 0.17, 0.3 + k * 0.03);
+    part(b.D, cylG(0.08, 0.08, 0.2, 8), '#8a5a2e', -0.46, 0, 0.32, 0.012); part(b.D, cylG(0.083, 0.083, 0.02, 8), '#4a4458', -0.46, 0.06, 0.32); part(b.D, cylG(0.083, 0.083, 0.02, 8), '#4a4458', -0.46, 0.15, 0.32);
+    b.wallH = 0.62; b.roofTop = 0.95;
   },
   windmill(b) {
     part(b.W, cylG(0.26, 0.36, 1.25, 8), pick(['#f3e3c3', '#e9e2d0']), 0, 0, 0, 1);
@@ -799,7 +877,7 @@ const BUILD = {
     for (let k = 0; k < 5; k++) part(b.W, boxG(0.06, 0.55, 1.44), C.timber, -0.78 + k * 0.39, 0.3, 0);
     part(b.W, boxG(1.68, 0.05, 1.44), C.timber, 0, 0.82, 0);
     b.R.position.y = 0.85;
-    part(b.R, roofG(1.66, 0.62, 1.92), '#7a3b3b', 0, 0, 0, 1).rotation.y = Math.PI / 2;
+    part(b.R, roofG(1.66, 0.62, 1.92), '#7a3b3b', 0, 0, 0, 1).rotation.y = Math.PI / 2; roofRows(b.R, 1.66, 0.62, 1.92, '#7a3b3b', 4, Math.PI / 2);
     part(b.R, boxG(1.96, 0.06, 0.08), '#5a2b2b', 0, 0.58, 0);
     addDoor(b, 0.28, 0.4, 0.71, true);
     for (const x of [-0.55, -0.28, 0.28, 0.55]) winBox(b, 0.16, 0.16, x, 0.42, 0.71);
@@ -807,7 +885,7 @@ const BUILD = {
     part(b.D, boxG(0.18, 0.5, 0.18), C.stone, 0.55, 0.9, -0.3, 1); b.chimney = new V3(0.55, 1.45, -0.3);
     part(b.D, boxG(0.04, 0.04, 0.3), C.timber, 0.35, 0.72, 0.84);
     const sg = new THREE.Sprite(new THREE.SpriteMaterial({ map: emoteTexture('mug') })); sg.scale.set(0.3, 0.3, 1); sg.position.set(0.35, 0.55, 0.98); b.D.add(sg);
-    for (const x of [-0.72, -0.56]) { part(b.D, cylG(0.08, 0.08, 0.2, 8), '#8a5a2e', x, 0, 0.86, 1); part(b.D, cylG(0.083, 0.083, 0.02, 8), '#4a4458', x, 0.1, 0.86); }
+    for (const x of [-0.72, -0.56]) barrel(b.D, x, 0.86); barrel(b.D, -0.64, 0.86, 0.2); crate(b.D, 0.92, 0.5); crate(b.D, 0.92, 0.32, 0, 0.14);
     part(b.D, boxG(0.5, 0.05, 0.14), C.timber, 0.55, 0.14, 0.96); for (const x of [0.35, 0.75]) part(b.D, boxG(0.04, 0.14, 0.12), C.timber, x, 0, 0.96);
     b.wallH = 0.85; b.roofTop = 1.5;
   },
@@ -884,10 +962,11 @@ function createBuilding(type, i0, j0, o, entry, street, instant) {
     b.barFg.position.set(b.cx - 0.25, (b.roofTop || 1) + 0.25, b.cz); b.barFg.scale.set(0.001, 0.05, 1);
     scene.add(b.barBg, b.barFg);
   }
+  if (instant && type !== 'field') for (let a = 0; a < s; a++) for (let c = 0; c < s; c++) { const k = id(i0 + a, j0 + c); if (ground[k] === G_DIRT) ground[k] = G_GRASS; }
   buildings.push(b); setStage(b); if (instant) bakeBuilding(b); if (typeof computeReach === 'function' && !instant) computeReach();
   return b;
 }
-function bakeBuilding(b) { bakeStatic(b.g, [b.door, b.spin, b.flag && b.flag.parent, b.clockH, b.clockM, b.bucket, b.cropMat]); }
+function bakeBuilding(b) { bakeStatic(b.g, [b.door, b.spin, b.flag && b.flag.parent, b.clockH, b.clockM, b.bucket, b.cropMat, b.prodMat]); }
 function siteReady(b) { return !b.done && b.delivered.wood >= b.T.cost.wood && b.delivered.stone >= b.T.cost.stone && !footprintHasTree(b); }
 function footprintHasTree(b) {
   return b.trees.some(t => t.state === 'standing' || t.state === 'sapling' || t.state === 'falling');
@@ -909,6 +988,7 @@ function finishBuilding(b) {
   for (const o of [b.site, b.scaf]) if (o) b.g.remove(o);
   for (const o of [b.icon, b.barBg, b.barFg]) if (o) { scene.remove(o); o.material.dispose(); }
   for (let a = 0; a < b.size; a++) for (let c = 0; c < b.size; c++) occ[id(b.i0 + a, b.j0 + c)] = O_BLD;
+  if (b.type !== 'field') { for (let a = 0; a < b.size; a++) for (let c = 0; c < b.size; c++) { const k = id(b.i0 + a, b.j0 + c); if (ground[k] === G_DIRT) ground[k] = PLAZA.has(b.type) ? G_COBBLE : G_GRASS; } redrawAround(b.i0, b.j0); if (b.size > 1) redrawAround(b.i0 + 1, b.j0 + 1); }
   setStage(b); bakeBuilding(b);
   emit(b.cx, (b.roofTop || 1) + 0.2, b.cz, { n: 40, color: ['#e34b4b', '#f2c230', '#3f7fd9', '#49a84f', '#ffffff', '#ef7fb0'], v: 1.6, vy: [2, 3.5], size: 0.06, life: [1, 1.6], grav: 4, glow: true, drag: 1.2 });
   onBuildingDone(b);
@@ -1034,6 +1114,8 @@ function makeMeeple(opts) {
   const m = { id: ++meepleId, name: opts.name || NAMES[(meepleId * 7 + ri(0, 50)) % NAMES.length], role: opts.role || pick(ROLES), color: opts.color || pick(C.meeple), home: opts.home || null, x: opts.x, z: opts.z, face: rr(0, 6.28), faceV: 0, speed: rr(1.35, 1.7), phase: rr(0, 6), co: null, inside: null, moving: false, act: null, actT: 0, emotes: [], social: rr(0, 1), age: opts.baby ? 0 : 1, blinkT: rr(1, 4), hop: 0, lane: { x: rr(-0.14, 0.14), z: rr(-0.14, 0.14) }, busy: '', talkT: 0, doing: 'Looking around', since: dayN, tally: { trees: 0, stone: 0, build: 0, pave: 0, food: 0, plant: 0 }, bonds: new Map(), partner: null, dog: null, greetCD: 0, greetT: rr(0, 1), sink: 0, swim: false, glide: false, riding: null, throwT: 0, umb: null };
   m.g = new THREE.Group(); m.b = new THREE.Group(); m.g.add(m.b); scene.add(m.g); m.g.userData.meeple = m;
   const body = part(m.b, meepleGeo, m.color, 0, 0, 0, 0.022);
+  part(m.b, boxG(0.25, 0.035, 0.175), shade(m.color, 0.68), 0, 0.2, 0).castShadow = false;
+  part(m.b, boxG(0.045, 0.045, 0.01), '#f2c230', 0, 0.195, 0.089).castShadow = false;
   const eyeM = M('#1b1426');
   m.eyes = [part(m.b, eyeGeo, eyeM, -0.035, 0.47, 0.086), part(m.b, eyeGeo, eyeM, 0.035, 0.47, 0.086)];
   m.eyes.forEach(e => e.castShadow = false);
@@ -1071,7 +1153,7 @@ function worldEmote(x, y, z, name, dur = 2.2, rise = 0.25) {
   s.renderOrder = 10; s.position.set(x, y, z); s.scale.set(0.001, 0.001, 1); scene.add(s);
   worldEmotes.push({ s, t: 0, dur, y0: y, rise });
 }
-function updEmoteSprite(e, dt, sz = 0.42) {
+function updEmoteSprite(e, dt, sz = 0.36) {
   e.t += dt; const t = e.t, d = e.dur;
   const k = t < 0.18 ? (t / 0.18) * 1.25 : t < 0.28 ? 1.25 - (t - 0.18) / 0.1 * 0.25 : t > d - 0.2 ? Math.max(0, (d - t) / 0.2) : 1;
   e.s.scale.set(sz * k, sz * k, 1); return t < d;
@@ -1348,7 +1430,7 @@ function* rPave(m, k) {
 const streetsDone = new Set();
 function fieldTile(f, m) { let best = null, bd = 1e9; for (let a = 0; a < 2; a++) for (let c = 0; c < 2; c++) { const i = f.i0 + a, j = f.j0 + c, d = Math.hypot(wx(i) - m.x, wz(j) - m.z); if (d < bd) { bd = d; best = [i, j]; } } return best; }
 function* rField(m, f, harvest) {
-  m.doing = harvest ? 'Harvesting wheat' : 'Tending the wheat field';
+  m.doing = harvest ? `Harvesting ${f.crop === 'wheat' ? 'wheat' : f.crop + 's'}` : `Tending the ${f.crop} field`;
   try {
     yield* goOut(m);
     const t = fieldTile(f, m); if (!(yield* walkTo(m, t[0], t[1]))) return;
@@ -1356,14 +1438,14 @@ function* rField(m, f, harvest) {
     if (harvest) {
       yield* doAct(m, 'hoe', 3.5, () => emit(m.x + Math.sin(m.face) * 0.3, 0.2, m.z + Math.cos(m.face) * 0.3, { n: 5, color: ['#e3c877', '#f2d98a', '#c9a84a'], v: 0.9, vy: [0.8, 1.6], size: 0.045, life: [0.5, 1], grav: 3 }));
       const mills = buildings.filter(b => b.done && b.type === 'windmill' && Math.hypot(b.cx - f.cx, b.cz - f.cz) < 9).length, yieldN = 3 + Math.min(2, mills);
-      f.grow = 0; updCrops(f); setTool(m, null); setCarry(m, 'wheat'); emote(m, 'wheat', 1.4); m.tally.food += yieldN;
+      f.grow = 0; updCrops(f); setTool(m, null); setCarry(m, f.crop === 'wheat' ? 'wheat' : 'basket'); emote(m, f.crop === 'wheat' ? 'wheat' : 'heart', 1.4); m.tally.food += yieldN;
       yield* deliver(m, 'food', yieldN);
     } else {
       yield* doAct(m, 'hoe', 3, () => emit(m.x + Math.sin(m.face) * 0.3, 0.06, m.z + Math.cos(m.face) * 0.3, { n: 3, color: ['#8a5a36', '#6d4428'], v: 0.5, vy: [0.6, 1.2], size: 0.04, life: [0.3, 0.6] }));
       f.tend = 25; emote(m, 'drop', 1.2);
       emit(f.cx, 0.4, f.cz, { n: 12, color: ['#8cc9f2', '#cfeaf8'], v: 0.8, vy: [0.2, 0.6], size: 0.035, life: [0.5, 0.9], sx: 2, sz: 2, spread: 0.8 });
     }
-  } finally { f.worker = 0; setTool(m, null); if (m.carry === 'wheat') setCarry(m, null); }
+  } finally { f.worker = 0; setTool(m, null); if (m.carry === 'wheat' || m.carry === 'basket') setCarry(m, null); }
 }
 function* rPlant(m) {
   m.doing = 'Planting a sapling';
@@ -1408,7 +1490,7 @@ function* rChat(m, o) {
     faceTo(m, o.x, o.z); emote(m, pick(['exclaim', 'smile', 'heart']), 1.2); m.hop = 0.3;
     m.act = 'chat'; m.actT = 0;
     const lines = ri(3, 6);
-    const topics = ['chat', 'heart', 'music', 'smile', 'question', 'exclaim', 'sun', 'fish', 'wheat', 'house', 'hammer', 'star'];
+    const topics = ['chat', 'chat', 'music', 'smile', 'question', 'exclaim', 'sun', 'fish', 'wheat', 'house', 'hammer', 'star', 'book'];
     for (let k = 0; k < lines; k++) {
       const sp = k % 2 ? o : m; faceTo(m, o.x, o.z); faceTo(o, m.x, m.z);
       emote(sp, pick(topics), 1.5); sp.hop = 0.3;
@@ -1422,7 +1504,7 @@ function* rChat(m, o) {
       faceTo(m, o.x, o.z); faceTo(o, m.x, m.z); conv.hug = true; m.act = 'hug'; m.actT = 0;
       emote(m, 'heart', 1.6); emote(o, 'heart', 1.6);
       yield* wait(1.6); conv.hug = false; m.act = 'chat';
-    } else if (chance(0.3)) { emote(m, 'heart'); emote(o, 'heart'); }
+    } else if (chance(0.15)) { emote(m, 'heart'); emote(o, 'heart'); }
     m.social = 0; o.social = 0;
     yield* wait(0.8);
   } finally { conv.done = true; m.act = null; }
@@ -1717,7 +1799,7 @@ function greetTick(m, dt) {
   for (const o of meeples) {
     if (o === m || o.inside || o.riding || o.act || o.greetCD > clock || o.busy === 'chat' || o.busy === 'sleep' || o.busy === 'play' || Math.abs(o.x - m.x) > 0.9 || Math.abs(o.z - m.z) > 0.9) continue;
     const close = bondOf(m, o) >= 2;
-    emote(m, close ? pick(['heart', 'wave', 'smile']) : 'wave', 1.2); emote(o, close ? pick(['heart', 'wave']) : 'wave', 1.2);
+    emote(m, 'wave', 1); if (close || chance(0.4)) emote(o, close ? pick(['wave', 'smile']) : 'wave', 1);
     m.hop = o.hop = 0.3; bond(m, o, 0.25);
     m.greetCD = o.greetCD = clock + rr(25, 45);
     return;
@@ -2456,6 +2538,7 @@ function chooseType() {
   if (countB('windmill') >= 1 && countB('bakery') < Math.ceil(countB('windmill') / 2)) o.push('bakery');
   if (pop >= 30 && buildings.some(b => b.type === 'hall' && b.done) && countB('statue') < 1) o.push('statue');
   if (countB('garden') < Math.floor(pop / 7)) o.push('garden');
+  if (pop >= 10 && countB('field') >= 2 && countB('pen') < 1 + Math.floor(pop / 30)) o.push('pen');
   return o.length ? pick(o) : (cap < MAXPOP ? 'cottage' : null);
 }
 let planT = 2, failSpots = 0;
@@ -2474,7 +2557,7 @@ function planTick() {
   if (plannedRoads.size === 0 && chance(0.2)) planRoad();
   if (active >= Math.min(4, 1 + Math.floor(meeples.length / 7))) return;
   const type = chooseType(); if (!type) return;
-  const spot = findSpot(BT[type].size, type === 'field' || type === 'windmill' ? 'out' : 'in');
+  const spot = findSpot(BT[type].size, type === 'field' || type === 'windmill' || type === 'pen' ? 'out' : 'in');
   if (!spot) { if (plannedRoads.size < 14) planRoad(); return; }
   const b = createBuilding(type, spot.i0, spot.j0, spot.o, spot.entry, spot.street || 'the Hearth');
   logEvent(`Plans drawn for a ${b.T.label} on <b>${b.street}</b>.`);
@@ -2502,7 +2585,8 @@ function onBuildingDone(b) {
     logEvent(`A new ${b.T.label} stands ${where}.`);
     const n = b.T.cap === 2 ? 1 : 2;
     for (let k = 0; k < n && meeples.length < MAXPOP; k++) after(k * 2.5 + 1.5, () => spawnArrival(b));
-  } else if (b.type === 'field') { logEvent(`A wheat field was sown ${where}.`); spawnChickens(b); }
+  } else if (b.type === 'field') { logEvent(`A ${b.crop} field was sown ${where}.`); spawnChickens(b); }
+  else if (b.type === 'pen') { logEvent(`Sheep and pigs settle into the new pen ${where}.`); spawnLivestock(b); }
   else if (b.type === 'tavern') logEvent(`The tavern ${where} opens its doors. Songs tonight!`);
   else if (b.type === 'hall') logEvent(`The town hall rings its bell ${where}. Meepleton is a proper town.`);
   else if (b.type === 'statue') {
@@ -2546,16 +2630,25 @@ function growFields(dt) {
   for (const b of buildings) if (b.type === 'field' && b.done) { if (b.grow < 1) b.grow = Math.min(1, b.grow + rate * (b.tend > 0 || wet ? 2.2 : 1)); b.tend -= dt; }
 }
 function updCrops(f) {
-  const g = f.grow; f.crops.forEach((c, k) => { c.scale.y = 0.08 + g * (0.85 + (k % 3) * 0.08); });
-  f.cropMat.color.set('#6cbf4a').lerp(_col.set('#e8c55a'), clamp((g - 0.55) / 0.4, 0, 1));
+  const g = f.grow;
+  if (f.crop === 'wheat') {
+    f.crops.forEach((c, k) => { c.scale.y = 0.08 + g * (0.85 + (k % 3) * 0.08); });
+    f.cropMat.color.set('#6cbf4a').lerp(_col.set('#e8c55a'), clamp((g - 0.55) / 0.4, 0, 1));
+    return;
+  }
+  const leaf = 0.2 + 0.8 * clamp(g * 1.6, 0, 1), ripe = clamp((g - 0.35) / 0.6, 0, 1);
+  f.crops.forEach(c => { c.scale.x = c.scale.z = leaf; c.scale.y = leaf * (f.crop === 'carrot' ? 1.8 : 0.8); });
+  f.produce.forEach(p => { p.visible = ripe > 0.02; p.scale.set(ripe, ripe * (f.crop === 'pumpkin' ? 0.75 : 1), ripe); });
+  f.cropMat.color.set('#4f9d45');
+  if (f.crop === 'cabbage') f.prodMat.color.set('#7cc05a').lerp(_col.set('#c4e98a'), ripe);
 }
 
 const SKY = [
   [0.00, '#0d1030', '#26305e', '#8fa8ff', 0.3, '#3a4a8a', '#1a1f33', 0.34],
   [0.22, '#0d1030', '#26305e', '#8fa8ff', 0.3, '#3a4a8a', '#1a1f33', 0.34],
   [0.27, '#4a5a9a', '#f4a98a', '#ffc49a', 0.7, '#ffd7c2', '#6a5a4a', 0.45],
-  [0.34, '#5aa0e0', '#cfe9f7', '#fff4e0', 1.0, '#d9f0ff', '#6a7a4a', 0.55],
-  [0.64, '#5aa0e0', '#cfe9f7', '#fff4e0', 1.0, '#d9f0ff', '#6a7a4a', 0.55],
+  [0.34, '#5aa0e0', '#cfe9f7', '#fff4e0', 0.88, '#e6f4ff', '#8a9a6a', 0.78],
+  [0.64, '#5aa0e0', '#cfe9f7', '#fff4e0', 0.88, '#e6f4ff', '#8a9a6a', 0.78],
   [0.74, '#6a5aa8', '#f7a35c', '#ffae6b', 0.75, '#ffd0a0', '#6a5a4a', 0.45],
   [0.82, '#1e2150', '#6b4a7a', '#8fa8ff', 0.36, '#4a4a8a', '#1a1f33', 0.37],
   [0.90, '#0d1030', '#26305e', '#8fa8ff', 0.3, '#3a4a8a', '#1a1f33', 0.34],
@@ -2636,6 +2729,19 @@ function makeCritter(kind, x, z, home) {
     part(b, boxG(0.09 * s, 0.1 * s, 0.09 * s), kind === 'duck' && chance(0.5) ? '#2f8f5a' : body, 0.09 * s, 0.08 * s, 0, 0.012);
     part(b, boxG(0.06 * s, 0.025 * s, 0.05 * s), '#f08a2b', 0.16 * s, 0.11 * s, 0);
     part(b, boxG(0.06 * s, 0.05 * s, 0.1 * s), shade(body, 0.85), -0.1 * s, 0.07 * s, 0);
+  } else if (kind === 'sheep') {
+    part(b, boxG(0.26, 0.15, 0.17), '#f4f1ea', 0, 0.07, 0, 0.012);
+    for (let k = 0; k < 5; k++) part(b, new THREE.IcosahedronGeometry(0.075, 0), '#fbf9f4', -0.09 + k * 0.045, 0.2 + (k % 2) * 0.02, (k % 2 ? 0.04 : -0.04));
+    part(b, boxG(0.09, 0.1, 0.09), '#4a4458', 0.15, 0.14, 0, 0.012);
+    for (const ez of [-0.055, 0.055]) part(b, boxG(0.03, 0.02, 0.04), '#4a4458', 0.13, 0.19, ez);
+    for (const lx of [-0.08, 0.08]) for (const lz of [-0.05, 0.05]) part(b, boxG(0.03, 0.07, 0.03), '#4a4458', lx, 0, lz);
+  } else if (kind === 'pig') {
+    part(b, boxG(0.26, 0.15, 0.16), '#f2a9b4', 0, 0.06, 0, 0.012);
+    part(b, boxG(0.1, 0.11, 0.12), '#f2a9b4', 0.15, 0.09, 0, 0.012);
+    part(b, boxG(0.03, 0.05, 0.07), '#e08896', 0.215, 0.1, 0);
+    for (const ez of [-0.04, 0.04]) { part(b, boxG(0.012, 0.012, 0.012), '#1b1426', 0.232, 0.11, ez * 0.5); part(b, boxG(0.012, 0.018, 0.012), '#1b1426', 0.205, 0.15, ez); part(b, boxG(0.03, 0.03, 0.02), '#e08896', 0.13, 0.17, ez * 1.2); }
+    for (const lx of [-0.08, 0.08]) for (const lz of [-0.05, 0.05]) part(b, boxG(0.035, 0.06, 0.035), '#e08896', lx, 0, lz);
+    part(b, boxG(0.02, 0.04, 0.02), '#e08896', -0.14, 0.16, 0).rotation.z = 0.6;
   } else if (kind === 'dog') {
     const fur = pick(['#c98a4a', '#8a5a2e', '#f1e4cc', '#4a4458', '#e0b070']), dk = shade(fur, 0.72);
     part(b, boxG(0.24, 0.1, 0.11), fur, 0, 0.07, 0, 0.012);
@@ -2667,6 +2773,25 @@ function spawnDucks() {
   let prev = lead;
   for (let k = 0, n = ri(2, 4); k < n; k++) { const d = makeCritter(k === 0 ? 'duck' : 'duckling', lead.x, lead.z, null); d.follow = prev; prev = d; }
 }
+function updLivestock(c, dt, now, night) {
+  const h = c.home, dx = c.tx - c.x, dz = c.tz - c.z, d = Math.hypot(dx, dz);
+  let moving = false;
+  if (d > 0.04 && !night) { const sp = Math.min(d, dt * 0.25); c.x += dx / d * sp; c.z += dz / d * sp; c.face = Math.atan2(dx, dz); moving = true; }
+  c.t -= dt;
+  if (c.t <= 0) { c.t = rr(3, 8); c.tx = h.cx + rr(-0.7, 0.7); c.tz = h.cz + rr(-0.7, 0.6); if (chance(0.5)) c.peck = rr(1.5, 3); }
+  c.peck = Math.max(0, c.peck - dt);
+  for (const o of critters) { if (o === c || o.home !== h) continue; const ex = c.x - o.x, ez = c.z - o.z, ed = Math.hypot(ex, ez); if (ed < 0.26 && ed > 1e-4) { c.x += ex / ed * dt * 0.3; c.z += ez / ed * dt * 0.3; } else if (ed <= 1e-4) c.x += dt * 0.1; }
+  c.x = clamp(c.x, h.cx - 0.8, h.cx + 0.8); c.z = clamp(c.z, h.cz - 0.8, h.cz + 0.75);
+  let da = c.face - Math.PI / 2 - c.g.rotation.y; da = Math.atan2(Math.sin(da), Math.cos(da)); c.g.rotation.y += da * Math.min(1, dt * 4);
+  c.g.position.set(c.x, 0, c.z);
+  c.b.rotation.z = c.peck > 0 && !moving ? -0.25 : 0;
+  c.b.position.y = moving ? Math.abs(Math.sin(now / 110 + c.x * 5)) * 0.02 : 0;
+  c.b.scale.y = night ? 0.85 : 1;
+  if (chance(dt * 0.02)) worldEmote(c.x, 0.45, c.z, c.kind === 'pig' ? 'smile' : 'heart', 1.2, 0.12);
+}
+function spawnLivestock(p) {
+  for (const kind of ['sheep', 'sheep', 'sheep', 'pig', 'pig']) makeCritter(kind, p.cx + rr(-0.6, 0.6), p.cz + rr(-0.6, 0.5), p);
+}
 function spawnChickens(f) {
   if (critters.filter(c => c.kind === 'hen').length >= 16) return;
   for (let k = 0; k < 2; k++) makeCritter('hen', f.cx + rr(-1, 1), f.cz + rr(-1, 1), f);
@@ -2675,8 +2800,9 @@ function updCritters(dt, now) {
   const winter = seasonNow() === 3, night = phase() === 'night';
   for (const c of critters) {
     if (c.kind === 'dog') { c.g.visible = true; if (dt > 0) updDog(c, dt, now); continue; }
-    const duck = c.kind !== 'hen';
+    const duck = c.kind === 'duck' || c.kind === 'duckling', stock_ = c.kind === 'sheep' || c.kind === 'pig';
     c.g.visible = duck ? !winter : !c.home.scrapped;
+    if (stock_) { if (c.g.visible && dt > 0) updLivestock(c, dt, now, night); continue; }
     if (!c.g.visible || dt === 0) continue;
     let moving = false;
     if (!duck) {
@@ -2725,7 +2851,17 @@ let festivalAnnounced = 0, rocketT = 0;
 const bunting = new THREE.Group(); bunting.visible = false; scene.add(bunting);
 {
   const P = 1.46, corners = [[-P, -P], [P, -P], [P, P], [-P, P]], cols = ['#e34b4b', '#f2c230', '#3f7fd9', '#49a84f', '#ef7fb0', '#f6ecd2'];
-  for (const [x, z] of corners) { part(bunting, cylG(0.025, 0.03, 1.15, 5), '#6b4428', FIRE.x + x, 0, FIRE.z + z); part(bunting, new THREE.IcosahedronGeometry(0.05, 0), C.gold, FIRE.x + x, 1.17, FIRE.z + z); }
+  const banners = new THREE.Group(); scene.add(banners);
+  corners.forEach(([x, z], k) => {
+    const px0 = FIRE.x + x, pz0 = FIRE.z + z, out = Math.atan2(x, z);
+    part(banners, boxG(0.1, 0.06, 0.1), '#2b2238', px0, 0, pz0);
+    part(banners, cylG(0.025, 0.03, 1.15, 5), '#2b2238', px0, 0, pz0); part(banners, new THREE.IcosahedronGeometry(0.05, 0), C.gold, px0, 1.17, pz0);
+    const arm = new THREE.Group(); arm.position.set(px0, 0, pz0); arm.rotation.y = out; banners.add(arm);
+    part(arm, boxG(0.26, 0.02, 0.02), '#2b2238', 0, 0.98, 0.04);
+    const col = ['#d9463f', '#3f7fd9', '#f2c230', '#4aa37a'][k];
+    part(arm, boxG(0.2, 0.36, 0.02), col, 0, 0.6, 0.05, 0.012); part(arm, boxG(0.202, 0.06, 0.024), shade(col, 0.7), 0, 0.66, 0.05); part(arm, boxG(0.202, 0.05, 0.024), '#f6ecd2', 0, 0.84, 0.05);
+  });
+  bakeStatic(banners);
   const flagGeo = (() => { const sh = new THREE.Shape(); sh.moveTo(-0.06, 0); sh.lineTo(0.06, 0); sh.lineTo(0, -0.12); sh.lineTo(-0.06, 0); return new THREE.ShapeGeometry(sh); })();
   let n = 0;
   for (let k = 0; k < 4; k++) {
@@ -2933,7 +3069,7 @@ function tallyLine(m) {
   return parts.length ? parts.join(', ') : 'Just getting started';
 }
 function buildingStatus(b) {
-  if (b.type === 'field' && b.done) return b.grow >= 1 ? 'Ripe and ready to harvest' : `Growing, ${Math.round(b.grow * 100)}%`;
+  if (b.type === 'field' && b.done) return b.grow >= 1 ? 'Ripe and ready to harvest' : `${b.crop[0].toUpperCase() + b.crop.slice(1)}s growing, ${Math.round(b.grow * 100)}%`;
   if (b.type === 'statue' && b.done) return `In honour of ${b.honor}`;
   if (b.done) return b.occupants ? `${b.occupants} inside` : 'Quiet for now';
   if (footprintHasTree(b)) return 'Waiting for the lot to be cleared';
@@ -3221,7 +3357,7 @@ function frame(now) {
 setupTown(); resize(); updSky(0); setSpeed(1);
 if (window.__MEEPLE_WARMUP) { for (let k = 0; k < window.__MEEPLE_WARMUP * 20; k++) simStep(0.05, performance.now()); }
 requestAnimationFrame(frame);
-if (window.__MEEPLE_FAST) window.__mt = { renderer, scene, setClock: (d, t) => { dayN = d; clock = (d - 1) * DAY + t * DAY; }, buildHall: () => { const b = createBuilding('hall', HALF + 4, HALF + 3, 0, { i: HALF + 4, j: HALF }, 'Old Lane', true); b.done = true; }, critters, ground, step: (sec) => { for (let k = 0; k < sec * 20; k++) simStep(0.05, performance.now()); }, planBridge, bridge, road, reach, computeReach, weather: (w) => { wx_.want = w; wx_.t = 999; }, wx: wx_, season: (n) => { dayN = n * SEASON_DAYS + 1; startSeason(seasonNow()); }, camera, select, THREE, nextShot: () => { camTimer = 0; }, astar, accessTile, passable, PILE, quarryTiles, rocks, meeples, buildings, stock, plannedRoads, logLines, trees, phase, dayT, snowmen, leafPiles, forage, eggs, get wedding() { return wedding; }, get tonight() { return tonight; }, get day() { return dayN; } };
+if (window.__MEEPLE_FAST) window.__mt = { renderer, scene, setClock: (d, t) => { dayN = d; clock = (d - 1) * DAY + t * DAY; }, buildHall: () => { const b = createBuilding('hall', HALF + 4, HALF + 3, 0, { i: HALF + 4, j: HALF }, 'Old Lane', true); b.done = true; }, critters, ground, step: (sec) => { for (let k = 0; k < sec * 20; k++) simStep(0.05, performance.now()); }, planBridge, bridge, road, reach, computeReach, weather: (w) => { wx_.want = w; wx_.t = 999; }, wx: wx_, season: (n) => { dayN = n * SEASON_DAYS + 1; startSeason(seasonNow()); }, camera, select, THREE, nextShot: () => { camTimer = 0; }, astar, accessTile, passable, PILE, quarryTiles, rocks, meeples, buildings, stock, plannedRoads, logLines, trees, phase, dayT, snowmen, leafPiles, forage, eggs, view: (x, z, h, a) => { manualT = 1e9; focusGoal.set(x, 0.3, z); camFocus.copy(focusGoal); halfGoal = camHalf = h; if (a !== undefined) az = a; }, get wedding() { return wedding; }, get tonight() { return tonight; }, get day() { return dayN; } };
 })();
 </script>
 

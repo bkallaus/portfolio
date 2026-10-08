@@ -8,7 +8,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Silkscreen&display=swap">
 <style>
-/* Layout: one full-bleed pixelated diorama; two painted signboards pinned to the left corners */
 :root{
   --night:#141a36; --ink:#1b1426; --board:#f4e6c4; --board-edge:#c9a46c; --accent:#c8443f; --muted:#6d5a48;
   --f-display:"Pixelify Sans","Silkscreen",ui-monospace,monospace;
@@ -19,7 +18,8 @@ html,body{height:100%}
 body{margin:0;overflow:hidden;background:var(--night);color:var(--ink);font-family:var(--f-ui)}
 #sky{position:fixed;inset:0;background:linear-gradient(#5aa0e0,#cfe9f7)}
 #stars{position:fixed;inset:0;width:100%;height:100%;image-rendering:pixelated;opacity:0;pointer-events:none}
-#view{position:fixed;inset:0;width:100%;height:100%;image-rendering:pixelated;display:block}
+#view{position:fixed;inset:0;width:100%;height:100%;image-rendering:pixelated;display:block;touch-action:none;cursor:grab}
+#view.dragging{cursor:grabbing}
 .board{position:fixed;background:var(--board);border:3px solid var(--ink);box-shadow:inset 0 0 0 2px var(--board-edge),4px 4px 0 rgba(20,14,30,.55);padding:8px 10px;pointer-events:none}
 #sign{top:calc(12px + env(safe-area-inset-top,0px));left:12px}
 #sign h1{font-family:var(--f-display);font-weight:700;font-size:22px;margin:0;letter-spacing:.02em;line-height:1}
@@ -30,7 +30,57 @@ body{margin:0;overflow:hidden;background:var(--night);color:var(--ink);font-fami
 #log{bottom:calc(12px + env(safe-area-inset-bottom,0px));left:12px;max-width:min(380px,calc(100vw - 48px));font-size:10px;line-height:1.55;letter-spacing:.02em}
 #log h2{font-family:var(--f-display);font-size:12px;margin:0 0 4px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.12em}
 #log p{margin:0}
+#fallback{left:50%;top:50%;transform:translate(-50%,-50%);width:min(320px,calc(100vw - 48px));font-size:11px;line-height:1.6}
+#fallback[hidden],#sign[hidden],#log[hidden]{display:none}
+#fallback h1{font-family:var(--f-display);font-size:24px;margin:0 0 6px}
+@media (prefers-reduced-motion:reduce){#toast,#toast.on,#caption{transition:none}}
+#log{pointer-events:auto}
+#logToggle{font:inherit;color:inherit;letter-spacing:inherit;text-transform:inherit;background:none;border:0;padding:0;cursor:pointer;display:flex;gap:6px;align-items:center}
+#logToggle::after{content:"-";font-family:var(--f-ui)}
+#log.folded #logToggle::after{content:"+"}
+#log.folded h2{margin:0}#log.folded #logList{display:none}
+#help{left:50%;top:50%;transform:translate(-50%,-50%);width:min(330px,calc(100vw - 48px));pointer-events:auto;font-size:10px;line-height:1.5;z-index:5}
+#help[hidden]{display:none}
+#help h3{font-family:var(--f-display);font-size:18px;margin:0 0 8px}
+#help dl{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:0}
+#help dt{font-weight:700;color:var(--accent)}#help dd{margin:0}
+#help p{margin:8px 0 0;color:var(--muted)}
+#helpClose{position:absolute;top:4px;right:4px;font-family:var(--f-ui);font-size:12px;width:22px;height:22px;padding:0;display:grid;place-items:center;color:var(--ink);background:#fff8e6;border:2px solid var(--ink);cursor:pointer}
 #log p .d{color:var(--accent)}
+#rank{display:inline-block;vertical-align:4px;margin-left:6px;font-family:var(--f-ui);font-size:9px;font-weight:400;letter-spacing:.08em;text-transform:uppercase;background:var(--accent);color:#fff8e6;padding:3px 5px 2px;border:2px solid var(--ink)}
+#toast{position:fixed;left:50%;top:calc(18px + env(safe-area-inset-top,0px));transform:translate(-50%,-140%);background:var(--board);border:3px solid var(--ink);box-shadow:inset 0 0 0 2px var(--board-edge),4px 4px 0 rgba(20,14,30,.55);padding:10px 16px;font-family:var(--f-display);font-size:18px;font-weight:700;text-align:center;pointer-events:none;transition:transform .5s cubic-bezier(.2,1.4,.4,1),visibility 0s .5s;visibility:hidden;white-space:nowrap;max-width:calc(100vw - 32px)}
+#toast small{display:block;font-family:var(--f-ui);font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px}
+#toast.on{transform:translate(-50%,0);visibility:visible;transition:transform .5s cubic-bezier(.2,1.4,.4,1)}
+@media (max-width:700px){#toast{top:auto;bottom:calc(120px + env(safe-area-inset-bottom,0px));transform:translate(-50%,200%);font-size:15px}#toast.on{transform:translate(-50%,0);visibility:visible;transition:transform .5s cubic-bezier(.2,1.4,.4,1)}}
+#seedRow{display:flex;align-items:center;gap:8px;margin-top:3px;font-size:9px;letter-spacing:.06em;pointer-events:auto}
+#seedLink{color:var(--muted);text-decoration:none;border-bottom:1px dotted var(--muted);font-variant-numeric:tabular-nums}
+#seedLink:hover{color:var(--accent);border-color:var(--accent)}
+#newTown{font:inherit;font-size:9px;background:none;border:0;padding:0;color:var(--accent);cursor:pointer;text-decoration:underline}
+#ctl{display:flex;gap:4px;margin-top:8px;pointer-events:auto}
+#ctl button{font:inherit;font-size:10px;line-height:1;padding:4px 6px;min-width:26px;background:#fff8e6;color:var(--ink);border:2px solid var(--ink);box-shadow:2px 2px 0 rgba(20,14,30,.45);cursor:pointer}
+#ctl button:hover{background:#ffe9b8}
+#ctl #postcard{margin-left:6px}
+#ctl button[aria-pressed="true"]{background:var(--ink);color:var(--board);box-shadow:none;transform:translate(2px,2px)}
+#ctl button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#card{top:calc(12px + env(safe-area-inset-top,0px));right:12px;width:min(250px,calc(100vw - 48px));pointer-events:auto;font-size:10px;line-height:1.5}
+#card[hidden]{display:none}
+#card h3{font-family:var(--f-display);font-size:18px;margin:0 22px 0 0;line-height:1.1;display:flex;align-items:center;gap:6px}
+#card .sw{display:inline-block;width:12px;height:12px;border:2px solid var(--ink)}
+#card .sub{color:var(--muted);letter-spacing:.06em;margin:2px 0 6px}
+#card .doing{background:#fff8e6;border:2px solid var(--ink);padding:4px 6px;margin-bottom:6px}
+#card dl{display:grid;grid-template-columns:auto 1fr;gap:1px 8px;margin:0}
+#card dt{color:var(--muted)}#card dd{margin:0;font-variant-numeric:tabular-nums}
+#card .bar{height:8px;border:2px solid var(--ink);background:#fff8e6;margin:4px 0 6px}
+#card .bar i{display:block;height:100%;background:#7ed957}
+#card .who{font:inherit;background:none;border:0;padding:0;color:var(--accent);cursor:pointer;text-decoration:underline}
+#cardClose{position:absolute;top:4px;right:4px;font-family:var(--f-ui);font-size:12px;width:22px;height:22px;padding:0;display:grid;place-items:center;color:var(--ink);background:#fff8e6;border:2px solid var(--ink);cursor:pointer;line-height:1}
+#cardClose:hover{background:#ffe9b8}
+#caption{right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));pointer-events:auto;cursor:pointer;font:inherit;font-size:10px;color:var(--ink);text-align:left;max-width:min(300px,calc(100vw - 48px));opacity:0;transform:translateY(6px);transition:opacity .4s,transform .4s}
+#caption.on{opacity:1;transform:none}
+#caption[hidden]{display:none}
+#caption b{font-family:var(--f-display);font-size:14px;display:block}
+#caption .sw{display:inline-block;width:9px;height:9px;border:2px solid var(--ink);margin-right:5px;vertical-align:-1px}
+@media (max-width:700px){#caption{bottom:auto;top:calc(12px + env(safe-area-inset-top,0px))}}
 @media (max-width:520px){#sign h1{font-size:18px}#stats{font-size:10px;gap:3px 8px}#log{font-size:9px}}
 </style>
 </head>
@@ -38,17 +88,38 @@ body{margin:0;overflow:hidden;background:var(--night);color:var(--ink);font-fami
 
 <div id="sky"></div>
 <canvas id="stars"></canvas>
-<canvas id="view"></canvas>
-<div class="board" id="sign"><h1>Meepleton</h1><div id="clock">Day 1 · 06:00</div><div id="stats"></div></div>
-<div class="board" id="log"><h2>Town chronicle</h2><div id="logList"></div></div>
+<canvas id="view" role="img" aria-label="Meepleton, a pixel-art town building itself"></canvas>
+<div class="board" id="fallback" hidden><h1>Meepleton</h1><p id="fallbackWhy"></p><p>The meeples will wait for you.</p></div>
+<div class="board" id="sign"><h1>Meepleton <span id="rank">Camp</span></h1><div id="clock">Day 1 · 06:00</div><div id="seedRow"><a id="seedLink" title="Permalink to this island">Island #</a><button type="button" id="newTown" title="Found a new island">New island</button></div><div id="stats"></div><div id="ctl" role="group" aria-label="Simulation speed"><button type="button" data-speed="0" aria-label="Pause" title="Pause (Space)">II</button><button type="button" data-speed="1" title="Normal speed (1)">1x</button><button type="button" data-speed="2" title="Double speed (2)">2x</button><button type="button" data-speed="4" title="Fast (3)">4x</button><button type="button" id="helpBtn" title="Controls (?)" aria-label="Show controls" aria-expanded="false" aria-controls="help">?</button><button type="button" id="postcard" title="Save a postcard (P)" aria-label="Save a postcard">Postcard</button></div></div>
+<div class="board" id="card" hidden aria-live="polite"><button type="button" id="cardClose" aria-label="Close" title="Close (Esc)">X</button><div id="cardBody"></div></div>
+<button type="button" class="board" id="caption" hidden></button>
+<div id="toast" role="status" aria-live="polite"></div>
+<div class="board" id="help" hidden><button type="button" id="helpClose" aria-label="Close">X</button><h3>Getting around</h3><dl>
+<dt>Drag</dt><dd>Pan the island</dd><dt>Right-drag, Q / E</dt><dd>Rotate</dd><dt>Wheel, pinch, + / -</dt><dd>Zoom</dd><dt>Arrows, WASD</dt><dd>Pan</dd>
+<dt>Click</dt><dd>Inspect a meeple or building</dd><dt>Esc</dt><dd>Let go and resume the tour</dd><dt>Space</dt><dd>Pause</dd><dt>1 / 2 / 3</dt><dd>Speed</dd><dt>P</dt><dd>Save a postcard</dd><dt>C</dt><dd>Fold the chronicle</dd></dl>
+<p>Leave it alone and the camera tours the town on its own.</p></div>
+<div class="board" id="log"><h2><button type="button" id="logToggle" aria-expanded="true" aria-controls="logList">Town chronicle</button></h2><div id="logList" role="log" aria-live="polite" aria-relevant="additions"></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 (function(){
 "use strict";
-// ================= core =================
+const webgl = (() => { try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch (e) { return false; } })();
+if (typeof THREE === 'undefined' || !webgl) {
+  document.getElementById('fallback').hidden = false;
+  document.getElementById('fallbackWhy').textContent = typeof THREE === 'undefined' ? 'The 3D engine could not be downloaded. Check your connection and reload.' : 'This browser has WebGL switched off, so the island cannot be drawn.';
+  for (const id of ['sign', 'log', 'view']) document.getElementById(id).hidden = true;
+  return;
+}
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const N = 40, HALF = N / 2, TPX = 8;
 const SPEED = window.__MEEPLE_FAST || 1;
-let _s = (Math.random() * 4294967296) >>> 0;
+const SEED = (() => {
+  const q = new URLSearchParams(location.search).get('seed');
+  if (q && /^\d{1,9}$/.test(q)) return Number(q);
+  if (q) { let h = 2166136261; for (const ch of q) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0; return h % 1e9; }
+  return Math.floor(Math.random() * 1e6);
+})();
+let _s = SEED >>> 0;
 function rnd() { _s |= 0; _s = (_s + 0x6D2B79F5) | 0; let t = Math.imul(_s ^ (_s >>> 15), 1 | _s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }
 const rr = (a, b) => a + rnd() * (b - a), ri = (a, b) => Math.floor(rr(a, b + 1)), pick = a => a[Math.floor(rnd() * a.length)], chance = p => rnd() < p;
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v, lerp = (a, b, t) => a + (b - a) * t, smooth = t => t * t * (3 - 2 * t);
@@ -60,7 +131,7 @@ const DIRS = [[0, 1], [1, 0], [0, -1], [-1, 0]];
 const DIR8 = [[0, 1], [1, 0], [0, -1], [-1, 0], [1, 1], [1, -1], [-1, 1], [-1, -1]];
 const G_GRASS = 0, G_WATER = 1, G_SAND = 2, G_DIRT = 3;
 const O_NONE = 0, O_TREE = 1, O_ROCK = 2, O_BLD = 3, O_SITE = 4, O_FIRE = 5, O_PILE = 6;
-const ground = new Uint8Array(N * N), road = new Uint8Array(N * N), occ = new Uint8Array(N * N);
+const ground = new Uint8Array(N * N), road = new Uint8Array(N * N), occ = new Uint8Array(N * N), bridge = new Uint8Array(N * N);
 const occRef = new Array(N * N).fill(null), roadName = new Array(N * N).fill(null);
 const forestZone = new Float32Array(N * N);
 const V3 = THREE.Vector3;
@@ -77,7 +148,6 @@ function makeNoise(scale) {
   };
 }
 
-// ================= terrain =================
 let lakeC = null, quarryC = null;
 const quarryTiles = [];
 function genTerrain() {
@@ -89,16 +159,14 @@ function genTerrain() {
     const d = Math.hypot(i - lakeC[0], j - lakeC[1]) + (n2(i, j) - 0.5) * 3;
     if (d < lr) ground[id(i, j)] = G_WATER; else if (d < lr + 1.3) ground[id(i, j)] = G_SAND;
   }
-  // stream from lake to the nearest edge
   let ci = lakeC[0], cj = lakeC[1];
-  const vx = lakeC[0] < HALF ? -1 : 1;
+  const vx = lakeC[0] < HALF ? 1 : -1;
   while (inb(ci, cj)) {
     ground[id(ci, cj)] = G_WATER;
     for (const [dx, dz] of DIR8) { const a = ci + dx, b = cj + dz; if (inb(a, b) && ground[id(a, b)] === G_GRASS) ground[id(a, b)] = G_SAND; }
-    if (chance(0.35)) { const nj = cj + (chance(0.5) ? 1 : -1); if (inb(ci, nj)) { ground[id(ci, nj)] = G_WATER; cj = nj; } }
+    if (chance(0.35)) { const nj = cj + (chance(0.5) ? 1 : -1); if (nj >= 3 && nj <= N - 4 && Math.abs(nj + 0.5 - HALF) >= 9) { ground[id(ci, nj)] = G_WATER; cj = nj; } }
     ci += vx;
   }
-  // quarry on the opposite corner
   const q2 = 3 - q;
   quarryC = [(q2 & 1 ? N - 5 : 3), (q2 & 2 ? N - 5 : 3)];
   for (let dj = 0; dj < 3; dj++) for (let di = 0; di < 3; di++) {
@@ -111,7 +179,6 @@ function genTerrain() {
   }
 }
 
-// ================= palette / materials =================
 const C = {
   ink: 0x1b1426, trunk: '#7a4a2a', timber: '#6b4428', door: '#7a4a2a', stone: '#a4a1ab', stoneD: '#86838e', gold: '#f2c230',
   walls: ['#f3e3c3', '#ead3ae', '#dfe8ef', '#f1d8cf', '#e7e1ba', '#d9e6cf'],
@@ -121,7 +188,8 @@ const C = {
 const gradMap = new THREE.DataTexture(new Uint8Array([95, 175, 255]), 3, 1, THREE.LuminanceFormat);
 gradMap.minFilter = gradMap.magFilter = THREE.NearestFilter; gradMap.generateMipmaps = false; gradMap.needsUpdate = true;
 const matCache = {};
-function M(c) { const k = String(c); return matCache[k] || (matCache[k] = new THREE.MeshToonMaterial({ color: c, gradientMap: gradMap })); }
+function M(c) { const k = String(c); if (!matCache[k]) { matCache[k] = new THREE.MeshToonMaterial({ color: c, gradientMap: gradMap }); matCache[k].userData.plain = true; } return matCache[k]; }
+const vcToon = new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: gradMap });
 const outlineMat = new THREE.MeshBasicMaterial({ color: C.ink, side: THREE.BackSide });
 const geoCache = {};
 function boxG(w, h, d) { const k = 'b' + w + ',' + h + ',' + d; return geoCache[k] || (geoCache[k] = (() => { const g = new THREE.BoxGeometry(w, h, d); g.translate(0, h / 2, 0); return g; })()); }
@@ -137,7 +205,6 @@ function outline(m, t = 0.03) {
   const s = new V3(); g.boundingBox.getSize(s);
   const o = new THREE.Mesh(g, outlineMat);
   o.scale.set(1 + 2 * t / Math.max(s.x, .01), 1 + 2 * t / Math.max(s.y, .01), 1 + 2 * t / Math.max(s.z, .01));
-  // keep the hull centred on the geometry's own bbox centre
   const c = new V3(); g.boundingBox.getCenter(c);
   o.position.set(-c.x * (o.scale.x - 1), -c.y * (o.scale.y - 1), -c.z * (o.scale.z - 1));
   m.add(o); return o;
@@ -148,9 +215,41 @@ function part(parent, geo, color, x = 0, y = 0, z = 0, ol = false) {
   if (ol) outline(m, (typeof ol === 'number' && ol < 0.2) ? ol : 0.03);
   return m;
 }
-function shade(hex, f) { const c = new THREE.Color(hex); c.multiplyScalar(f); return '#' + c.getHexString(); }
+const _bakeInv = new THREE.Matrix4(), _bakeM = new THREE.Matrix4();
+function bakeStatic(root, skip = []) {
+  root.updateMatrixWorld(true);
+  _bakeInv.copy(root.matrixWorld).invert();
+  const skipSet = new Set(skip.filter(Boolean)), buckets = new Map(), baked = [];
+  root.traverse(o => {
+    if (!o.isMesh || o.isInstancedMesh || o.userData.baked) return;
+    for (let q = o; q && q !== root; q = q.parent) if (skipSet.has(q) || !q.visible) return;
+    if (skipSet.has(o.material)) return;
+    const plain = !!o.material.userData.plain, key = (plain ? 'vc' : o.material.uuid) + (o.castShadow ? '|s' : '|n');
+    if (!buckets.has(key)) buckets.set(key, { mat: plain ? vcToon : o.material, cast: o.castShadow, items: [] });
+    buckets.get(key).items.push(o);
+  });
+  for (const { mat, cast, items } of buckets.values()) {
+    const parts = items.map(o => { const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone(); g.applyMatrix4(_bakeM.multiplyMatrices(_bakeInv, o.matrixWorld)); return g; });
+    const total = parts.reduce((a, g) => a + g.attributes.position.count, 0), hasUv = parts.every(g => g.attributes.uv), vc = mat === vcToon;
+    const pos = new Float32Array(total * 3), nor = new Float32Array(total * 3), uv = hasUv ? new Float32Array(total * 2) : null, col = vc ? new Float32Array(total * 3) : null;
+    let off = 0;
+    parts.forEach((g, k) => {
+      const n = g.attributes.position.count;
+      pos.set(g.attributes.position.array, off * 3); nor.set(g.attributes.normal.array, off * 3); if (uv) uv.set(g.attributes.uv.array, off * 2);
+      if (col) { const c = items[k].material.color; for (let v = 0; v < n; v++) { col[(off + v) * 3] = c.r; col[(off + v) * 3 + 1] = c.g; col[(off + v) * 3 + 2] = c.b; } }
+      off += n; g.dispose();
+    });
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('normal', new THREE.BufferAttribute(nor, 3)); if (uv) geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); if (col) geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    geo.computeBoundingSphere();
+    const m = new THREE.Mesh(geo, mat); m.castShadow = cast; m.receiveShadow = true; m.userData.baked = true;
+    baked.push(m);
+  }
+  for (const b of buckets.values()) for (const o of b.items) if (o.parent) o.parent.remove(o);
+  for (const m of baked) root.add(m);
+}
+function shade(hex, f) { const c = new THREE.Color(hex); c.setRGB(Math.min(1, c.r * f), Math.min(1, c.g * f), Math.min(1, c.b * f)); return '#' + c.getHexString(); }
 
-// ================= pixel icons =================
 const PAL = { R: '#e34b4b', K: '#1b1426', B: '#3f7fd9', W: '#8a5a2e', G: '#7d8190', g: '#c3c6cf', Y: '#f2c230', O: '#b7862a', T: '#37b3a3', C: '#f6ecd2', P: '#6b5bd6', w: '#ffffff', L: '#5bb04a' };
 const ICONS = {
   heart: ['.RR..RR.', 'RRRRRRRR', 'RRRRRRRR', 'RRRRRRRR', '.RRRRRR.', '..RRRR..', '...RR...', '........'],
@@ -195,18 +294,23 @@ function iconCanvas(name, scale = 2) {
   const c = document.createElement('canvas'); c.width = 8; c.height = 8; drawIcon(c.getContext('2d'), name, 0, 0); return c;
 }
 
-// ================= ground texture =================
 const gcv = document.createElement('canvas'); gcv.width = gcv.height = N * TPX;
 const gx = gcv.getContext('2d');
 const gtex = new THREE.CanvasTexture(gcv); gtex.magFilter = THREE.NearestFilter; gtex.minFilter = THREE.NearestFilter; gtex.generateMipmaps = false;
-let waterPhase = 0;
+let waterPhase = 0, groundSeason = 0;
+const GP = [
+  { grass: ['#72b84f', '#6bb04a', '#78bc55'], dark: '#5a9a40', light: '#9ad46e', tuft: '#4f8a38', flowers: 0.22, fc: ['#fff4e0', '#f28bb8', '#f7b6d2', '#b9a7ff', '#ffd84a'], sand: '#e6d193', water: ['#3d82c4', '#3a7ebf'] },
+  { grass: ['#6db24f', '#67ab4a', '#72b654'], dark: '#58963f', light: '#8ccc66', tuft: '#4f8a38', flowers: 0.12, fc: ['#fff4e0', '#ffd84a', '#f28bb8', '#b9a7ff'], sand: '#e6d193', water: ['#3d82c4', '#3a7ebf'] },
+  { grass: ['#93a84a', '#8aa046', '#9aae50'], dark: '#7a8c3a', light: '#c9a84a', tuft: '#6d7a32', flowers: 0.16, fc: ['#e39b3c', '#d9663a', '#e8c048', '#b8443c'], leaf: true, sand: '#e0c98c', water: ['#3a78b5', '#3774b0'] },
+  { grass: ['#eef3f7', '#e8eef3', '#f4f7fa'], dark: '#d3dde6', light: '#ffffff', tuft: '#c4d0da', flowers: 0, fc: [], sand: '#e9e6dc', water: ['#5d93c4', '#5a8fbf'] },
+];
 function px(x, y, c) { gx.fillStyle = c; gx.fillRect(x, y, 1, 1); }
 const isRoad = (i, j) => inb(i, j) && road[id(i, j)] >= 2;
 function drawTile(i, j) {
   const X = i * TPX, Y = j * TPX, k = id(i, j), g = ground[k], h = (n) => hash(i, j, n);
   const rect = (c) => { gx.fillStyle = c; gx.fillRect(X, Y, TPX, TPX); };
-  if (road[k] >= 2) {
-    if (road[k] === 3) { // plaza flagstones
+  if (road[k] >= 2 && !bridge[k]) {
+    if (road[k] === 3) {
       rect('#a79886');
       for (let a = 0; a < 2; a++) for (let b = 0; b < 2; b++) {
         gx.fillStyle = ['#cbbba3', '#c2b299', '#d4c6b0'][Math.floor(h(a * 2 + b) * 3)];
@@ -234,7 +338,7 @@ function drawTile(i, j) {
     return;
   }
   if (g === G_WATER) {
-    rect(h(1) < 0.5 ? '#3d82c4' : '#3a7ebf');
+    rect(GP[groundSeason].water[h(1) < 0.5 ? 0 : 1]);
     px(X + Math.floor(h(2) * 8), Y + Math.floor(h(3) * 8), '#336fb0');
     px(X + Math.floor(h(4) * 8), Y + Math.floor(h(5) * 8), '#336fb0');
     const yy = Math.floor(h(6) * 8 + waterPhase) % 8, xx = Math.floor(h(7) * 5);
@@ -249,22 +353,28 @@ function drawTile(i, j) {
       if (land(i - 1, j)) gx.fillRect(X, Y + t, 1, 1);
       if (land(i + 1, j)) gx.fillRect(X + TPX - 1, Y + t, 1, 1);
     }
+    if (bridge[k] && road[k] === 1) { px(X + 1, Y + 1, '#8a5a2e'); px(X + 6, Y + 1, '#8a5a2e'); px(X + 1, Y + 6, '#8a5a2e'); px(X + 6, Y + 6, '#8a5a2e'); px(X + 1, Y + 2, '#6b4428'); px(X + 6, Y + 2, '#6b4428'); }
     return;
   }
+  const gp = GP[groundSeason];
   if (g === G_SAND) {
-    rect('#e6d193');
+    rect(gp.sand);
     for (let n = 0; n < 4; n++) px(X + Math.floor(h(20 + n) * 8), Y + Math.floor(h(30 + n) * 8), n % 2 ? '#d2b976' : '#f1e2ad');
   } else if (g === G_DIRT) {
     rect('#9b6a43');
     for (let n = 0; n < 5; n++) px(X + Math.floor(h(20 + n) * 8), Y + Math.floor(h(30 + n) * 8), n % 2 ? '#86593a' : '#b07d51');
   } else {
-    rect(['#6db24f', '#67ab4a', '#72b654'][Math.floor(h(1) * 3)]);
-    for (let n = 0; n < 5; n++) px(X + Math.floor(h(20 + n) * 8), Y + Math.floor(h(30 + n) * 8), '#58963f');
-    for (let n = 0; n < 2; n++) px(X + Math.floor(h(40 + n) * 8), Y + Math.floor(h(50 + n) * 8), '#8ccc66');
-    if (h(60) < 0.35) { const tx = X + 1 + Math.floor(h(61) * 5), ty = Y + 2 + Math.floor(h(62) * 5); px(tx, ty, '#4f8a38'); px(tx + 1, ty - 1, '#4f8a38'); px(tx + 2, ty, '#4f8a38'); }
-    if (h(70) < 0.12) { const fx = X + 1 + Math.floor(h(71) * 6), fy = Y + 1 + Math.floor(h(72) * 5); const fc = ['#fff4e0', '#ffd84a', '#f28bb8', '#b9a7ff'][Math.floor(h(73) * 4)]; px(fx, fy + 1, '#3f7a2e'); px(fx, fy, fc); px(fx - 1, fy, fc); px(fx + 1, fy, fc); px(fx, fy - 1, fc); px(fx, fy, '#f2c230'); }
+    rect(gp.grass[Math.floor(h(1) * 3)]);
+    for (let n = 0; n < 5; n++) px(X + Math.floor(h(20 + n) * 8), Y + Math.floor(h(30 + n) * 8), gp.dark);
+    for (let n = 0; n < 2; n++) px(X + Math.floor(h(40 + n) * 8), Y + Math.floor(h(50 + n) * 8), gp.light);
+    if (h(60) < 0.35) { const tx = X + 1 + Math.floor(h(61) * 5), ty = Y + 2 + Math.floor(h(62) * 5); px(tx, ty, gp.tuft); px(tx + 1, ty - 1, gp.tuft); px(tx + 2, ty, gp.tuft); }
+    if (h(70) < gp.flowers) {
+      const fx = X + 1 + Math.floor(h(71) * 6), fy = Y + 1 + Math.floor(h(72) * 5), fc = gp.fc[Math.floor(h(73) * gp.fc.length)];
+      if (gp.leaf) { px(fx, fy, fc); px(fx + 1, fy, fc); px(fx, fy + 1, shade(fc, 0.8)); }
+      else { px(fx, fy + 1, '#3f7a2e'); px(fx, fy, fc); px(fx - 1, fy, fc); px(fx + 1, fy, fc); px(fx, fy - 1, fc); px(fx, fy, '#f2c230'); }
+    }
   }
-  if (road[k] === 1) { // planned road: survey stakes + chalk line
+  if (road[k] === 1) {
     px(X + 1, Y + 1, '#8a5a2e'); px(X + 6, Y + 1, '#8a5a2e'); px(X + 1, Y + 6, '#8a5a2e'); px(X + 6, Y + 6, '#8a5a2e');
     px(X + 3, Y + 3, '#efe3c0'); px(X + 4, Y + 4, '#efe3c0');
   }
@@ -273,7 +383,6 @@ function redrawAll() { for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) d
 function redrawAround(i, j) { for (let b = j - 1; b <= j + 1; b++) for (let a = i - 1; a <= i + 1; a++) if (inb(a, b)) drawTile(a, b); gtex.needsUpdate = true; }
 const waterTiles = [];
 
-// side strata texture for the diorama base
 function sideTexture() {
   const c = document.createElement('canvas'); c.width = N * TPX; c.height = 3 * TPX; const x = c.getContext('2d');
   for (let y = 0; y < c.height; y++) for (let X = 0; X < c.width; X++) {
@@ -291,7 +400,6 @@ function sideTexture() {
   const t = new THREE.CanvasTexture(c); t.magFilter = t.minFilter = THREE.NearestFilter; t.generateMipmaps = false; return t;
 }
 
-// ================= particles =================
 const PMAX = 700;
 const pMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: 0xffffff }), PMAX);
 pMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage); pMesh.frustumCulled = false;
@@ -330,7 +438,6 @@ function updParticles(dt) {
   pMesh.instanceMatrix.needsUpdate = true;
 }
 
-// ================= scene =================
 const canvasEl = document.getElementById('view');
 const renderer = new THREE.WebGLRenderer({ canvas: canvasEl, antialias: false, alpha: true, preserveDrawingBuffer: false });
 renderer.setClearColor(0x000000, 0); renderer.setPixelRatio(1);
@@ -355,7 +462,6 @@ groundMesh.rotation.x = -Math.PI / 2; groundMesh.receiveShadow = true; scene.add
   base.position.y = -1.502; base.receiveShadow = true; scene.add(base);
 }
 
-// ================= trees (instanced) =================
 const TCAP = 1300;
 function inst(geo, cap) {
   const m = new THREE.InstancedMesh(geo, new THREE.MeshToonMaterial({ color: 0xffffff, gradientMap: gradMap }), cap);
@@ -378,12 +484,26 @@ function addTree(i, j, grow = 1) {
   if (slot >= TCAP) return null;
   const kind = forestZone[id(i, j)] > 0.62 ? (chance(0.8) ? 'pine' : 'oak') : (chance(0.3) ? 'pine' : 'oak');
   const t = { slot, i, j, kind, x: wx(i) + rr(-0.12, 0.12), z: wz(j) + rr(-0.12, 0.12), rot: rr(0, 6.28), sc: rr(0.85, 1.2), grow, state: grow < 1 ? 'sapling' : 'standing', shake: 0, fall: 0, fdx: 0, fdz: 1, res: 0, marked: false, stumpT: 0 };
-  const green = t.kind === 'pine' ? pick(['#3f8a4a', '#3a7f45', '#458f50', '#2f7a47']) : pick(['#5aa84a', '#6cbb52', '#4f9d45', '#7cc05a', chance(0.08) ? '#eaa0c0' : '#62b04c', chance(0.06) ? '#e39b3c' : '#5aa84a']);
+  t.green = t.kind === 'pine' ? pick(['#3f8a4a', '#3a7f45', '#458f50', '#2f7a47']) : pick(['#5aa84a', '#6cbb52', '#4f9d45', '#7cc05a', '#62b04c', '#5aa84a']);
+  t.tint = rnd();
   TI.trunk.setColorAt(slot, _col.set('#7a4a2a'));
-  for (const k of ['a', 'b', 'c', 'd']) TI[k].setColorAt(slot, _col.set(green).multiplyScalar(k === 'b' || k === 'd' ? 1.12 : 1));
-  for (const k in TI) TI[k].instanceColor.needsUpdate = true;
+  paintTree(t, seasonNow());
   trees[slot] = t; occ[id(i, j)] = O_TREE; occRef[id(i, j)] = t;
   treeMatrix(t); return t;
+}
+const BLOSSOM = ['#eaa0c0', '#f4b8d0', '#ffffff'], AUTUMN = ['#e39b3c', '#d9663a', '#e8c048', '#c94f3a', '#b8803a'];
+function treeTones(t, se) {
+  if (t.kind === 'pine') return se === 3 ? [t.green, '#e9f0f5'] : [t.green, shade(t.green, 1.12)];
+  if (se === 0) return t.tint < 0.3 ? [BLOSSOM[Math.floor(t.tint * 10) % 3], '#f7d3e2'] : [shade(t.green, 1.08), shade(t.green, 1.2)];
+  if (se === 2) { const c = t.tint < 0.15 ? t.green : AUTUMN[Math.floor(t.tint * 23) % AUTUMN.length]; return [c, shade(c, 1.12)]; }
+  if (se === 3) return ['#b9c6cf', '#f1f5f8'];
+  return [t.green, shade(t.green, 1.12)];
+}
+function paintTree(t, se) {
+  const [lo, hi] = treeTones(t, se);
+  TI.a.setColorAt(t.slot, _col.set(lo)); TI.c.setColorAt(t.slot, _col.set(lo));
+  TI.b.setColorAt(t.slot, _col.set(hi)); TI.d.setColorAt(t.slot, _col.set(hi));
+  for (const k in TI) TI[k].instanceColor.needsUpdate = true;
 }
 const _q2 = new THREE.Quaternion(), _q3 = new THREE.Quaternion(), _ax = new V3(), _up = new V3(0, 1, 0);
 function treeMatrix(t) {
@@ -430,7 +550,6 @@ function updTrees(dt) {
   }
 }
 
-// ================= rocks & quarry =================
 const rockMesh = inst(new THREE.DodecahedronGeometry(0.3, 0), 80);
 const rocks = [];
 function addRock(i, j) {
@@ -455,13 +574,12 @@ function buildQuarry() {
     }
     if (chance(0.5)) part(g, boxG(0.12, 0.08, 0.1), '#6d6a76', wx(i) + rr(-.4, .4), 0, wz(j) + 0.5);
   }
-  // a pickaxe leaning in the rock and a crate of cut stone
   const sgn = [Math.sign(HALF - quarryC[0]), Math.sign(HALF - quarryC[1])];
   const cx = wx(quarryC[0]) + sgn[0] * 1.55, cz = wz(quarryC[1]) + sgn[1] * 1.55;
   if (inb(tI(cx), tJ(cz)) && occ[id(tI(cx), tJ(cz))] === O_NONE) { part(g, boxG(0.34, 0.18, 0.26), '#8a5a2e', cx, 0, cz, 0.02); for (let k = 0; k < 3; k++) part(g, boxG(0.1, 0.08, 0.1), '#b3b0b8', cx - 0.1 + k * 0.1, 0.18, cz); }
+  bakeStatic(g);
 }
 
-// ================= campfire, stockpile, lamps =================
 const FIRE = { i: HALF, j: HALF, x: wx(HALF), z: wz(HALF) };
 const fireG = new THREE.Group(); fireG.position.set(FIRE.x, 0, FIRE.z); scene.add(fireG);
 for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2; part(fireG, boxG(0.1, 0.08, 0.1), k % 2 ? '#8f8c98' : '#a9a6ae', Math.cos(a) * 0.26, 0, Math.sin(a) * 0.26); }
@@ -489,7 +607,7 @@ function updPile() {
 }
 
 const lamps = [];
-const lampOn = new THREE.MeshBasicMaterial({ color: 0xffd772 });
+const lampOn = new THREE.MeshBasicMaterial({ color: 0xffd772 }), lampOff = new THREE.MeshBasicMaterial({ color: 0x4a4458 });
 const glowTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 16; const x = c.getContext('2d'); const g = x.createRadialGradient(8, 8, 0, 8, 8, 8); g.addColorStop(0, 'rgba(255,220,120,0.9)'); g.addColorStop(1, 'rgba(255,200,100,0)'); x.fillStyle = g; x.fillRect(0, 0, 16, 16); const t = new THREE.CanvasTexture(c); return t; })();
 const glowMat = new THREE.SpriteMaterial({ map: glowTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0 });
 function addLamp(i, j) {
@@ -499,12 +617,14 @@ function addLamp(i, j) {
   part(g, cylG(0.025, 0.03, 0.7, 5), '#2b2238', 0, 0, 0);
   part(g, boxG(0.12, 0.13, 0.12), lampOn, 0, 0.68, 0);
   part(g, cylG(0.0, 0.1, 0.07, 4), '#2b2238', 0, 0.81, 0).rotation.y = Math.PI / 4;
-  const sp = new THREE.Sprite(glowMat); sp.scale.set(1.3, 1.3, 1); sp.position.y = 0.74; g.add(sp);
-  lamps.push({ i, j, g });
+  const sp = new THREE.Sprite(glowMat.clone()); sp.scale.set(1.3, 1.3, 1); sp.position.y = 0.74; g.add(sp);
+  bakeStatic(g);
+  let bulb = null; g.traverse(o => { if (o.isMesh && o.material === lampOn) bulb = o; });
+  const lamp = { i, j, g, x: g.position.x, z: g.position.z, glow: sp, bulb, lit: nightF > 0.5, glowA: 0, offT: rnd(), res: 0 };
+  lamps.push(lamp);
 }
 function lampNear(i, j, r) { return lamps.some(l => Math.abs(l.i - i) <= r && Math.abs(l.j - j) <= r); }
 
-// ================= buildings =================
 const BT = {
   cottage: { size: 1, cost: { wood: 3, stone: 1 }, work: 10, cap: 2, label: 'cottage' },
   house: { size: 2, cost: { wood: 6, stone: 3 }, work: 18, cap: 4, label: 'townhouse' },
@@ -515,6 +635,9 @@ const BT = {
   tavern: { size: 2, cost: { wood: 7, stone: 4 }, work: 22, cap: 0, label: 'tavern' },
   garden: { size: 1, cost: { wood: 1, stone: 1 }, work: 5, cap: 0, label: 'garden' },
   hall: { size: 2, cost: { wood: 5, stone: 9 }, work: 28, cap: 0, label: 'town hall' },
+  fountain: { size: 1, cost: { wood: 0, stone: 6 }, work: 12, cap: 0, label: 'fountain' },
+  bakery: { size: 1, cost: { wood: 4, stone: 2 }, work: 12, cap: 0, label: 'bakery' },
+  statue: { size: 1, cost: { wood: 0, stone: 8 }, work: 18, cap: 0, label: 'statue' },
 };
 const buildings = [];
 const WIN_DAY = new THREE.Color('#6f9ccc'), WIN_DARK = new THREE.Color('#2a3550'), WIN_LIT = new THREE.Color('#ffd772');
@@ -532,6 +655,30 @@ function addDoor(b, w, h, z, double) {
   b.door = piv; b.doorZ = z + 0.03; if (double) part(piv, boxG(0.012, h, 0.045), C.timber, w / 2, 0, 0.012);
 }
 const BUILD = {
+  fountain(b) {
+    part(b.W, cylG(0.42, 0.45, 0.14, 8), C.stone, 0, 0, 0, 1);
+    part(b.W, cylG(0.36, 0.36, 0.02, 8), '#5aa0e0', 0, 0.12, 0);
+    part(b.W, cylG(0.06, 0.08, 0.42, 6), C.stoneD, 0, 0.12, 0, 0.02);
+    part(b.W, cylG(0.17, 0.11, 0.07, 8), C.stone, 0, 0.5, 0, 0.02);
+    part(b.W, cylG(0.14, 0.14, 0.01, 8), '#8cc9f2', 0, 0.565, 0);
+    for (let k = 0; k < 4; k++) { const a = k * Math.PI / 2 + Math.PI / 4; part(b.D, boxG(0.08, 0.1, 0.08), '#86838e', Math.cos(a) * 0.42, 0.12, Math.sin(a) * 0.42); }
+    b.spout = new V3(0, 0.6, 0); b.wallH = 0.6; b.roofTop = 0.75;
+  },
+  bakery(b) {
+    BUILD.cottage(b);
+    b.R.children.forEach(o => { if (o.material && o.material !== outlineMat) o.material = M(o.position.y > 0.3 ? '#5a3a22' : '#a0603a'); });
+    const sg = new THREE.Sprite(new THREE.SpriteMaterial({ map: emoteTexture('wheat') })); sg.scale.set(0.24, 0.24, 1); sg.position.set(-0.24, 0.62, 0.44); b.D.add(sg);
+    part(b.D, boxG(0.3, 0.06, 0.12), '#9a6a40', -0.25, 0.14, 0.44);
+    for (let k = 0; k < 3; k++) part(b.D, new THREE.IcosahedronGeometry(0.035, 0), '#d9a35a', -0.34 + k * 0.09, 0.22, 0.44);
+  },
+  statue(b) {
+    part(b.W, boxG(0.6, 0.12, 0.6), C.stoneD, 0, 0, 0, 1);
+    part(b.W, boxG(0.44, 0.34, 0.44), C.stone, 0, 0.12, 0, 1);
+    part(b.W, boxG(0.46, 0.04, 0.46), C.gold, 0, 0.42, 0);
+    const fig = part(b.W, meepleGeo, '#b08d4a', 0, 0.46, 0, 0.022); fig.scale.setScalar(1.35);
+    part(b.D, boxG(0.22, 0.08, 0.02), C.gold, 0, 0.2, 0.225);
+    b.wallH = 0.46; b.roofTop = 1.25;
+  },
   cottage(b) {
     const wall = pick(C.walls), roof = pick(C.roofs);
     part(b.W, boxG(0.78, 0.5, 0.72), wall, 0, 0, 0, 1);
@@ -558,7 +705,7 @@ const BUILD = {
     b.R.position.y = 0.9;
     const r = part(b.R, roofG(1.56, 0.6, 1.8), roof, 0, 0, 0, 1); r.rotation.y = Math.PI / 2;
     const rr2 = part(b.R, boxG(1.84, 0.06, 0.08), shade(roof, 0.7), 0, 0.56, 0);
-    part(b.R, roofG(0.5, 0.3, 0.4), roof, 0.35, 0.05, 0.62, 1); // dormer roof
+    part(b.R, roofG(0.5, 0.3, 0.4), roof, 0.35, 0.05, 0.62, 1);
     addDoor(b, 0.26, 0.38, 0.66, true);
     part(b.D, boxG(0.46, 0.04, 0.2), roof, 0, 0.44, 0.75);
     for (const x of [-0.5, 0.5]) winBox(b, 0.18, 0.16, x, 0.26, 0.66);
@@ -589,7 +736,6 @@ const BUILD = {
     }
     part(b.D, boxG(1.92, 0.03, 0.03), C.timber, 0, 0.15, -0.95);
     part(b.D, boxG(0.03, 0.03, 1.92), C.timber, -0.95, 0.15, 0); part(b.D, boxG(0.03, 0.03, 1.92), C.timber, 0.95, 0.15, 0);
-    // scarecrow
     const s = new THREE.Group(); s.position.set(0.6, 0, -0.55); s.rotation.y = rr(-0.5, 0.5); b.D.add(s);
     part(s, boxG(0.04, 0.55, 0.04), C.timber, 0, 0, 0); part(s, boxG(0.4, 0.04, 0.04), C.timber, 0, 0.36, 0);
     part(s, boxG(0.16, 0.2, 0.08), pick(['#3b78d8', '#e0443e', '#8b5cc7']), 0, 0.26, 0, 1);
@@ -640,7 +786,6 @@ const BUILD = {
     for (const x of [-0.55, -0.28, 0.28, 0.55]) winBox(b, 0.16, 0.16, x, 0.42, 0.71);
     for (const z of [-0.35, 0.35]) { winBox(b, 0.18, 0.16, 0.83, 0.42, z, true); winBox(b, 0.18, 0.16, -0.83, 0.42, z, true); }
     part(b.D, boxG(0.18, 0.5, 0.18), C.stone, 0.55, 0.9, -0.3, 1); b.chimney = new V3(0.55, 1.45, -0.3);
-    // hanging sign with a mug
     part(b.D, boxG(0.04, 0.04, 0.3), C.timber, 0.35, 0.72, 0.84);
     const sg = new THREE.Sprite(new THREE.SpriteMaterial({ map: emoteTexture('mug') })); sg.scale.set(0.3, 0.3, 1); sg.position.set(0.35, 0.55, 0.98); b.D.add(sg);
     for (const x of [-0.72, -0.56]) { part(b.D, cylG(0.08, 0.08, 0.2, 8), '#8a5a2e', x, 0, 0.86, 1); part(b.D, cylG(0.083, 0.083, 0.02, 8), '#4a4458', x, 0.1, 0.86); }
@@ -684,13 +829,12 @@ function createBuilding(type, i0, j0, o, entry, street, instant) {
   const T = BT[type], s = T.size;
   const b = { id: ++bldId, type, T, i0, j0, size: s, o, entry, street, prog: instant ? 1 : 0, done: !!instant, delivered: { wood: 0, stone: 0 }, pending: { wood: 0, stone: 0 }, builders: 0, residents: [], occupants: 0, doorT: 0, smokeT: rr(0, 1), zzzT: rr(0, 4) };
   b.cx = wx(i0) + (s - 1) / 2; b.cz = wz(j0) + (s - 1) / 2;
-  b.g = new THREE.Group(); b.g.position.set(b.cx, 0, b.cz); b.g.rotation.y = o * Math.PI / 2; scene.add(b.g);
+  b.g = new THREE.Group(); b.g.userData.bld = b; b.g.position.set(b.cx, 0, b.cz); b.g.rotation.y = o * Math.PI / 2; scene.add(b.g);
   b.W = new THREE.Group(); b.R = new THREE.Group(); b.D = new THREE.Group(); b.g.add(b.W, b.R, b.D);
   b.winMat = new THREE.MeshBasicMaterial({ color: WIN_DAY.clone() });
   b.cropMat = new THREE.MeshToonMaterial({ color: '#6cbf4a', gradientMap: gradMap });
   BUILD[type](b);
   b.D.traverse(o => { if (o.isMesh && o.geometry.boundingSphere === null) o.geometry.computeBoundingSphere(); if (o.isMesh && o.geometry.boundingSphere.radius < 0.12) o.castShadow = false; });
-  // door world position
   const dz = (b.doorZ ?? (s * 0.5 - 0.05)) + 0.06, [dx0, dz0] = DIRS[o];
   b.doorWorld = { x: b.cx + dx0 * dz, z: b.cz + dz0 * dz };
   b.trees = [];
@@ -702,7 +846,6 @@ function createBuilding(type, i0, j0, o, entry, street, instant) {
   }
   redrawAround(i0, j0); if (s > 1) redrawAround(i0 + 1, j0 + 1);
   if (!instant) {
-    // survey stakes, rope, flag, scaffolding
     b.site = new THREE.Group(); b.g.add(b.site);
     const e = s * 0.5 - 0.06;
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) part(b.site, boxG(0.04, 0.22, 0.04), '#c9a26a', sx * e, 0, sz * e);
@@ -711,11 +854,9 @@ function createBuilding(type, i0, j0, o, entry, street, instant) {
     const sh = (b.wallH || 0.5) + 0.15, se = s * 0.5 - 0.02;
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) part(b.scaf, boxG(0.035, sh, 0.035), '#c9a26a', sx * se, 0, sz * se);
     for (let y = 0.25; y < sh; y += 0.3) { part(b.scaf, boxG(se * 2, 0.025, 0.08), '#b58a55', 0, y, se); part(b.scaf, boxG(0.08, 0.025, se * 2), '#b58a55', se, y, 0); }
-    // material piles on site
     b.mLogs = []; b.mStones = [];
     for (let k = 0; k < T.cost.wood; k++) { const l = part(b.site, cylG(0.04, 0.04, 0.32, 6), '#8a5a2e', -e + 0.12, 0.05 + Math.floor(k / 3) * 0.08, -e + 0.12 + (k % 3) * 0.09); l.rotation.z = Math.PI / 2; l.position.x = -e + 0.28; l.visible = false; b.mLogs.push(l); }
     for (let k = 0; k < T.cost.stone; k++) { const r = part(b.site, new THREE.DodecahedronGeometry(0.06, 0), '#a4a1ab', e - 0.15 - (k % 3) * 0.1, 0.05 + Math.floor(k / 3) * 0.08, -e + 0.14); r.visible = false; b.mStones.push(r); }
-    // floating sign + progress bar
     b.icon = new THREE.Sprite(new THREE.SpriteMaterial({ map: emoteTexture('hammer'), depthTest: false })); b.icon.renderOrder = 8;
     b.icon.scale.set(0.42, 0.42, 1); b.icon.position.set(b.cx, (b.roofTop || 1) + 0.55, b.cz); scene.add(b.icon);
     b.barBg = new THREE.Sprite(new THREE.SpriteMaterial({ color: 0x1b1426, depthTest: false })); b.barBg.renderOrder = 8;
@@ -724,9 +865,10 @@ function createBuilding(type, i0, j0, o, entry, street, instant) {
     b.barFg.position.set(b.cx - 0.25, (b.roofTop || 1) + 0.25, b.cz); b.barFg.scale.set(0.001, 0.05, 1);
     scene.add(b.barBg, b.barFg);
   }
-  buildings.push(b); setStage(b); if (typeof computeReach === 'function' && !instant) computeReach();
+  buildings.push(b); setStage(b); if (instant) bakeBuilding(b); if (typeof computeReach === 'function' && !instant) computeReach();
   return b;
 }
+function bakeBuilding(b) { bakeStatic(b.g, [b.door, b.spin, b.flag && b.flag.parent, b.clockH, b.clockM, b.bucket, b.cropMat]); }
 function siteReady(b) { return !b.done && b.delivered.wood >= b.T.cost.wood && b.delivered.stone >= b.T.cost.stone && !footprintHasTree(b); }
 function footprintHasTree(b) {
   return b.trees.some(t => t.state === 'standing' || t.state === 'sapling' || t.state === 'falling');
@@ -748,16 +890,14 @@ function finishBuilding(b) {
   for (const o of [b.site, b.scaf]) if (o) b.g.remove(o);
   for (const o of [b.icon, b.barBg, b.barFg]) if (o) { scene.remove(o); o.material.dispose(); }
   for (let a = 0; a < b.size; a++) for (let c = 0; c < b.size; c++) occ[id(b.i0 + a, b.j0 + c)] = O_BLD;
-  setStage(b);
-  // celebratory confetti
+  setStage(b); bakeBuilding(b);
   emit(b.cx, (b.roofTop || 1) + 0.2, b.cz, { n: 40, color: ['#e34b4b', '#f2c230', '#3f7fd9', '#49a84f', '#ffffff', '#ef7fb0'], v: 1.6, vy: [2, 3.5], size: 0.06, life: [1, 1.6], grav: 4, glow: true, drag: 1.2 });
   onBuildingDone(b);
 }
 
-// ================= pathfinding =================
 function passable(i, j) {
   if (!inb(i, j)) return false; const k = id(i, j);
-  if (ground[k] === G_WATER) return false;
+  if (ground[k] === G_WATER) return bridge[k] === 1 && road[k] >= 2;
   const o = occ[k]; if (o === O_NONE) return true;
   if (o === O_BLD && occRef[k] && occRef[k].type === 'field') return true;
   return false;
@@ -766,7 +906,7 @@ const gS = new Float32Array(N * N), came = new Int32Array(N * N), stampA = new U
 function astar(si, sj, ti, tj) {
   if (!passable(ti, tj)) return null;
   stamp++; const start = id(si, sj), goal = id(ti, tj);
-  const heap = [], hf = []; // binary heap of node ids by f
+  const heap = [], hf = [];
   const push = (n, f) => { heap.push(n); hf.push(f); let c = heap.length - 1; while (c > 0) { const p = (c - 1) >> 1; if (hf[p] <= hf[c]) break; [heap[p], heap[c]] = [heap[c], heap[p]]; [hf[p], hf[c]] = [hf[c], hf[p]]; c = p; } };
   const pop = () => { const top = heap[0], ln = heap.pop(), lf = hf.pop(); if (heap.length) { heap[0] = ln; hf[0] = lf; let c = 0; for (;;) { const l = c * 2 + 1, r = l + 1; let m = c; if (l < heap.length && hf[l] < hf[m]) m = l; if (r < heap.length && hf[r] < hf[m]) m = r; if (m === c) break; [heap[m], heap[c]] = [heap[c], heap[m]]; [hf[m], hf[c]] = [hf[c], hf[m]]; c = m; } } return top; };
   const H = (i, j) => { const dx = Math.abs(i - ti), dz = Math.abs(j - tj); return 0.6 * (dx + dz) - 0.35 * Math.min(dx, dz); };
@@ -814,7 +954,6 @@ function nearestReached(i, j) {
   for (let r = 1; r < 6; r++) for (let a = -r; a <= r; a++) for (let c = -r; c <= r; c++) if (inb(i + a, j + c) && reach[id(i + a, j + c)] && passable(i + a, j + c)) return [i + a, j + c];
   return null;
 }
-// nearest passable neighbour of (i,j) as seen from meeple m
 function accessTile(i, j, m, size = 1) {
   let best = null, bd = 1e9;
   for (let a = -1; a <= size; a++) for (let c = -1; c <= size; c++) {
@@ -826,7 +965,6 @@ function accessTile(i, j, m, size = 1) {
   return best;
 }
 
-// ================= meeples =================
 const meepleGeo = (() => {
   const s = new THREE.Shape();
   s.moveTo(-0.2, 0); s.lineTo(-0.06, 0); s.quadraticCurveTo(0, 0.11, 0.06, 0); s.lineTo(0.2, 0);
@@ -856,6 +994,7 @@ const TOOLS = {
   hammer(g) { part(g, cylG(0.014, 0.014, 0.24, 4), '#8a5a2e', 0, 0, 0); part(g, boxG(0.05, 0.05, 0.12), '#7d8190', 0, 0.22, 0, 0.012); },
   pick(g) { part(g, cylG(0.014, 0.014, 0.3, 4), '#8a5a2e', 0, 0, 0); const h = part(g, boxG(0.025, 0.025, 0.26), '#7d8190', 0, 0.27, 0, 0.012); },
   hoe(g) { part(g, cylG(0.012, 0.012, 0.42, 4), '#8a5a2e', 0, 0, 0); part(g, boxG(0.08, 0.02, 0.07), '#7d8190', 0, 0.41, 0.04, 0.01); },
+  pole(g) { part(g, cylG(0.01, 0.012, 0.75, 4), '#6b4428', 0, 0, 0); part(g, new THREE.IcosahedronGeometry(0.03, 0), new THREE.MeshBasicMaterial({ color: 0xffd772 }), 0, 0.77, 0); },
   rod(g) { const r = part(g, cylG(0.008, 0.012, 0.62, 4), '#8a5a2e', 0, 0, 0); },
 };
 const CARRY = {
@@ -869,8 +1008,8 @@ const CARRY = {
 };
 const meeples = []; let meepleId = 0;
 function makeMeeple(opts) {
-  const m = { id: ++meepleId, name: opts.name || NAMES[(meepleId * 7 + ri(0, 50)) % NAMES.length], role: opts.role || pick(ROLES), color: opts.color || pick(C.meeple), home: opts.home || null, x: opts.x, z: opts.z, face: rr(0, 6.28), faceV: 0, speed: rr(1.35, 1.7), phase: rr(0, 6), co: null, inside: null, moving: false, act: null, actT: 0, emotes: [], social: rr(0, 1), age: opts.baby ? 0 : 1, blinkT: rr(1, 4), hop: 0, lane: { x: rr(-0.14, 0.14), z: rr(-0.14, 0.14) }, busy: '', talkT: 0 };
-  m.g = new THREE.Group(); m.b = new THREE.Group(); m.g.add(m.b); scene.add(m.g);
+  const m = { id: ++meepleId, name: opts.name || NAMES[(meepleId * 7 + ri(0, 50)) % NAMES.length], role: opts.role || pick(ROLES), color: opts.color || pick(C.meeple), home: opts.home || null, x: opts.x, z: opts.z, face: rr(0, 6.28), faceV: 0, speed: rr(1.35, 1.7), phase: rr(0, 6), co: null, inside: null, moving: false, act: null, actT: 0, emotes: [], social: rr(0, 1), age: opts.baby ? 0 : 1, blinkT: rr(1, 4), hop: 0, lane: { x: rr(-0.14, 0.14), z: rr(-0.14, 0.14) }, busy: '', talkT: 0, doing: 'Looking around', since: dayN, tally: { trees: 0, stone: 0, build: 0, pave: 0, food: 0, plant: 0 } };
+  m.g = new THREE.Group(); m.b = new THREE.Group(); m.g.add(m.b); scene.add(m.g); m.g.userData.meeple = m;
   const body = part(m.b, meepleGeo, m.color, 0, 0, 0, 0.022);
   const eyeM = M('#1b1426');
   m.eyes = [part(m.b, eyeGeo, eyeM, -0.035, 0.47, 0.086), part(m.b, eyeGeo, eyeM, 0.035, 0.47, 0.086)];
@@ -881,6 +1020,7 @@ function makeMeeple(opts) {
   m.toolPiv = new THREE.Group(); m.toolPiv.position.set(0.27, 0.3, 0.02); m.b.add(m.toolPiv);
   m.carryG = new THREE.Group(); m.carryG.position.set(0, 0.62, 0); m.b.add(m.carryG);
   m.tool = null; m.carry = null;
+  bakeStatic(m.b, [m.hat, m.toolPiv, m.carryG, ...m.eyes]);
   meeples.push(m); placeMeeple(m); return m;
 }
 function setTool(m, t) {
@@ -895,7 +1035,6 @@ function setCarry(m, c) {
   if (c) { const g = new THREE.Group(); CARRY[c](g); if (c === 'log' || c === 'wheat' || c === 'bindle') g.position.x = c === 'bindle' ? -0.15 : -0.19; m.carryG.add(g); }
 }
 function placeMeeple(m) { m.g.position.set(m.x, 0, m.z); }
-// ---- emotes ----
 function emote(m, name, dur = 1.8) {
   if (m.inside) return worldEmote(m.inside.cx, (m.inside.roofTop || 1) + 0.3, m.inside.cz, name, dur);
   for (const e of m.emotes) { m.g.remove(e.s); e.s.material.dispose(); } m.emotes.length = 0;
@@ -914,13 +1053,12 @@ function updEmoteSprite(e, dt, sz = 0.42) {
   const k = t < 0.18 ? (t / 0.18) * 1.25 : t < 0.28 ? 1.25 - (t - 0.18) / 0.1 * 0.25 : t > d - 0.2 ? Math.max(0, (d - t) / 0.2) : 1;
   e.s.scale.set(sz * k, sz * k, 1); return t < d;
 }
-// ---- per-frame animation ----
 const BEAT = { chop: 0.55, hammer: 0.4, mine: 0.6, hoe: 0.7, pave: 0.35, dance: 0.5, crank: 0.5, plant: 0.6 };
 function animMeeple(m, dt) {
   const grown = 0.58 + 0.42 * m.age;
-  // facing (shortest angle)
   let da = m.face - m.g.rotation.y; da = Math.atan2(Math.sin(da), Math.cos(da)); m.g.rotation.y += da * Math.min(1, dt * 10);
-  m.g.position.set(m.x, 0, m.z);
+  const bk = id(clamp(tI(m.x), 0, N - 1), clamp(tJ(m.z), 0, N - 1));
+  m.g.position.set(m.x, bridge[bk] && road[bk] >= 2 ? 0.08 : 0, m.z);
   const b = m.b; let y = 0, rz = 0, rx = 0, sy = 1;
   if (m.moving) {
     m.phase += dt * m.speed * 9;
@@ -939,21 +1077,35 @@ function animMeeple(m, dt) {
     else if (m.act === 'sit') { y = -0.08; sy = 0.82; }
     else if (m.act === 'stretch') { sy = 1 + Math.sin(m.actT * 4) * 0.08; }
   } else {
-    // idle breathing + little look-around
     sy = 1 + Math.sin(performance.now() / 600 + m.id) * 0.02;
   }
   if (m.hop > 0) { m.hop = Math.max(0, m.hop - dt); if (m.act !== 'chat') y += Math.sin(m.hop / 0.3 * Math.PI) * 0.12; }
   b.position.y = y; b.rotation.set(rx, 0, rz); b.scale.set(grown * (2 - sy) ** 0.5, grown * sy, grown);
   if (!m.act || m.act === 'chat' || m.act === 'dance') { m.toolPiv.rotation.x *= 0.8; }
-  // blink
   m.blinkT -= dt; const bl = m.blinkT < 0.12 ? 0.15 : 1; if (m.blinkT < 0) m.blinkT = rr(2, 5);
   m.eyes[0].scale.y = m.eyes[1].scale.y = bl;
-  // emotes
   for (let k = m.emotes.length - 1; k >= 0; k--) { const e = m.emotes[k]; e.s.position.y = 0.95 * grown + 0.1; if (!updEmoteSprite(e, dt)) { m.g.remove(e.s); e.s.material.dispose(); m.emotes.splice(k, 1); } }
 }
 
-// ================= time =================
-const DAY = 160; let clock = DAY * 0.3, dayN = 1;
+const DAY = 160, SEASON_DAYS = 3; let clock = DAY * 0.3, dayN = 1;
+const SEASON_NAMES = ['Spring', 'Summer', 'Autumn', 'Winter'];
+const seasonNow = () => Math.floor((dayN - 1) / SEASON_DAYS) % 4;
+const SEASON_LINES = [
+  ['Spring returns. Blossom drifts across Meepleton.', 'The thaw breaks. Spring is here.'],
+  ['Summer settles in, long and golden.', 'Summer arrives. The pond glitters.'],
+  ['Autumn paints the woods amber.', 'The leaves turn. Autumn has come.'],
+  ['Winter arrives. Snow blankets the island.', 'The first snow falls on Meepleton.'],
+];
+let sweepRow = N, treeSweep = [];
+function startSeason(se) {
+  groundSeason = se; sweepRow = 0;
+  treeSweep = trees.filter(t => t && t.state !== 'gone').sort((a, b) => (a.i + a.j) - (b.i + b.j));
+  logEvent(pick(SEASON_LINES[se]));
+}
+function updSeasonSweep() {
+  if (sweepRow < N) { for (let r = 0; r < 2 && sweepRow < N; r++, sweepRow++) for (let i = 0; i < N; i++) drawTile(i, sweepRow); gtex.needsUpdate = true; }
+  if (treeSweep.length) { const se = seasonNow(); for (const t of treeSweep.splice(0, 25)) if (t.state !== 'gone') paintTree(t, se); }
+}
 const dayT = () => (clock % DAY) / DAY;
 function phase() { const t = dayT(); if (t < 0.23 || t >= 0.875) return 'night'; if (t < 0.28) return 'dawn'; if (t < 0.72) return 'work'; return 'evening'; }
 const plannedRoads = new Set(), roadRes = new Int32Array(N * N);
@@ -961,7 +1113,6 @@ const inflight = { wood: 0, stone: 0 };
 const stumps = [];
 let shoreTiles = [];
 
-// ================= behaviour primitives (generators receive dt) =================
 function* wait(t) { while (t > 0) t -= yield; }
 function faceTo(m, x, z) { m.face = Math.atan2(x - m.x, z - m.z); }
 function* moveTo(m, x, z, mul = 1) {
@@ -1019,8 +1170,8 @@ function* deliver(m, res, n) {
   emit(PILE.x, 0.25, PILE.z, { n: 5, color: '#d9c49a', v: 0.6, vy: [0.5, 1], size: 0.04, life: [0.3, 0.6] });
 }
 
-// ================= work routines =================
 function* rChop(m, t) {
+  m.doing = `Felling ${t.kind === 'pine' ? 'a pine' : 'an oak'}`;
   inflight.wood++;
   try {
     yield* goOut(m);
@@ -1037,11 +1188,12 @@ function* rChop(m, t) {
     t.state = 'stump'; t.fall = 0; t.stumpT = 0; treeMatrix(t); stumps.push(t);
     if (occRef[id(t.i, t.j)] === t) { occ[id(t.i, t.j)] = O_NONE; occRef[id(t.i, t.j)] = null; }
     for (const b of buildings) if (!b.done && b.trees.includes(t)) setStage(b);
-    setTool(m, null); setCarry(m, 'log');
+    setTool(m, null); setCarry(m, 'log'); m.tally.trees++;
     yield* deliver(m, 'wood', 1);
   } finally { t.res = 0; inflight.wood--; setTool(m, null); if (m.carry === 'log') setCarry(m, null); }
 }
 function* rMine(m, r) {
+  m.doing = r.quarry ? 'Cutting stone at the quarry' : 'Breaking up a boulder';
   inflight.stone++;
   try {
     yield* goOut(m);
@@ -1060,11 +1212,12 @@ function* rMine(m, r) {
       if (r.amt <= 0) { r.gone = true; occ[id(r.i, r.j)] = O_NONE; occRef[id(r.i, r.j)] = null; emit(r.x, 0.2, r.z, { n: 14, color: ['#a4a1ab', '#86838e', '#c3c6cf'], v: 1.3, vy: [1, 2], size: 0.07, life: [0.5, 1] }); }
       rockMatrix(r);
     }
-    setTool(m, null); setCarry(m, 'stone');
+    setTool(m, null); setCarry(m, 'stone'); m.tally.stone++;
     yield* deliver(m, 'stone', 1);
   } finally { r.res = 0; inflight.stone--; setTool(m, null); if (m.carry === 'stone') setCarry(m, null); }
 }
 function* rHaul(m, b, res) {
+  m.doing = `Hauling ${res} to the ${b.T.label}`;
   let resHeld = true, pendHeld = true, carrying = false;
   try {
     yield* goOut(m);
@@ -1085,6 +1238,7 @@ function* rHaul(m, b, res) {
   }
 }
 function* rBuild(m, b) {
+  m.doing = `Building the ${b.T.label} on ${b.street}`;
   try {
     yield* goOut(m);
     if (!(yield* walkNear(m, b.i0, b.j0, b.size))) return;
@@ -1099,15 +1253,31 @@ function* rBuild(m, b) {
         emit(hx, hy, hz, { n: 2, color: ['#ffe066', '#ffffff'], v: 1, vy: [0.8, 1.6], size: 0.03, life: [0.15, 0.35], glow: true });
         if (beat % 3 === 0) emit(hx, 0.05, hz, { n: 3, color: '#d9c49a', v: 0.5, vy: [0.3, 0.8], size: 0.06, life: [0.4, 0.8], grav: 1, grow: 1 });
       }
-      if (b.prog >= 1 && !b.done) { finishBuilding(b); emote(m, 'star', 2); m.hop = 0.3; for (const o of meeples) if (o !== m && !o.inside && Math.hypot(o.x - b.cx, o.z - b.cz) < 4) { o.hop = 0.3; if (chance(0.5)) emote(o, pick(['heart', 'smile', 'exclaim'])); } }
+      if (b.prog >= 1 && !b.done) { m.tally.build++; finishBuilding(b); emote(m, 'star', 2); m.hop = 0.3; for (const o of meeples) if (o !== m && !o.inside && Math.hypot(o.x - b.cx, o.z - b.cz) < 4) { o.hop = 0.3; if (chance(0.5)) emote(o, pick(['heart', 'smile', 'exclaim'])); } }
     }
   } finally { m.act = null; b.builders--; setTool(m, null); }
 }
 function* rPave(m, k) {
-  const i = k % N, j = Math.floor(k / N);
-  let took = false;
+  const i = k % N, j = Math.floor(k / N), isBridge = bridge[k] === 1;
+  m.doing = isBridge ? `Planking the bridge on ${roadName[k]}` : `Paving ${roadName[k] || 'a new street'}`;
+  let took = false, plank = false;
   try {
     yield* goOut(m);
+    if (isBridge) {
+      if (!(yield* walkNear(m, PILE.i, PILE.j))) return;
+      faceTo(m, PILE.x, PILE.z); yield* wait(0.3);
+      if (stock.wood - reserved.wood < 1) return;
+      stock.wood--; updPile(); plank = true; setCarry(m, 'log');
+      if (!(yield* walkNear(m, i, j))) return;
+      if (road[k] !== 1) return;
+      m.busy = 'work'; faceTo(m, wx(i), wz(j)); setCarry(m, null); setTool(m, 'hammer');
+      yield* doAct(m, 'hammer', 3, () => emit(wx(i), 0.1, wz(j), { n: 3, color: ['#d9b27a', '#8a5a2e', '#cfeaf8'], v: 0.6, vy: [0.4, 1.1], size: 0.045, life: [0.3, 0.6] }));
+      if (road[k] !== 1) return;
+      road[k] = 2; plank = false; plannedRoads.delete(k); buildBridge(k); redrawAround(i, j); m.tally.pave++; computeReach();
+      const nm = roadName[k];
+      if (nm && ![...plannedRoads].some(q => roadName[q] === nm && bridge[q])) { if (!streetsDone.has(nm + '#b')) { streetsDone.add(nm + '#b'); logEvent(`${m.name} hammered the last plank into the bridge on <b>${nm}</b>.`); } }
+      return;
+    }
     if (stock.stone > reserved.stone && chance(0.5)) {
       if (yield* walkNear(m, PILE.i, PILE.j)) { faceTo(m, PILE.x, PILE.z); yield* wait(0.3); if (stock.stone > reserved.stone) { stock.stone--; updPile(); took = true; setCarry(m, 'stone'); } }
     }
@@ -1118,23 +1288,25 @@ function* rPave(m, k) {
     if (road[k] !== 1) return;
     const st = occRef[k]; if (st && st.kind && st.state === 'stump') removeTree(st);
     for (const s of stumps) if (s.i === i && s.j === j && s.state === 'stump') removeTree(s);
-    road[k] = 2; plannedRoads.delete(k); redrawAround(i, j);
+    road[k] = 2; plannedRoads.delete(k); redrawAround(i, j); m.tally.pave++;
     if (!lampNear(i, j, 3) && chance(0.45)) addLamp(i, j);
     const nm = roadName[k];
     if (nm && ![...plannedRoads].some(q => roadName[q] === nm) && !streetsDone.has(nm)) { streetsDone.add(nm); logEvent(`${m.name}'s crew finished paving <b>${nm}</b>.`); }
-  } finally { roadRes[k] = 0; setTool(m, null); if (m.carry === 'stone') setCarry(m, null); }
+  } finally { roadRes[k] = 0; setTool(m, null); if (plank) { stock.wood++; updPile(); } if (m.carry === 'stone' || m.carry === 'log') setCarry(m, null); }
 }
 const streetsDone = new Set();
 function fieldTile(f, m) { let best = null, bd = 1e9; for (let a = 0; a < 2; a++) for (let c = 0; c < 2; c++) { const i = f.i0 + a, j = f.j0 + c, d = Math.hypot(wx(i) - m.x, wz(j) - m.z); if (d < bd) { bd = d; best = [i, j]; } } return best; }
 function* rField(m, f, harvest) {
+  m.doing = harvest ? 'Harvesting wheat' : 'Tending the wheat field';
   try {
     yield* goOut(m);
     const t = fieldTile(f, m); if (!(yield* walkTo(m, t[0], t[1]))) return;
     m.busy = 'work'; setTool(m, 'hoe'); m.face = f.o * Math.PI / 2 + (chance(0.5) ? 0 : Math.PI);
     if (harvest) {
       yield* doAct(m, 'hoe', 3.5, () => emit(m.x + Math.sin(m.face) * 0.3, 0.2, m.z + Math.cos(m.face) * 0.3, { n: 5, color: ['#e3c877', '#f2d98a', '#c9a84a'], v: 0.9, vy: [0.8, 1.6], size: 0.045, life: [0.5, 1], grav: 3 }));
-      f.grow = 0; updCrops(f); setTool(m, null); setCarry(m, 'wheat'); emote(m, 'wheat', 1.4);
-      yield* deliver(m, 'food', 3);
+      const mills = buildings.filter(b => b.done && b.type === 'windmill' && Math.hypot(b.cx - f.cx, b.cz - f.cz) < 9).length, yieldN = 3 + Math.min(2, mills);
+      f.grow = 0; updCrops(f); setTool(m, null); setCarry(m, 'wheat'); emote(m, 'wheat', 1.4); m.tally.food += yieldN;
+      yield* deliver(m, 'food', yieldN);
     } else {
       yield* doAct(m, 'hoe', 3, () => emit(m.x + Math.sin(m.face) * 0.3, 0.06, m.z + Math.cos(m.face) * 0.3, { n: 3, color: ['#8a5a36', '#6d4428'], v: 0.5, vy: [0.6, 1.2], size: 0.04, life: [0.3, 0.6] }));
       f.tend = 25; emote(m, 'drop', 1.2);
@@ -1143,6 +1315,7 @@ function* rField(m, f, harvest) {
   } finally { f.worker = 0; setTool(m, null); if (m.carry === 'wheat') setCarry(m, null); }
 }
 function* rPlant(m) {
+  m.doing = 'Planting a sapling';
   let spot = null;
   for (let k = 0; k < 60 && !spot; k++) {
     const i = ri(1, N - 2), j = ri(1, N - 2), kk = id(i, j);
@@ -1157,12 +1330,12 @@ function* rPlant(m) {
     if (!passable(spot[0], spot[1]) || road[id(spot[0], spot[1])]) return;
     m.busy = 'work'; faceTo(m, wx(spot[0]), wz(spot[1])); setCarry(m, null);
     yield* doAct(m, 'plant', 1.8, () => emit(wx(spot[0]), 0.05, wz(spot[1]), { n: 3, color: '#8a5a36', v: 0.4, vy: [0.4, 0.8], size: 0.04, life: [0.3, 0.5] }));
-    const t = addTree(spot[0], spot[1], 0.15); if (t) { animTrees.add(t); emote(m, 'leaf', 1.4); }
+    const t = addTree(spot[0], spot[1], 0.15); if (t) { animTrees.add(t); emote(m, 'leaf', 1.4); m.tally.plant++; }
   } finally { if (m.carry === 'sapling') setCarry(m, null); }
 }
 
-// ================= leisure & daily rhythm =================
 function* rWander(m) {
+  m.doing = pick(['Taking a stroll', 'Wandering about', 'Stretching their legs', 'Admiring the view']);
   yield* goOut(m); m.busy = 'idle';
   const ci = tI(m.x), cj = tJ(m.z); let tgt = null;
   for (let k = 0; k < 25 && !tgt; k++) {
@@ -1172,9 +1345,10 @@ function* rWander(m) {
   if (tgt) yield* walkTo(m, tgt[0], tgt[1]);
   m.busy = 'idle';
   const looks = ri(1, 3);
-  for (let k = 0; k < looks; k++) { m.face += rr(-1.5, 1.5); yield* wait(rr(0.6, 1.6)); if (chance(0.15)) emote(m, pick(['music', 'sun', 'smile', 'leaf'])); }
+  for (let k = 0; k < looks; k++) { m.face += rr(-1.5, 1.5); yield* wait(rr(0.6, 1.6)); if (chance(0.15)) emote(m, wx_.wet > 0.5 ? pick(wx_.kind === 'snow' ? ['star', 'smile', 'heart'] : ['drop', 'question', 'drop']) : pick(['music', 'sun', 'smile', 'leaf'])); }
 }
 function* rChat(m, o) {
+  m.doing = `Chatting with ${o.name}`; o.doing = `Chatting with ${m.name}`;
   const conv = { done: false };
   if (o.co) o.co.return(); o.co = rListen(o, m, conv); o.busy = 'chat'; m.busy = 'chat';
   try {
@@ -1209,6 +1383,7 @@ function nearestShore(m) {
 }
 const bobberGeo = new THREE.SphereGeometry(0.035, 6, 4);
 function* rFish(m) {
+  m.doing = 'Fishing at the pond';
   const s = nearestShore(m); if (!s) return;
   s.res = m.id; let bob = null;
   try {
@@ -1225,7 +1400,7 @@ function* rFish(m) {
     if (chance(0.55)) {
       emit(bob.position.x, 0.05, bob.position.z, { n: 12, color: ['#cfeaf8', '#ffffff', '#8cc9f2'], v: 0.8, vy: [1, 2], size: 0.04, life: [0.4, 0.7] });
       scene.remove(bob); bob = null; m.toolPiv.rotation.x = -0.8; emote(m, 'fish', 1.6); m.hop = 0.3; setTool(m, null); setCarry(m, 'fish');
-      yield* wait(0.8);
+      yield* wait(0.8); m.tally.food++;
       yield* deliver(m, 'food', 1);
     } else { emote(m, 'chat', 1.2); }
   } finally { s.res = 0; m.act = null; if (bob) scene.remove(bob); setTool(m, null); if (m.carry === 'fish') setCarry(m, null); }
@@ -1236,6 +1411,7 @@ function nearestB(m, type, pred) {
   return best;
 }
 function* rWell(m) {
+  m.doing = 'Fetching water from the well';
   const w = nearestB(m, 'well'); if (!w) return;
   yield* goOut(m); m.busy = 'idle';
   if (!(yield* walkTo(m, w.entry.i, w.entry.j))) return;
@@ -1246,13 +1422,24 @@ function* rWell(m) {
   if (m.home && m.home.done) { if (yield* enterB(m, m.home)) { yield* wait(rr(3, 6)); yield* exitB(m); } }
   setCarry(m, null);
 }
+function* rVisit(m, type, doing, emotes, sit) {
+  m.doing = doing;
+  const s = nearestB(m, type); if (!s) return;
+  yield* goOut(m); m.busy = 'idle';
+  if (!(yield* walkTo(m, s.entry.i, s.entry.j))) return;
+  faceTo(m, s.cx, s.cz); yield* wait(rr(0.8, 1.6)); emote(m, pick(emotes), 1.6);
+  if (sit) yield* doAct(m, 'sit', rr(3, 5)); else yield* wait(rr(1, 2));
+  if (type === 'bakery' && chance(0.5)) { setCarry(m, 'wheat'); yield* wait(rr(1.5, 3)); setCarry(m, null); }
+}
 function* rStall(m) {
+  m.doing = 'Browsing the market stall';
   const s = nearestB(m, 'stall'); if (!s) return;
   yield* goOut(m); m.busy = 'idle';
   if (!(yield* walkTo(m, s.entry.i, s.entry.j))) return;
   faceTo(m, s.cx, s.cz); yield* wait(rr(1, 2)); emote(m, pick(['heart', 'smile', 'star', 'wheat', 'question'])); yield* wait(rr(1, 2));
 }
 function* rGarden(m) {
+  m.doing = 'Resting in the garden';
   const g = nearestB(m, 'garden'); if (!g) return;
   yield* goOut(m); m.busy = 'idle';
   if (!(yield* walkTo(m, g.entry.i, g.entry.j))) return;
@@ -1260,13 +1447,16 @@ function* rGarden(m) {
   yield* doAct(m, 'sit', rr(3, 6));
 }
 function* rBreak(m) {
+  m.doing = 'Taking a break at home';
   if (!m.home || !m.home.done) return;
   m.busy = 'idle';
   if (yield* enterB(m, m.home)) { yield* wait(rr(5, 12)); yield* exitB(m); }
 }
 function* rEvening(m) {
+  m.doing = isFestival() ? `Celebrating the ${FESTIVALS[seasonNow()]}` : 'Gathering at the hearth';
   const tav = nearestB(m, 'tavern');
-  if (tav && m.age >= 1 && chance(0.4)) {
+  if (tav && m.age >= 1 && !isFestival() && chance(0.4)) {
+    m.doing = 'Singing at the tavern';
     if (yield* enterB(m, tav)) {
       while (phase() === 'evening') { yield* wait(rr(2, 5)); if (chance(0.3)) worldEmote(tav.cx + rr(-.4, .4), tav.roofTop + 0.3, tav.cz, pick(['music', 'mug', 'smile']), 1.8); }
     }
@@ -1282,29 +1472,70 @@ function* rEvening(m) {
   while (phase() === 'evening') {
     faceTo(m, FIRE.x, FIRE.z);
     const r = rnd();
-    if (r < 0.35) { emote(m, 'music', 1.4); yield* doAct(m, 'dance', rr(2, 3.5)); }
-    else if (r < 0.7) { yield* doAct(m, 'sit', rr(3, 6)); }
+    if (r < (isFestival() ? 0.65 : 0.35)) { m.doing = isFestival() ? `Dancing at the ${FESTIVALS[seasonNow()]}` : 'Dancing by the fire'; emote(m, 'music', 1.4); yield* doAct(m, 'dance', rr(2, 3.5)); }
+    else if (r < 0.7) { m.doing = 'Warming up by the fire'; yield* doAct(m, 'sit', rr(3, 6)); }
     else { emote(m, pick(['smile', 'chat', 'heart', 'star']), 1.5); yield* wait(rr(1.5, 3)); }
   }
   yield* rSleep(m);
 }
 function* rSleep(m) {
+  m.doing = 'Heading to bed';
   m.busy = 'sleep';
   if (!m.home || !m.home.done) { yield* goOut(m); yield* doAct(m, 'sit', 6); return; }
   if (!(yield* enterB(m, m.home))) { yield* wait(2); return; }
+  m.doing = 'Fast asleep';
   while (phase() === 'night' || phase() === 'evening') yield* wait(1);
   yield* wait(rr(0, 6));
   yield* exitB(m);
   yield* doAct(m, 'stretch', 1.2); emote(m, 'sun', 1.6);
 }
+function* rLamplight(m, route) {
+  m.doing = 'Lighting the lamps'; m.busy = 'work';
+  try {
+    yield* goOut(m); setTool(m, 'pole');
+    for (const l of route) {
+      if (l.lit || phase() === 'night') continue;
+      if (!(yield* walkNear(m, l.i, l.j))) continue;
+      faceTo(m, l.x, l.z); m.toolPiv.rotation.x = -0.6;
+      yield* doAct(m, 'stretch', 0.7);
+      if (!l.lit) { l.lit = true; emit(l.x, 0.75, l.z, { n: 6, color: ['#ffe066', '#fff4b0'], v: 0.5, vy: [0.3, 0.8], size: 0.03, life: [0.3, 0.6], glow: true, grav: 0.5 }); }
+    }
+  } finally { setTool(m, null); for (const l of route) l.res = 0; }
+  yield* rEvening(m);
+}
+let lampDay = 0, lastLamplighter = '';
+function lampTick() {
+  const t = dayT();
+  for (const l of lamps) {
+    if (!l.lit && (t > 0.865 || t < 0.2)) l.lit = true;
+    if (l.lit && t > 0.25 + l.offT * 0.05 && t < 0.7) l.lit = false;
+  }
+}
+function assignLamplighters() {
+  if (lampDay === dayN || phase() !== 'evening' || lamps.length < 3) return;
+  lampDay = dayN;
+  const free = meeples.filter(m => m.age >= 1 && !m.inside && m.busy !== 'chat' && m.busy !== 'arrive');
+  const crews = Math.min(3, Math.ceil(lamps.length / 8), free.length);
+  const todo = lamps.filter(l => !l.lit);
+  for (let c = 0; c < crews && todo.length; c++) {
+    const m = free.splice(Math.floor(rnd() * free.length), 1)[0];
+    const route = []; let px = m.x, pz = m.z;
+    while (todo.length && route.length < Math.ceil(lamps.length / crews)) {
+      let bi = 0, bd = 1e9; todo.forEach((l, k) => { const d = Math.hypot(l.x - px, l.z - pz); if (d < bd) { bd = d; bi = k; } });
+      const l = todo.splice(bi, 1)[0]; l.res = m.id; route.push(l); px = l.x; pz = l.z;
+    }
+    if (m.co) m.co.return(); m.act = null; m.co = rLamplight(m, route);
+    if (c === 0 && lastLamplighter !== m.name) { lastLamplighter = m.name; logEvent(`${m.name} takes up the lamplighter's pole tonight.`); }
+  }
+}
 function* rArrive(m, home) {
+  m.doing = `Moving in on ${home.street}`;
   setCarry(m, 'bindle'); m.busy = 'arrive';
   yield* wait(0.3);
   if (yield* enterB(m, home)) { worldEmote(home.cx, home.roofTop + 0.3, home.cz, 'heart', 2); yield* wait(rr(2, 4)); yield* exitB(m); }
   setCarry(m, null);
 }
 
-// ================= job board =================
 function nearestTree(m) {
   let best = null, bd = 1e9;
   for (const t of trees) { if (!t || t.state !== 'standing' || t.res || t.failUntil > clock || !nearReach(t.i, t.j)) continue; const d = Math.hypot(t.x - m.x, t.z - m.z) - (t.marked ? 6 : 0) + (Math.hypot(t.x, t.z) < 6 ? 8 : 0); if (d < bd) { bd = d; best = t; } }
@@ -1336,7 +1567,7 @@ function findWork(m) {
   for (const k of plannedRoads) {
     if (roadRes[k]) continue; const i = k % N, j = Math.floor(k / N), dd = D(wx(i), wz(j));
     if (occ[k] === O_TREE) { const t = occRef[k]; if (t && t.state === 'standing' && !t.res && nearReach(t.i, t.j) && dd < rtd) { rtd = dd; bestRT = t; } continue; }
-    if (occ[k] !== O_NONE || !reach[k]) continue;
+    if (bridge[k] ? (!nearReach(i, j) || stock.wood - reserved.wood < 1) : (occ[k] !== O_NONE || !reach[k])) continue;
     if (dd < bd) { bd = dd; bestP = k; }
   }
   if (bestRT) { const t = bestRT; c.push({ s: 11 + rb('woodcutter') - rtd * 0.08, go: () => { t.res = m.id; return rChop(m, t); } }); }
@@ -1345,7 +1576,7 @@ function findWork(m) {
   if (stock.stone + inflight.stone < needS + 4 + Math.min(6, plannedRoads.size / 3)) { const r = nearestRock(m); if (r) { const t = r[0]; c.push({ s: 7 + rb('miner') * 1.3 - r[1] * 0.05, go: () => { if (!t.quarry) t.res = m.id; return rMine(m, t); } }); } }
   for (const f of buildings) {
     if (f.type !== 'field' || !f.done || f.worker) continue;
-    if (f.grow >= 1) c.push({ s: 10 + rb('farmer') - D(f.cx, f.cz) * 0.05, go: () => { f.worker = m.id; return rField(m, f, true); } });
+    if (f.grow >= 1 && stock.food < 12 + meeples.length) c.push({ s: 10 + rb('farmer') + (stock.food < meeples.length / 3 ? 4 : 0) - D(f.cx, f.cz) * 0.05, go: () => { f.worker = m.id; return rField(m, f, true); } });
     else if (f.tend <= 0 && f.grow > 0.05) c.push({ s: 5 + rb('farmer') * 1.5 - D(f.cx, f.cz) * 0.05, go: () => { f.worker = m.id; return rField(m, f, false); } });
   }
   let live = 0; for (const t of trees) if (t && (t.state === 'standing' || t.state === 'sapling')) live++;
@@ -1361,10 +1592,13 @@ function pickLeisure(m) {
     const o = meeples.find(o => o !== m && o.busy === 'idle' && !o.inside && Math.hypot(o.x - m.x, o.z - m.z) < 9);
     if (o) opts.push([5, () => rChat(m, o)]);
   }
-  if (shoreTiles.length && m.age >= 1) opts.push([1.6, () => rFish(m)]);
+  if (shoreTiles.length && m.age >= 1 && seasonNow() !== 3 && !isRaining()) opts.push([1.6, () => rFish(m)]);
   if (buildings.some(b => b.type === 'well' && b.done)) opts.push([1.2, () => rWell(m)]);
   if (buildings.some(b => b.type === 'stall' && b.done)) opts.push([1.2, () => rStall(m)]);
-  if (m.home && m.home.done) opts.push([1, () => rBreak(m)]);
+  if (buildings.some(b => b.type === 'bakery' && b.done)) opts.push([1.2, () => rVisit(m, 'bakery', 'Buying a warm loaf', ['heart', 'smile', 'wheat'])]);
+  if (buildings.some(b => b.type === 'fountain' && b.done)) opts.push([1.1, () => rVisit(m, 'fountain', 'Sitting by the fountain', ['drop', 'music', 'smile', 'heart'], true)]);
+  if (buildings.some(b => b.type === 'statue' && b.done)) opts.push([0.6, () => rVisit(m, 'statue', 'Admiring the statue', ['star', 'exclaim', 'heart'])]);
+  if (m.home && m.home.done) opts.push([isRaining() ? 6 : 1, () => rBreak(m)]);
   if (buildings.some(b => b.type === 'garden' && b.done)) opts.push([1.4, () => rGarden(m)]);
   let tot = 0; for (const o of opts) tot += o[0]; let r = rnd() * tot;
   for (const o of opts) { r -= o[0]; if (r <= 0) return o[1](); }
@@ -1380,7 +1614,6 @@ function nextRoutine(m) {
   return seq(m, j || pickLeisure(m));
 }
 
-// ================= town planner =================
 const MAXPOP = 64;
 const STREETS = ['Elm Row', 'Birch Lane', 'Mill Road', 'Pebble Way', 'Lantern Street', 'Clover Lane', 'Brook Road', 'Hollow Way', 'Juniper Row', 'Maple Street', 'Tinker Lane', 'Fern Walk', 'Acorn Way', 'Thistle Road', 'Willow Bend', 'Cobble Row', 'Bramble Close', 'Honey Lane', 'Kettle Street', 'Pumpkin Row', 'Moss Walk', 'Owl Lane', 'Saffron Way', 'Pine Court', 'Button Lane', 'Wren Street'];
 for (let k = STREETS.length - 1; k > 0; k--) { const r = Math.floor(rnd() * (k + 1)); [STREETS[k], STREETS[r]] = [STREETS[r], STREETS[k]]; }
@@ -1427,7 +1660,53 @@ function findSpot(size, pref) {
   computeReach();
   return null;
 }
+const roadOk = (a, b) => a >= 2 && b >= 2 && a <= N - 3 && b <= N - 3 && !road[id(a, b)] && ground[id(a, b)] !== G_WATER && (occ[id(a, b)] === O_NONE || occ[id(a, b)] === O_TREE) && !nearQuarry(a, b);
+function bridgeSpan(a, b, dx, dz) {
+  let w = 0; while (w < 4 && inb(a + dx * w, b + dz * w) && ground[id(a + dx * w, b + dz * w)] === G_WATER && !road[id(a + dx * w, b + dz * w)]) w++;
+  if (w === 0 || w > 3) return 0;
+  return roadOk(a + dx * w, b + dz * w) && roadOk(a + dx * (w + 1), b + dz * (w + 1)) ? w : 0;
+}
+function planBridge() {
+  if (buildings.length < 6) return false;
+  const cands = [];
+  for (let k = 0; k < N * N; k++) {
+    if (road[k] < 2 || bridge[k]) continue;
+    const i = k % N, j = Math.floor(k / N);
+    for (let d = 0; d < 4; d++) {
+      const [dx, dz] = DIRS[d]; let s = 1;
+      while (s < 7 && roadOk(i + dx * s, j + dz * s)) s++;
+      if (s < 2) continue;
+      const w = bridgeSpan(i + dx * s, j + dz * s, dx, dz); if (!w) continue;
+      const far = id(i + dx * (s + w + 1), j + dz * (s + w + 1)); if (reach[far]) continue;
+      cands.push({ i, j, dx, dz, s, w, score: s + rnd() * 2 });
+    }
+  }
+  if (!cands.length) return false;
+  cands.sort((p, q) => p.score - q.score);
+  const c = cands[0], name = newStreet();
+  for (let t = 1; t <= c.s + c.w + 2; t++) {
+    const a = c.i + c.dx * t, b = c.j + c.dz * t, kk = id(a, b);
+    if (t >= c.s && t < c.s + c.w) { bridge[kk] = 1; bridgeDir[kk] = c.dx ? 0 : 1; }
+    else if (!roadOk(a, b)) break;
+    road[kk] = 1; roadName[kk] = name; plannedRoads.add(kk); if (occ[kk] === O_TREE && occRef[kk]) markTree(occRef[kk]); redrawAround(a, b);
+  }
+  streetsDone.delete(name);
+  logEvent(`Surveyors plan a bridge over the stream: <b>${name}</b>.`);
+  return true;
+}
+const bridgeDir = new Uint8Array(N * N);
+function buildBridge(k) {
+  const g = new THREE.Group(); g.position.set(wx(k % N), 0, wz(Math.floor(k / N))); if (bridgeDir[k]) g.rotation.y = Math.PI / 2; scene.add(g);
+  for (let p = 0; p < 6; p++) part(g, boxG(0.17, 0.05, 0.86), p % 2 ? '#a0713f' : '#8a5a2e', -0.42 + p * 0.168, 0.04, 0, p === 0 ? 0.015 : false);
+  for (const sz of [-1, 1]) {
+    part(g, boxG(1.0, 0.04, 0.05), '#6b4428', 0, 0.26, sz * 0.43);
+    for (const sx of [-0.45, 0, 0.45]) part(g, boxG(0.05, 0.27, 0.05), '#6b4428', sx, 0.02, sz * 0.43);
+  }
+  for (const sx of [-0.4, 0.4]) part(g, cylG(0.05, 0.05, 0.3, 6), '#5a3a22', sx, -0.2, 0);
+  bakeStatic(g);
+}
 function planRoad() {
+  if (chance(0.35) && planBridge()) return true;
   const tiles = []; for (let k = 0; k < N * N; k++) if (road[k] >= 1) tiles.push(k);
   for (let attempt = 0; attempt < 40; attempt++) {
     const k = pick(tiles), i = k % N, j = Math.floor(k / N);
@@ -1466,6 +1745,9 @@ function chooseType() {
   if (countB('windmill') < Math.floor(countB('field') / 2)) o.push('windmill');
   if (pop >= 12 && countB('tavern') < 1 + Math.floor(pop / 40)) o.push('tavern');
   if (pop >= 18 && countB('hall') < 1) o.push('hall');
+  if (pop >= 20 && countB('fountain') < 1 + Math.floor(pop / 32)) o.push('fountain');
+  if (countB('windmill') >= 1 && countB('bakery') < Math.ceil(countB('windmill') / 2)) o.push('bakery');
+  if (pop >= 30 && buildings.some(b => b.type === 'hall' && b.done) && countB('statue') < 1) o.push('statue');
   if (countB('garden') < Math.floor(pop / 7)) o.push('garden');
   return o.length ? pick(o) : (cap < MAXPOP ? 'cottage' : null);
 }
@@ -1512,10 +1794,18 @@ function onBuildingDone(b) {
   if (b.T.cap > 0) {
     logEvent(`A new ${b.T.label} stands ${where}.`);
     const n = b.T.cap === 2 ? 1 : 2;
-    for (let k = 0; k < n && meeples.length < MAXPOP; k++) setTimeout(() => spawnArrival(b), (k * 2500 + 1500) / SPEED);
-  } else if (b.type === 'field') logEvent(`A wheat field was sown ${where}.`);
+    for (let k = 0; k < n && meeples.length < MAXPOP; k++) after(k * 2.5 + 1.5, () => spawnArrival(b));
+  } else if (b.type === 'field') { logEvent(`A wheat field was sown ${where}.`); spawnChickens(b); }
   else if (b.type === 'tavern') logEvent(`The tavern ${where} opens its doors. Songs tonight!`);
   else if (b.type === 'hall') logEvent(`The town hall rings its bell ${where}. Meepleton is a proper town.`);
+  else if (b.type === 'statue') {
+    const score = m => m.tally.build * 3 + m.tally.trees + m.tally.stone + m.tally.pave + m.tally.food / 3 + m.tally.plant;
+    const hero = meeples.filter(m => m.age >= 1).sort((a, c) => score(c) - score(a))[0];
+    b.honor = hero ? hero.name : 'the founders';
+    logEvent(`A statue of <b>${b.honor}</b> was unveiled ${where}. Hats off!`);
+    for (const o of meeples) if (!o.inside && Math.hypot(o.x - b.cx, o.z - b.cz) < 7) { emote(o, pick(['star', 'heart', 'exclaim'])); o.hop = 0.3; }
+  }
+  else if (b.type === 'bakery') logEvent(`The bakery ${where} fires up its oven. Fresh bread!`);
   else logEvent(`The ${b.T.label} ${where} is finished.`);
 }
 function edgeTile() {
@@ -1533,7 +1823,7 @@ function spawnArrival(home) {
   logEvent(`${m.name} the ${m.role} arrived with a bindle and moved in ${'on <b>' + home.street + '</b>'}.`);
 }
 function birthTick() {
-  if (stock.food < 4 || meeples.length >= MAXPOP || !chance(0.5)) return;
+  if (stock.food < 4 + Math.ceil(meeples.length / 3) || meeples.length >= MAXPOP || !chance(0.5)) return;
   const homes = buildings.filter(b => b.done && b.T.cap > 0 && b.residents.length < b.T.cap && b.residents.length > 0);
   if (!homes.length) return;
   const h = pick(homes); stock.food -= 4; updPile();
@@ -1543,12 +1833,16 @@ function birthTick() {
   for (const p of h.residents) if (p !== m && !p.inside) { emote(p, 'heart'); p.hop = 0.3; }
   logEvent(`Little ${m.name} was born ${'on <b>' + h.street + '</b>'}.`);
 }
+function growFields(dt) {
+  const se = seasonNow(); if (se === 3) return;
+  const rate = dt / (DAY * 0.8) * (se === 2 ? 1.3 : 1), wet = isRaining();
+  for (const b of buildings) if (b.type === 'field' && b.done) { if (b.grow < 1) b.grow = Math.min(1, b.grow + rate * (b.tend > 0 || wet ? 2.2 : 1)); b.tend -= dt; }
+}
 function updCrops(f) {
   const g = f.grow; f.crops.forEach((c, k) => { c.scale.y = 0.08 + g * (0.85 + (k % 3) * 0.08); });
   f.cropMat.color.set('#6cbf4a').lerp(_col.set('#e8c55a'), clamp((g - 0.55) / 0.4, 0, 1));
 }
 
-// ================= sky, light & ambient life =================
 const SKY = [
   [0.00, '#0d1030', '#26305e', '#8fa8ff', 0.3, '#3a4a8a', '#1a1f33', 0.34],
   [0.22, '#0d1030', '#26305e', '#8fa8ff', 0.3, '#3a4a8a', '#1a1f33', 0.34],
@@ -1570,7 +1864,9 @@ function updSky(dt) {
   sun.color.set(mix(A[3], B[3], f)); sun.intensity = lerp(A[4], B[4], f);
   hemi.color.set(mix(A[5], B[5], f)); hemi.groundColor.set(mix(A[6], B[6], f)); hemi.intensity = lerp(A[7], B[7], f);
   dayLight = sun.intensity; nightF = clamp((0.72 - sun.intensity) / 0.38, 0, 1);
-  skyT -= dt; if (skyT <= 0) { skyT = 0.25; skyEl.style.background = `linear-gradient(${mix(A[1], B[1], f)}, ${mix(A[2], B[2], f)})`; starsEl.style.opacity = (nightF * 0.9).toFixed(2); }
+  const gloom = wx_.wet * (wx_.kind === 'snow' ? 0.25 : 0.4);
+  sun.intensity *= 1 - gloom; hemi.intensity *= 1 - gloom * 0.4; dayLight = sun.intensity;
+  skyT -= dt; if (skyT <= 0) { skyT = 0.25; const grey = wx_.kind === 'snow' ? '#c9cfd8' : '#7d8794'; skyEl.style.background = `linear-gradient(${mix(mix(A[1], B[1], f), grey, gloom * 1.4 * (1 - nightF))}, ${mix(mix(A[2], B[2], f), grey, gloom * 1.4 * (1 - nightF))})`; starsEl.style.opacity = (nightF * 0.9 * (1 - wx_.wet * 0.8)).toFixed(2); }
   const a = (t - 0.25) * Math.PI * 2, el = Math.sin(a), s = el >= -0.05 ? a : a + Math.PI;
   sun.position.set(Math.cos(s) * 40, Math.max(18, Math.abs(Math.sin(s)) * 50), 16);
 }
@@ -1579,7 +1875,159 @@ function drawStars() {
   const x = starsEl.getContext('2d'); x.clearRect(0, 0, starsEl.width, starsEl.height);
   for (let k = 0; k < starsEl.width * starsEl.height / 180; k++) { x.fillStyle = pick(['#ffffff', '#fff4c8', '#cfe0ff']); const X = Math.floor(rnd() * starsEl.width), Y = Math.floor(rnd() * starsEl.height * 0.8); x.fillRect(X, Y, 1, 1); if (chance(0.06)) { x.fillRect(X - 1, Y, 3, 1); x.fillRect(X, Y - 1, 1, 3); } }
 }
-// shadow-only clouds drifting over the town
+const PRECIP = 900;
+const rainPos = new Float32Array(PRECIP * 6), rainGeo = new THREE.BufferGeometry();
+rainGeo.setAttribute('position', new THREE.BufferAttribute(rainPos, 3));
+const rainMesh = new THREE.LineSegments(rainGeo, new THREE.LineBasicMaterial({ color: 0xb8d4ee, transparent: true, opacity: 0.75 }));
+rainMesh.frustumCulled = false; scene.add(rainMesh);
+const snowPos = new Float32Array(PRECIP * 3), snowGeo = new THREE.BufferGeometry();
+snowGeo.setAttribute('position', new THREE.BufferAttribute(snowPos, 3));
+const flakeTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 4; const x = c.getContext('2d'); x.fillStyle = '#9fb3c8'; x.fillRect(1, 0, 2, 4); x.fillRect(0, 1, 4, 2); x.fillStyle = '#ffffff'; x.fillRect(1, 1, 2, 2); const t = new THREE.CanvasTexture(c); t.magFilter = t.minFilter = THREE.NearestFilter; t.generateMipmaps = false; return t; })();
+const snowMesh = new THREE.Points(snowGeo, new THREE.PointsMaterial({ map: flakeTex, size: 4, sizeAttenuation: false, transparent: true, alphaTest: 0.5, depthWrite: false }));
+snowMesh.frustumCulled = false; scene.add(snowMesh);
+const drops = []; for (let k = 0; k < PRECIP; k++) drops.push({ x: rr(-1, 1), y: rr(0, 1), z: rr(-1, 1), p: rr(0, 6.28) });
+const wx_ = { kind: 'clear', want: 'clear', wet: 0, t: rr(50, 90) };
+const WEATHER_ODDS = [0.3, 0.18, 0.35, 0.55];
+const WEATHER_LINES = { rain: ['Rain patters on the rooftops.', 'A shower rolls in off the hills.', 'Grey clouds gather. Rain!'], snow: ['Snow begins to drift down.', 'Fat snowflakes settle on the lanes.'], clearrain: ['The rain clears. Everything smells green.', 'The shower passes and the sun peeks out.'], clearsnow: ['The snowfall eases.', 'The snow stops. Crisp, still air.'] };
+function weatherTick(dt) {
+  wx_.t -= dt;
+  if (wx_.t <= 0) {
+    const se = seasonNow();
+    if (wx_.want === 'clear') { if (chance(WEATHER_ODDS[se])) { wx_.want = se === 3 ? 'snow' : 'rain'; wx_.t = rr(35, 80); logEvent(pick(WEATHER_LINES[wx_.want])); } else wx_.t = rr(40, 90); }
+    else { logEvent(pick(WEATHER_LINES['clear' + wx_.want])); wx_.want = 'clear'; wx_.t = rr(60, 140); }
+  }
+  if (wx_.want !== 'clear' && wx_.kind !== wx_.want) { wx_.wet = Math.max(0, wx_.wet - dt / 3); if (wx_.wet === 0) wx_.kind = wx_.want; }
+  else wx_.wet = clamp(wx_.wet + (wx_.want === 'clear' ? -dt / 6 : dt / 5), 0, 1);
+  if (wx_.want === 'clear' && wx_.wet === 0) wx_.kind = 'clear';
+}
+const isRaining = () => wx_.kind === 'rain' && wx_.wet > 0.3;
+function updPrecip(dt) {
+  const n = Math.floor(PRECIP * wx_.wet), R = camHalf * 1.7, H0 = 10, snow = wx_.kind === 'snow';
+  rainMesh.visible = !snow && n > 0; snowMesh.visible = snow && n > 0;
+  if (!n) return;
+  const cx = camFocus.x, cz = camFocus.z, sx = Math.sin(az) * 0.6, sz = Math.cos(az) * 0.6;
+  for (let k = 0; k < n; k++) {
+    const d = drops[k];
+    d.y -= dt * (snow ? 0.09 : 1.6);
+    if (d.y < 0) {
+      if (!snow && chance(0.05)) { const gx_ = cx + d.x * R, gz_ = cz + d.z * R, ti = tI(gx_), tj = tJ(gz_); if (inb(ti, tj) && ground[id(ti, tj)] === G_WATER) emit(gx_, 0.02, gz_, { n: 2, color: '#cfeaf8', v: 0.25, vy: [0.3, 0.6], size: 0.03, life: [0.15, 0.3] }); }
+      d.y += 1; d.x = rr(-1, 1); d.z = rr(-1, 1);
+    }
+    const x = cx + d.x * R + (snow ? Math.sin(d.p + performance.now() / 900) * 0.3 : 0), y = d.y * H0, z = cz + d.z * R;
+    if (snow) { snowPos[k * 3] = x; snowPos[k * 3 + 1] = y; snowPos[k * 3 + 2] = z; }
+    else { const o = k * 6; rainPos[o] = x; rainPos[o + 1] = y; rainPos[o + 2] = z; rainPos[o + 3] = x - sx * 0.12 + 0.05; rainPos[o + 4] = y + 0.45; rainPos[o + 5] = z - sz * 0.12; }
+  }
+  if (snow) { snowGeo.setDrawRange(0, n); snowGeo.attributes.position.needsUpdate = true; }
+  else { rainGeo.setDrawRange(0, n * 2); rainGeo.attributes.position.needsUpdate = true; }
+}
+const critters = [];
+function makeCritter(kind, x, z, home) {
+  const g = new THREE.Group(), b = new THREE.Group(); g.add(b); scene.add(g);
+  if (kind === 'duck' || kind === 'duckling') {
+    const s = kind === 'duck' ? 1 : 0.6, body = kind === 'duck' ? '#f4efe6' : '#f2d04a';
+    part(b, boxG(0.2 * s, 0.1 * s, 0.13 * s), body, 0, 0, 0, 0.012);
+    part(b, boxG(0.09 * s, 0.1 * s, 0.09 * s), kind === 'duck' && chance(0.5) ? '#2f8f5a' : body, 0.09 * s, 0.08 * s, 0, 0.012);
+    part(b, boxG(0.06 * s, 0.025 * s, 0.05 * s), '#f08a2b', 0.16 * s, 0.11 * s, 0);
+    part(b, boxG(0.06 * s, 0.05 * s, 0.1 * s), shade(body, 0.85), -0.1 * s, 0.07 * s, 0);
+  } else {
+    part(b, boxG(0.14, 0.12, 0.1), chance(0.7) ? '#f6f1e6' : '#c98a4a', 0, 0.06, 0, 0.012);
+    part(b, boxG(0.07, 0.08, 0.07), '#f6f1e6', 0.07, 0.15, 0, 0.012);
+    part(b, boxG(0.03, 0.04, 0.02), '#e0443e', 0.08, 0.23, 0);
+    part(b, boxG(0.035, 0.02, 0.03), '#f2a23a', 0.12, 0.16, 0);
+    part(b, boxG(0.03, 0.06, 0.06), '#e8e2d6', -0.08, 0.12, 0);
+    for (const sz of [-0.03, 0.03]) part(b, boxG(0.015, 0.06, 0.015), '#f2a23a', 0, 0, sz);
+  }
+  b.traverse(o => o.castShadow = false);
+  const c = { kind, g, b, x, z, tx: x, tz: z, t: rr(0, 3), face: rr(0, 6.28), home, peck: 0 };
+  g.position.set(x, 0, z); critters.push(c); return c;
+}
+const isDeep = (x, z) => { const i = tI(x), j = tJ(z); return inb(i, j) && ground[id(i, j)] === G_WATER && !bridge[id(i, j)] && DIRS.every(([dx, dz]) => inb(i + dx, j + dz) && ground[id(i + dx, j + dz)] === G_WATER); };
+const isWet = (x, z) => { const i = tI(x), j = tJ(z); return inb(i, j) && ground[id(i, j)] === G_WATER && !bridge[id(i, j)]; };
+function spawnDucks() {
+  const deep = waterTiles.filter(([i, j]) => isDeep(wx(i), wz(j))); if (deep.length < 4) return;
+  const [i, j] = pick(deep), lead = makeCritter('duck', wx(i), wz(j), null);
+  let prev = lead;
+  for (let k = 0, n = ri(2, 4); k < n; k++) { const d = makeCritter(k === 0 ? 'duck' : 'duckling', lead.x, lead.z, null); d.follow = prev; prev = d; }
+}
+function spawnChickens(f) {
+  if (critters.filter(c => c.kind === 'hen').length >= 16) return;
+  for (let k = 0; k < 2; k++) makeCritter('hen', f.cx + rr(-1, 1), f.cz + rr(-1, 1), f);
+}
+function updCritters(dt, now) {
+  const winter = seasonNow() === 3, night = phase() === 'night';
+  for (const c of critters) {
+    const duck = c.kind !== 'hen';
+    c.g.visible = duck ? !winter : !c.home.scrapped;
+    if (!c.g.visible || dt === 0) continue;
+    let moving = false;
+    if (c.follow) {
+      const f = c.follow, dx = f.x - c.x, dz = f.z - c.z, d = Math.hypot(dx, dz);
+      if (d > 0.26) { const sp = Math.min(d - 0.26, dt * 0.6); c.x += dx / d * sp; c.z += dz / d * sp; c.face = Math.atan2(dx, dz); moving = true; }
+    } else {
+      const dx = c.tx - c.x, dz = c.tz - c.z, d = Math.hypot(dx, dz), sp = dt * (duck ? 0.32 : 0.45);
+      if (d > 0.05 && !(night && !duck)) {
+        const nx = c.x + dx / d * Math.min(sp, d), nz = c.z + dz / d * Math.min(sp, d);
+        if (duck ? isWet(nx, nz) : passable(tI(nx), tJ(nz))) { c.x = nx; c.z = nz; moving = true; } else c.t = 0;
+        c.face = Math.atan2(dx, dz);
+      }
+      c.t -= dt;
+      if (c.t <= 0) {
+        c.t = rr(2, 6);
+        if (duck) { for (let k = 0; k < 8; k++) { const x = c.x + rr(-2.5, 2.5), z = c.z + rr(-2.5, 2.5); if (isDeep(x, z)) { c.tx = x; c.tz = z; break; } } }
+        else { c.tx = c.home.cx + rr(-1.6, 1.6); c.tz = c.home.cz + rr(-1.6, 1.6); if (chance(0.4)) c.peck = 1.2; }
+      }
+    }
+    c.peck = Math.max(0, c.peck - dt);
+    let da = c.face - Math.PI / 2 - c.g.rotation.y; da = Math.atan2(Math.sin(da), Math.cos(da)); c.g.rotation.y += da * Math.min(1, dt * 6);
+    c.g.position.set(c.x, duck ? 0.01 + Math.sin(now / 400 + c.x * 3) * 0.012 : 0, c.z);
+    c.b.rotation.z = !duck && c.peck > 0 ? -0.6 * Math.abs(Math.sin(c.peck * 9)) : 0;
+    c.b.position.y = !duck && moving ? Math.abs(Math.sin(now / 70 + c.x * 5)) * 0.03 : 0;
+    c.b.scale.y = !duck && night ? 0.8 : 1;
+  }
+}
+const FESTIVALS = ['Blossom Fair', 'Midsummer Night', 'Harvest Festival', 'Winter Lights'];
+const festivalDay = () => dayN % SEASON_DAYS === 0 && buildings.some(b => b.type === 'hall' && b.done);
+const isFestival = () => festivalDay() && (phase() === 'evening' || phase() === 'night' && dayT() > 0.5);
+let festivalAnnounced = 0, rocketT = 0;
+const bunting = new THREE.Group(); bunting.visible = false; scene.add(bunting);
+{
+  const P = 1.46, corners = [[-P, -P], [P, -P], [P, P], [-P, P]], cols = ['#e34b4b', '#f2c230', '#3f7fd9', '#49a84f', '#ef7fb0', '#f6ecd2'];
+  for (const [x, z] of corners) { part(bunting, cylG(0.025, 0.03, 1.15, 5), '#6b4428', FIRE.x + x, 0, FIRE.z + z); part(bunting, new THREE.IcosahedronGeometry(0.05, 0), C.gold, FIRE.x + x, 1.17, FIRE.z + z); }
+  const flagGeo = (() => { const sh = new THREE.Shape(); sh.moveTo(-0.06, 0); sh.lineTo(0.06, 0); sh.lineTo(0, -0.12); sh.lineTo(-0.06, 0); return new THREE.ShapeGeometry(sh); })();
+  let n = 0;
+  for (let k = 0; k < 4; k++) {
+    const [ax, az] = corners[k], [bx, bz] = corners[(k + 1) % 4], len = Math.hypot(bx - ax, bz - az), rot = Math.atan2(-(bz - az), bx - ax);
+    const line = part(bunting, boxG(len, 0.01, 0.01), '#2b2238', FIRE.x + (ax + bx) / 2, 1.06, FIRE.z + (az + bz) / 2); line.rotation.y = rot;
+    for (let f = 1; f < 8; f++) {
+      const t = f / 8, fl = new THREE.Mesh(flagGeo, new THREE.MeshBasicMaterial({ color: cols[n++ % cols.length], side: THREE.DoubleSide }));
+      fl.position.set(FIRE.x + lerp(ax, bx, t), 1.07 - Math.sin(t * Math.PI) * 0.12, FIRE.z + lerp(az, bz, t)); fl.rotation.y = rot; bunting.add(fl);
+    }
+  }
+}
+const rockets = [];
+const flash = new THREE.PointLight(0xffffff, 0, 16, 1.5); flash.position.set(FIRE.x, 4, FIRE.z); scene.add(flash);
+const FW = [['#ff6b6b', '#ffd0d0'], ['#ffd84a', '#fff4b0'], ['#7ab8ff', '#d6ecff'], ['#8ef07a', '#e0ffd6'], ['#f59bff', '#ffe0ff'], ['#ffffff', '#fff4c8']];
+function updFestival(dt) {
+  const on = festivalDay() && (phase() === 'evening' || phase() === 'night' && dayT() > 0.5);
+  bunting.visible = on;
+  if (on && festivalAnnounced !== dayN) {
+    festivalAnnounced = dayN; const name = FESTIVALS[seasonNow()];
+    logEvent(`Bunting goes up around the Hearth for the <b>${name}</b>!`); toast(`Day ${dayN} · ${SEASON_NAMES[seasonNow()]}`, `The ${name} begins!`);
+  }
+  flash.intensity = Math.max(0, flash.intensity - dt * 4);
+  if (on && nightF > 0.45 && dayT() < 0.96) {
+    rocketT -= dt;
+    if (rocketT <= 0) { rocketT = rr(0.5, 1.6); const a = rr(0, 6.28), r = rr(1.5, 4); rockets.push({ x: FIRE.x + Math.cos(a) * r, y: 0.2, z: FIRE.z + Math.sin(a) * r, vy: rr(5.5, 7), t: rr(0.9, 1.3), c: pick(FW) }); }
+  }
+  for (let k = rockets.length - 1; k >= 0; k--) {
+    const r = rockets[k]; r.t -= dt; r.y += r.vy * dt; r.vy *= 1 - dt * 0.6;
+    if (chance(0.7)) emit(r.x, r.y, r.z, { n: 1, color: '#ffd9a0', v: 0.08, vy: [-0.3, 0], size: 0.035, life: [0.25, 0.45], grav: 1, glow: true, spread: 0.02 });
+    if (r.t <= 0) {
+      emit(r.x, r.y, r.z, { n: 80, color: r.c, v: 3, vy: [-2, 2.6], size: 0.1, life: [1, 1.6], grav: 1.4, glow: true, drag: 1.6, spread: 0.05 });
+      flash.color.set(r.c[0]); flash.position.set(r.x, r.y, r.z); flash.intensity = 2.2; rockets.splice(k, 1);
+    }
+  }
+}
 const clouds = [];
 const cloudMat = new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false });
 for (let k = 0; k < 6; k++) {
@@ -1587,17 +2035,14 @@ for (let k = 0; k < 6; k++) {
   for (let p = 0; p < n; p++) { const w = rr(1.5, 3.2); const m = new THREE.Mesh(new THREE.BoxGeometry(w, 0.6, rr(1.2, 2.4)), cloudMat); m.position.set(p * 1.1 - n * 0.5, rr(-0.2, 0.2), rr(-0.8, 0.8)); m.castShadow = true; g.add(m); }
   g.position.set(rr(-N, N), 12, rr(-N / 2, N / 2)); scene.add(g); clouds.push({ g, v: rr(0.25, 0.5) });
 }
-// birds
 const birdTex = ['K.....K|.K...K.|..K.K..|...K...', '.......|KKK.KKK|...K...|.......'].map(f => { const c = document.createElement('canvas'); c.width = 7; c.height = 4; const x = c.getContext('2d'); x.fillStyle = '#1b1426'; f.split('|').forEach((r, y) => [...r].forEach((ch, X) => { if (ch === 'K') x.fillRect(X, y, 1, 1); })); const t = new THREE.CanvasTexture(c); t.magFilter = t.minFilter = THREE.NearestFilter; return t; });
 const birds = [];
 for (let k = 0; k < 4; k++) { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: birdTex[0], transparent: true })); s.scale.set(0.45, 0.26, 1); scene.add(s); birds.push({ s, x: rr(-N, N), z: rr(-N / 2, N / 2), y: rr(4, 6), v: rr(1.6, 2.4), dir: rr(0, 6.28), f: rr(0, 1) }); }
-// fireflies
 const FF = 40, ffGeo = new THREE.BufferGeometry(), ffPos = new Float32Array(FF * 3), ffBase = [];
 for (let k = 0; k < FF; k++) { let i, j, tries = 0; do { i = ri(1, N - 2); j = ri(1, N - 2); } while (forestZone[id(i, j)] < 0.45 && tries++ < 50); ffBase.push([wx(i), rr(0.3, 1), wz(j), rr(0, 6)]); }
 ffGeo.setAttribute('position', new THREE.BufferAttribute(ffPos, 3));
 const ffMat = new THREE.PointsMaterial({ color: 0xe8ff7a, size: 2, sizeAttenuation: false, transparent: true, opacity: 0, depthWrite: false });
 const fireflies = new THREE.Points(ffGeo, ffMat); fireflies.frustumCulled = false; scene.add(fireflies);
-// jumping fish in the pond
 const fishMesh = part(scene, boxG(0.18, 0.08, 0.06), '#f08a2b', 0, 0, 0, 0.015); fishMesh.visible = false;
 part(fishMesh, boxG(0.06, 0.1, 0.02), '#d0701a', -0.11, -0.01, 0);
 let fishT = 4, fishJump = null;
@@ -1612,9 +2057,8 @@ function updAmbient(dt, now) {
   ffMat.opacity = nightF * 0.95;
   if (nightF > 0) for (let k = 0; k < FF; k++) { const [x, y, z, p] = ffBase[k], t = now / 1000 + p; ffPos[k * 3] = x + Math.sin(t * 0.7) * 0.6; ffPos[k * 3 + 1] = y + Math.sin(t * 1.3) * 0.2; ffPos[k * 3 + 2] = z + Math.cos(t * 0.5) * 0.6; }
   ffGeo.attributes.position.needsUpdate = true;
-  // fish
   fishT -= dt;
-  if (!fishJump && fishT < 0 && nightF < 0.5) {
+  if (!fishJump && fishT < 0 && nightF < 0.5 && seasonNow() !== 3) {
     fishT = rr(4, 9);
     const deep = waterTiles.filter(([i, j]) => DIRS.every(([dx, dz]) => inb(i + dx, j + dz) && ground[id(i + dx, j + dz)] === G_WATER));
     if (deep.length) { const [i, j] = pick(deep); const a = rr(0, 6.28); fishJump = { x: wx(i), z: wz(j), dx: Math.cos(a), dz: Math.sin(a), t: 0 }; emit(fishJump.x, 0.02, fishJump.z, { n: 8, color: ['#cfeaf8', '#ffffff'], v: 0.5, vy: [1, 1.8], size: 0.04, life: [0.3, 0.6] }); }
@@ -1626,7 +2070,6 @@ function updAmbient(dt, now) {
     if (f.t >= 1) { emit(fishMesh.position.x, 0.02, fishMesh.position.z, { n: 10, color: ['#cfeaf8', '#ffffff', '#8cc9f2'], v: 0.6, vy: [1, 2], size: 0.04, life: [0.3, 0.6] }); fishJump = null; fishMesh.visible = false; }
   }
 }
-// ================= building life =================
 const _cw = new V3();
 function updBuildings(dt, now) {
   const ph = phase();
@@ -1637,40 +2080,41 @@ function updBuildings(dt, now) {
     const lit = nightF > 0.35 && (b.occupants > 0 || b.type === 'tavern' && ph !== 'night' || b.type === 'hall' && ph === 'evening');
     b.winMat.color.copy(lit ? WIN_LIT : cA.copy(WIN_DAY).lerp(WIN_DARK, nightF));
     if (b.spin) b.spin.rotation.z -= dt * 1.1;
+    if (b.spout && seasonNow() !== 3 && chance(dt * 14)) { b.g.localToWorld(_cw.copy(b.spout)); emit(_cw.x, _cw.y, _cw.z, { n: 1, color: ['#8cc9f2', '#cfeaf8', '#ffffff'], v: 0.35, vy: [0.8, 1.2], size: 0.035, life: [0.4, 0.6], grav: 5, spread: 0.02 }); }
     if (b.flag) b.flag.rotation.y = Math.sin(now / 300) * 0.35;
     if (b.clockH) { const t = dayT() * Math.PI * 4; b.clockH.rotation.z = -t; b.clockM.rotation.z = -t * 12; }
-    if (b.chimney && (b.occupants > 0 || (ph === 'evening' && b.residents.length) || b.type === 'tavern' && ph === 'evening')) {
+    if (b.chimney && (b.occupants > 0 || (ph === 'evening' && b.residents.length) || b.type === 'tavern' && ph === 'evening' || b.type === 'bakery' && (ph === 'work' || ph === 'dawn'))) {
       b.smokeT -= dt;
       if (b.smokeT < 0) { b.smokeT = rr(0.35, 0.7); b.g.localToWorld(_cw.copy(b.chimney)); emit(_cw.x, _cw.y, _cw.z, { n: 1, color: ['#e8e4ec', '#d4d0da', '#c3bfc9'], v: 0.08, vx: 0.15, vy: [0.35, 0.5], size: 0.11, life: [1.8, 2.6], grav: 0, grow: 2.2, spread: 0.03 }); }
     }
     if (ph === 'night' && b.T.cap > 0 && b.occupants > 0) { b.zzzT -= dt; if (b.zzzT < 0) { b.zzzT = rr(5, 9); worldEmote(b.cx + rr(-.2, .2), (b.roofTop || 1) + 0.25, b.cz, 'zzz', 2.4, 0.4); } }
-    if (b.type === 'field') {
-      if (b.grow < 1) { b.grow = Math.min(1, b.grow + dt / (DAY * 0.8) * (b.tend > 0 ? 2.2 : 1)); b.tend -= dt; }
-      if (Math.floor(b.grow * 40) !== b.growQ) { b.growQ = Math.floor(b.grow * 40); updCrops(b); }
-    }
+    if (b.type === 'field' && Math.floor(b.grow * 40) !== b.growQ) { b.growQ = Math.floor(b.grow * 40); updCrops(b); }
   }
   for (let k = worldEmotes.length - 1; k >= 0; k--) { const e = worldEmotes[k]; e.s.position.y = e.y0 + e.t * e.rise; if (!updEmoteSprite(e, dt)) { scene.remove(e.s); e.s.material.dispose(); worldEmotes.splice(k, 1); } }
-  // fire & lamps
   const fl = 0.85 + Math.sin(now / 90) * 0.1 + Math.sin(now / 37) * 0.06;
   flame1.scale.set(fl, fl * (1 + nightF * 0.2), fl); flame2.scale.set(2 - fl, fl * 1.1, 2 - fl); flame1.rotation.y += dt * 2;
   fireLight.intensity = (nightF * 1.6 + (ph === 'evening' ? 0.5 : 0)) * fl;
-  lampOn.color.copy(cA.set('#4a4458').lerp(cB.set('#ffd772'), nightF));
-  glowMat.opacity = nightF * 0.75;
+  for (const l of lamps) {
+    l.glowA += ((l.lit ? nightF * 0.75 + 0.15 : 0) - l.glowA) * Math.min(1, dt * 4);
+    l.glow.material.opacity = l.glowA;
+    if (l.bulb) l.bulb.material = l.lit ? lampOn : lampOff;
+  }
   if (chance(dt * (2 + nightF * 4))) emit(FIRE.x, 0.3, FIRE.z, { n: 1, color: ['#ffb040', '#ffe066', '#ff7a2a'], v: 0.15, vy: [0.6, 1.2], size: 0.035, life: [0.6, 1.1], grav: -0.2, glow: true, spread: 0.08 });
   if (chance(dt * 1.2)) emit(FIRE.x, 0.45, FIRE.z, { n: 1, color: ['#bdb8c4', '#9a96a2'], v: 0.05, vy: [0.3, 0.45], size: 0.09, life: [1.4, 2], grav: 0, grow: 2, spread: 0.03 });
 }
 
-// ================= camera =================
-// Cycle: town overview -> close-up on a meeple or build site -> town -> close-up -> whole island.
 let W = innerWidth, H = innerHeight, az = Math.PI * 0.25, camHalf = 12, halfGoal = 12, camTimer = 20, camStep = 0, follow = null, extent = 8, extT = 0;
 const camFocus = new V3(0, 0, 0), focusGoal = new V3(0, 0, 0);
 const CYCLE = ['town', 'close', 'town', 'close', 'island'];
 function updCamera(dt) {
-  az += dt * 0.03;
+  if (!REDUCED) az += dt * 0.03;
   extT -= dt; if (extT <= 0) { extT = 2; let e = 7; for (const b of buildings) e = Math.max(e, Math.hypot(b.cx, b.cz) + b.size); for (let k = 0; k < N * N; k++) if (road[k] >= 2) e = Math.max(e, Math.hypot(wx(k % N), wz(Math.floor(k / N))) + 1); extent = e; }
   const aspect = W / H, fullHalf = Math.max(22.5, 30 / aspect), port = Math.min(1, aspect);
-  camTimer -= dt;
-  if (camTimer <= 0) {
+  const manual = manualT > 0;
+  if (manual) { manualT -= dt; if (manualT <= 0) camTimer = 0; }
+  else camTimer -= dt;
+  if (REDUCED && camStep !== 0) camStep = 0;
+  if (!manual && camTimer <= 0 && !REDUCED) {
     camStep = (camStep + 1) % CYCLE.length; const mode = CYCLE[camStep]; follow = null;
     if (mode === 'close') {
       const sites = buildings.filter(b => !b.done && b.prog > 0), outs = meeples.filter(m => !m.inside && m.g.visible && m.busy !== 'sleep');
@@ -1680,9 +2124,15 @@ function updCamera(dt) {
     } else { focusGoal.set(0, 0, 0); camTimer = mode === 'island' ? 12 : 22; }
   }
   const mode = CYCLE[camStep];
-  halfGoal = mode === 'close' ? 4.6 / port : mode === 'island' ? fullHalf : Math.min(fullHalf, (extent * 0.95 + 1.5) / port);
+  zoomMax = fullHalf * 1.15;
+  if (manual) halfGoal = clamp(halfGoal, ZOOM_MIN, zoomMax);
+  else halfGoal = mode === 'close' ? 4.6 / port : mode === 'island' ? fullHalf : Math.min(fullHalf, (extent * 0.95 + 1.5) / port);
+  if (selected && selFollow) {
+    manualT = Math.max(manualT, 1);
+    if (selected.g && selected.T) { follow = null; focusGoal.set(selected.cx, 0.3, selected.cz); } else follow = selected;
+  }
   if (follow) { const f = follow.inside; focusGoal.set(f ? f.cx : follow.x, 0.3, f ? f.cz : follow.z); }
-  camFocus.lerp(focusGoal, 1 - Math.exp(-dt * 1.2)); camHalf += (halfGoal - camHalf) * (1 - Math.exp(-dt * 0.7));
+  camFocus.lerp(focusGoal, 1 - Math.exp(-dt * (manual ? 10 : 1.2))); camHalf += (halfGoal - camHalf) * (1 - Math.exp(-dt * (manual ? 9 : 0.7)));
   const el = 0.6155, D = 90;
   camera.position.set(camFocus.x + Math.sin(az) * Math.cos(el) * D, camFocus.y + Math.sin(el) * D, camFocus.z + Math.cos(az) * Math.cos(el) * D);
   camera.lookAt(camFocus);
@@ -1693,8 +2143,145 @@ function resize() {
   renderer.setSize(Math.ceil(W / PX), Math.ceil(H / PX), false); drawStars();
 }
 addEventListener('resize', resize);
+let selected = null, selFollow = false, cardT = 0;
+const raycaster = new THREE.Raycaster(), _ndc = new THREE.Vector2();
+const selRing = new THREE.Mesh(new THREE.RingGeometry(0.3, 0.38, 20), new THREE.MeshBasicMaterial({ color: 0xc8443f, transparent: true, opacity: 0.9, depthWrite: false }));
+selRing.rotation.x = -Math.PI / 2; selRing.renderOrder = 7; selRing.visible = false; scene.add(selRing);
+const cardEl = document.getElementById('card'), cardBody = document.getElementById('cardBody');
+function ownerOf(o) { while (o) { if (o.userData.meeple) return o.userData.meeple; if (o.userData.bld) return o.userData.bld; o = o.parent; } return null; }
+function pickAt(cx, cy) {
+  const r = canvasEl.getBoundingClientRect();
+  _ndc.set((cx - r.left) / r.width * 2 - 1, -((cy - r.top) / r.height) * 2 + 1);
+  raycaster.setFromCamera(_ndc, camera);
+  const targets = [];
+  for (const m of meeples) if (m.g.visible) targets.push(m.g);
+  for (const b of buildings) targets.push(b.g);
+  const hits = raycaster.intersectObjects(targets, true);
+  let best = null;
+  for (const h of hits) { const o = ownerOf(h.object); if (o) { best = o; break; } }
+  if (!best) {
+    let bd = 0.45;
+    for (const m of meeples) {
+      if (!m.g.visible) continue;
+      _v.set(m.x, 0.3, m.z).project(camera);
+      const d = Math.hypot((_v.x - _ndc.x) * r.width / 2, (_v.y - _ndc.y) * r.height / 2) / (r.height / (2 * camHalf));
+      if (d < bd) { bd = d; best = m; }
+    }
+  }
+  select(best);
+}
+function select(o) {
+  selected = o; selFollow = !!o; cardT = 0;
+  if (!o) { cardEl.hidden = true; selRing.visible = false; if (manualT > 0) manualT = 0.01; return; }
+  if (manualT <= 0) halfGoal = camHalf;
+  halfGoal = Math.min(halfGoal, o.T ? 6 : 4.2); manualT = IDLE_RESUME;
+  cardEl.hidden = false; renderCard();
+}
+const ROLE_LABEL = { builder: 'Builder', woodcutter: 'Woodcutter', miner: 'Miner', farmer: 'Farmer' };
+const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+function tallyLine(m) {
+  const t = m.tally, parts = [];
+  if (t.build) parts.push(`${t.build} built`); if (t.trees) parts.push(`${t.trees} trees felled`); if (t.stone) parts.push(`${t.stone} stone cut`);
+  if (t.pave) parts.push(`${t.pave} tiles paved`); if (t.food) parts.push(`${t.food} food gathered`); if (t.plant) parts.push(`${t.plant} saplings`);
+  return parts.length ? parts.join(', ') : 'Just getting started';
+}
+function buildingStatus(b) {
+  if (b.type === 'field' && b.done) return b.grow >= 1 ? 'Ripe and ready to harvest' : `Growing, ${Math.round(b.grow * 100)}%`;
+  if (b.type === 'statue' && b.done) return `In honour of ${b.honor}`;
+  if (b.done) return b.occupants ? `${b.occupants} inside` : 'Quiet for now';
+  if (footprintHasTree(b)) return 'Waiting for the lot to be cleared';
+  if (b.delivered.wood < b.T.cost.wood || b.delivered.stone < b.T.cost.stone) return `Materials: wood ${b.delivered.wood}/${b.T.cost.wood}, stone ${b.delivered.stone}/${b.T.cost.stone}`;
+  return b.builders ? `${b.builders} at work` : 'Ready for builders';
+}
+function renderCard() {
+  const o = selected; if (!o) return;
+  if (o.T) {
+    if (o.scrapped) { select(null); return; }
+    const res = o.residents.map(m => `<button type="button" class="who" data-id="${m.id}">${esc(m.name)}</button>`).join(', ');
+    cardBody.innerHTML = `<h3>${esc(o.T.label[0].toUpperCase() + o.T.label.slice(1))}</h3><div class="sub">${esc(o.street)}</div>` +
+      (o.done ? '' : `<div class="bar"><i style="width:${Math.round(o.prog * 100)}%"></i></div>`) +
+      `<div class="doing">${esc(buildingStatus(o))}</div><dl>` + (o.T.cap ? `<dt>Home to</dt><dd>${res || 'nobody yet'}</dd>` : '') + `</dl>`;
+  } else {
+    const home = o.home ? esc(o.home.street) : 'Nowhere yet';
+    cardBody.innerHTML = `<h3><span class="sw" style="background:${o.color}"></span>${esc(o.name)}</h3><div class="sub">${o.age < 1 ? 'Youngster' : ROLE_LABEL[o.role]} · since day ${o.since}</div>` +
+      `<div class="doing">${esc(o.doing)}</div><dl><dt>Home</dt><dd>${home}</dd><dt>Record</dt><dd>${esc(tallyLine(o))}</dd></dl>`;
+  }
+}
+cardBody.addEventListener('click', e => { const b = e.target.closest('.who'); if (b) select(meeples.find(m => m.id === Number(b.dataset.id)) || null); });
+document.getElementById('cardClose').addEventListener('click', () => select(null));
+addEventListener('keydown', e => { if (e.key === 'Escape' && selected) select(null); });
+const captionEl = document.getElementById('caption');
+let captionFor = null, captionT = 0;
+captionEl.addEventListener('click', () => { if (captionFor) select(captionFor); });
+function updCaption(dt) {
+  const who = !selected && manualT <= 0 && follow && CYCLE[camStep] === 'close' ? follow : null;
+  if (who !== captionFor) {
+    captionFor = who;
+    if (who) { captionEl.hidden = false; requestAnimationFrame(() => captionEl.classList.add('on')); captionT = 0; }
+    else { captionEl.classList.remove('on'); setTimeout(() => { if (!captionFor) captionEl.hidden = true; }, 420); }
+  }
+  if (!who) return;
+  captionT -= dt; if (captionT > 0) return; captionT = 0.4;
+  const role = who.age < 1 ? 'youngster' : who.role;
+  captionEl.innerHTML = `<b><span class="sw" style="background:${who.color}"></span>${esc(who.name)} the ${role}</b>${esc(who.doing)}`;
+  captionEl.setAttribute('aria-label', `${who.name} the ${role}: ${who.doing}. Open details.`);
+}
+function updSelection(dt) {
+  updCaption(dt);
+  if (!selected) return;
+  cardT -= dt; if (cardT <= 0) { cardT = 0.3; renderCard(); }
+  const o = selected;
+  if (o.T) { selRing.visible = true; selRing.position.set(o.cx, 0.03, o.cz); selRing.scale.setScalar(o.size * 1.6); }
+  else { selRing.visible = !o.inside; selRing.position.set(o.x, 0.03, o.z); selRing.scale.setScalar(0.9 + 0.08 * Math.sin(performance.now() / 180)); }
+}
+const ZOOM_MIN = 2.2, IDLE_RESUME = 18, EL_SIN = Math.sin(0.6155);
+let manualT = 0, zoomMax = 30;
+function takeControl(keepFollow) {
+  if (!keepFollow) selFollow = false;
+  if (manualT <= 0) halfGoal = camHalf;
+  manualT = IDLE_RESUME;
+  if (!keepFollow) { if (follow) { const f = follow.inside; focusGoal.set(f ? f.cx : follow.x, 0.3, f ? f.cz : follow.z); } follow = null; }
+}
+function panBy(dxPx, dyPx) {
+  takeControl(false);
+  const upp = 2 * camHalf / (canvasEl.clientHeight || H), rx = Math.cos(az), rz = -Math.sin(az), fx = -Math.sin(az), fz = -Math.cos(az);
+  const a = -dxPx * upp, b = dyPx * upp / EL_SIN;
+  focusGoal.x = clamp(focusGoal.x + rx * a + fx * b, -HALF, HALF); focusGoal.z = clamp(focusGoal.z + rz * a + fz * b, -HALF, HALF);
+  camFocus.x = focusGoal.x; camFocus.z = focusGoal.z;
+}
+function zoomBy(f) { takeControl(true); halfGoal = clamp(halfGoal * f, ZOOM_MIN, zoomMax); }
+function rotateBy(r) { takeControl(true); az += r; }
+const ptrs = new Map(); let pinch0 = 0, dragMoved = 0, rotateDrag = false;
+canvasEl.addEventListener('contextmenu', e => e.preventDefault());
+canvasEl.addEventListener('pointerdown', e => {
+  canvasEl.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  dragMoved = 0; rotateDrag = e.button === 2 || e.shiftKey; canvasEl.classList.add('dragging');
+  if (ptrs.size === 2) { const [p, q] = [...ptrs.values()]; pinch0 = Math.hypot(p.x - q.x, p.y - q.y); }
+});
+canvasEl.addEventListener('pointermove', e => {
+  const p = ptrs.get(e.pointerId); if (!p) return;
+  const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY; dragMoved += Math.abs(dx) + Math.abs(dy);
+  if (ptrs.size === 2) {
+    const [a, b] = [...ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y);
+    if (pinch0 > 0 && d > 0) zoomBy(pinch0 / d); pinch0 = d; panBy(dx / 2, dy / 2);
+  } else if (rotateDrag) rotateBy(dx * 0.006);
+  else panBy(dx, dy);
+});
+function endPtr(e) {
+  if (ptrs.size === 1 && dragMoved < 6 && !rotateDrag) pickAt(e.clientX, e.clientY); ptrs.delete(e.pointerId); pinch0 = 0; if (!ptrs.size) canvasEl.classList.remove('dragging'); }
+canvasEl.addEventListener('pointerup', endPtr); canvasEl.addEventListener('pointercancel', endPtr);
+canvasEl.addEventListener('wheel', e => { e.preventDefault(); zoomBy(Math.exp(clamp(e.deltaY, -120, 120) * 0.0015)); }, { passive: false });
+addEventListener('keydown', e => {
+  if (e.target.closest && e.target.closest('input,textarea')) return;
+  const k = e.key.toLowerCase(), step = 40;
+  if (k === 'q') rotateBy(-0.12); else if (k === 'e') rotateBy(0.12);
+  else if (k === '+' || k === '=') zoomBy(0.85); else if (k === '-' || k === '_') zoomBy(1 / 0.85);
+  else if (k === 'arrowleft' || k === 'a') panBy(step, 0); else if (k === 'arrowright' || k === 'd') panBy(-step, 0);
+  else if (k === 'arrowup' || k === 'w') panBy(0, step); else if (k === 'arrowdown' || k === 's') panBy(0, -step);
+  else return;
+  e.preventDefault();
+});
 
-// ================= HUD =================
 const statDefs = [['meeple', 'Meeples'], ['house', 'Homes'], ['star', 'Built'], ['wood', 'Wood'], ['stone', 'Stone'], ['wheat', 'Food']];
 const statEls = {};
 {
@@ -1705,23 +2292,89 @@ const statEls = {};
     const s = document.createElement('span'); d.appendChild(s); box.appendChild(d); statEls[ic] = s;
   }
 }
+{
+  const link = document.getElementById('seedLink'), u = new URL(location.href);
+  u.searchParams.set('seed', SEED); link.href = u.pathname + u.search; link.textContent = `Island #${SEED}`;
+  document.getElementById('newTown').addEventListener('click', () => { const n = new URL(location.href); n.searchParams.set('seed', Math.floor(Math.random() * 1e6)); location.href = n.pathname + n.search; });
+}
 const clockEl = document.getElementById('clock'), logEl = document.getElementById('logList');
 const logLines = [];
 function logEvent(html) {
   logLines.unshift(`<span class="d">D${dayN}</span> ${html}`); if (logLines.length > 5) logLines.pop();
   logEl.innerHTML = logLines.map((l, k) => `<p style="opacity:${(1 - k * 0.17).toFixed(2)}">${l}</p>`).join('');
 }
+const RANKS = [[0, 'Camp'], [6, 'Hamlet'], [14, 'Village'], [30, 'Town'], [50, 'Market Town']];
+let rankIdx = 0, toastTimer = 0, fullLogged = false;
+const rankEl = document.getElementById('rank'), toastEl = document.getElementById('toast');
+function toast(kicker, text) {
+  toastEl.innerHTML = `<small>${esc(kicker)}</small>${esc(text)}`; toastEl.classList.add('on');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => toastEl.classList.remove('on'), 4500);
+}
+function celebrate() {
+  for (let k = 0; k < 4; k++) emit(FIRE.x + rr(-1.5, 1.5), 2 + k * 0.4, FIRE.z + rr(-1.5, 1.5), { n: 35, color: ['#e34b4b', '#f2c230', '#3f7fd9', '#49a84f', '#ffffff', '#ef7fb0'], v: 2, vy: [1.5, 3.5], size: 0.07, life: [1.2, 2], grav: 3, glow: true, drag: 1.2 });
+  for (const o of meeples) if (!o.inside) { o.hop = 0.3; if (chance(0.5)) emote(o, pick(['star', 'heart', 'exclaim', 'music'])); }
+}
+function checkRank() {
+  const pop = meeples.length; let r = 0;
+  for (let k = 0; k < RANKS.length; k++) if (pop >= RANKS[k][0]) r = k;
+  if (r > rankIdx) {
+    rankIdx = r; const name = RANKS[r][1];
+    logEvent(`With ${pop} meeples, Meepleton is now a <b>${name.toLowerCase()}</b>!`);
+    toast(`Day ${dayN} · ${pop} meeples`, `Meepleton is now a ${name}!`); celebrate();
+  }
+  rankEl.textContent = RANKS[rankIdx][1];
+  if (!fullLogged && pop >= MAXPOP) { fullLogged = true; logEvent('Every home is full. Meepleton has grown as big as the island allows.'); }
+}
+function savePostcard() {
+  renderer.render(scene, camera);
+  const src = renderer.domElement, scale = Math.max(1, Math.round(1600 / src.width)), w = src.width * scale, h = src.height * scale, pad = Math.round(w * 0.025), foot = Math.round(w * 0.06);
+  const c = document.createElement('canvas'); c.width = w + pad * 2; c.height = h + pad * 2 + foot; const x = c.getContext('2d');
+  x.fillStyle = '#f4e6c4'; x.fillRect(0, 0, c.width, c.height);
+  const grad = x.createLinearGradient(0, pad, 0, pad + h), stops = (skyEl.style.background.match(/rgb\([^)]+\)|#[0-9a-f]{6}/gi) || ['#5aa0e0', '#cfe9f7']);
+  grad.addColorStop(0, stops[0]); grad.addColorStop(1, stops[stops.length - 1]); x.fillStyle = grad; x.fillRect(pad, pad, w, h);
+  if (nightF > 0.05) { x.globalAlpha = nightF * 0.9; x.imageSmoothingEnabled = false; x.drawImage(starsEl, pad, pad, w, h); x.globalAlpha = 1; }
+  x.imageSmoothingEnabled = false; x.drawImage(src, pad, pad, w, h);
+  x.strokeStyle = '#1b1426'; x.lineWidth = Math.max(3, scale * 2); x.strokeRect(pad, pad, w, h);
+  const fs = Math.round(foot * 0.42);
+  x.fillStyle = '#1b1426'; x.font = `700 ${fs}px "Pixelify Sans", monospace`; x.textBaseline = 'middle';
+  x.fillText('Greetings from Meepleton', pad, pad * 1.5 + h + foot / 2);
+  x.font = `${Math.round(fs * 0.55)}px "Silkscreen", monospace`; x.fillStyle = '#6d5a48'; x.textAlign = 'right';
+  x.fillText(`Day ${dayN} · ${SEASON_NAMES[seasonNow()]} · ${RANKS[rankIdx][1]} of ${meeples.length} · Island #${SEED}`, pad + w, pad * 1.5 + h + foot / 2);
+  c.toBlob(b => { if (!b) return; const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `meepleton-${SEED}-day-${dayN}.png`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }, 'image/png');
+  toast('Postcard saved', `Greetings from day ${dayN}!`);
+}
+document.getElementById('postcard').addEventListener('click', savePostcard);
+const helpEl = document.getElementById('help'), helpBtn = document.getElementById('helpBtn'), logBox = document.getElementById('log'), logToggle = document.getElementById('logToggle');
+function setHelp(on) { helpEl.hidden = !on; helpBtn.setAttribute('aria-expanded', String(on)); if (on) document.getElementById('helpClose').focus(); }
+function foldLog(on) { logBox.classList.toggle('folded', on); logToggle.setAttribute('aria-expanded', String(!on)); }
+helpBtn.addEventListener('click', () => setHelp(helpEl.hidden));
+document.getElementById('helpClose').addEventListener('click', () => { setHelp(false); helpBtn.focus(); });
+logToggle.addEventListener('click', () => foldLog(!logBox.classList.contains('folded')));
+if (matchMedia('(max-width:520px)').matches) foldLog(true);
+addEventListener('keydown', e => {
+  if (e.target.closest && e.target.closest('input,textarea')) return;
+  if (e.key === '?') setHelp(helpEl.hidden);
+  else if (e.key === 'Escape' && !helpEl.hidden) setHelp(false);
+  else if (e.key.toLowerCase() === 'c') foldLog(!logBox.classList.contains('folded'));
+});
+addEventListener('keydown', e => { if (e.key.toLowerCase() === 'p' && !(e.target.closest && e.target.closest('input,textarea'))) savePostcard(); });
+let describeT = 0;
 function updHUD() {
+  checkRank();
+  if ((describeT -= 1) <= 0) {
+    describeT = 10;
+    const built = buildings.filter(b => b.done).length;
+    canvasEl.setAttribute('aria-label', `Meepleton, day ${dayN} of ${SEASON_NAMES[seasonNow()].toLowerCase()}, ${phase() === 'work' ? 'daytime' : phase()}${wx_.wet > 0.5 ? ', ' + (wx_.kind === 'snow' ? 'snowing' : 'raining') : ''}: a ${RANKS[rankIdx][1].toLowerCase()} of ${meeples.length} meeples with ${built} finished buildings.`);
+  }
   const t = dayT(), mins = Math.floor(t * 24 * 60), hh = String(Math.floor(mins / 60)).padStart(2, '0'), mm = String(Math.floor(mins % 60 / 10) * 10).padStart(2, '0');
   const ph = { night: 'Night', dawn: 'Dawn', work: 'Workday', evening: 'Evening' }[phase()];
-  clockEl.textContent = `Day ${dayN} · ${hh}:${mm} · ${ph}`;
+  clockEl.textContent = `Day ${dayN} · ${SEASON_NAMES[seasonNow()]} · ${hh}:${mm} · ${simSpeed === 0 ? 'Paused' : ph}`;
   statEls.meeple.textContent = meeples.length;
   statEls.house.textContent = buildings.filter(b => b.done && b.T.cap > 0).length;
   statEls.star.textContent = buildings.filter(b => b.done).length;
   statEls.wood.textContent = stock.wood; statEls.stone.textContent = stock.stone; statEls.wheat.textContent = stock.food;
 }
 
-// ================= setup =================
 function setupTown() {
   for (let i = HALF - 6; i <= HALF + 6; i++) { road[id(i, HALF)] = 2; roadName[id(i, HALF)] = 'Hearth Road'; }
   for (let j = HALF - 5; j <= HALF + 5; j++) { road[id(HALF, j)] = 2; roadName[id(HALF, j)] = 'Old Lane'; }
@@ -1753,15 +2406,39 @@ function setupTown() {
     const m = makeMeeple({ x: FIRE.x + Math.cos(ang) * 1.4, z: FIRE.z + Math.sin(ang) * 1.4, role: r, home, color: C.meeple[k] });
     home.residents.push(m);
   });
-  updPile(); computeReach();
+  updPile(); computeReach(); spawnDucks();
   logEvent('Four meeples lit a fire and founded <b>Meepleton</b>.');
 }
 
-// ================= main loop =================
-let reachT = 0, waterT = 0, birthT = 6, hudT = 0, stumpT = 0;
+let reachT = 0, waterT = 0, birthT = 6, hudT = 0, stumpT = 0, hungryLogged = false;
+const timers = [];
+function after(sec, fn) { timers.push({ at: clock + sec, fn }); }
+function runTimers() {
+  for (let k = timers.length - 1; k >= 0; k--) if (timers[k].at <= clock) { const t = timers[k]; timers.splice(k, 1); t.fn(); }
+}
+let simSpeed = 1, lastSpeed = 1;
+const speedBtns = [...document.querySelectorAll('#ctl button[data-speed]')];
+function setSpeed(v) {
+  if (v > 0) lastSpeed = v;
+  simSpeed = v;
+  for (const b of speedBtns) b.setAttribute('aria-pressed', String(Number(b.dataset.speed) === v));
+  updHUD();
+}
+for (const b of speedBtns) b.addEventListener('click', () => setSpeed(Number(b.dataset.speed)));
+addEventListener('keydown', e => {
+  if (e.target.closest && e.target.closest('button,input,textarea')) return;
+  if (e.code === 'Space') { e.preventDefault(); setSpeed(simSpeed ? 0 : lastSpeed); }
+  else if (e.key === '1') setSpeed(1); else if (e.key === '2') setSpeed(2); else if (e.key === '3') setSpeed(4);
+});
 function simStep(dt, now) {
-  const prevDay = Math.floor(clock / DAY); clock += dt;
-  if (Math.floor(clock / DAY) > prevDay) { dayN++; const eat = Math.min(stock.food, Math.ceil(meeples.length / 2)); stock.food -= eat; updPile(); logEvent(pick(['The rooster crows. A new day in Meepleton.', 'Morning mist rolls off the pond.', 'Smoke curls up from the chimneys.', 'Sunrise over the rooftops.'])); }
+  const prevDay = Math.floor(clock / DAY); clock += dt; runTimers();
+  if (Math.floor(clock / DAY) > prevDay) {
+    dayN++; const need = Math.ceil(meeples.length / 3), eat = Math.min(stock.food, need); stock.food -= eat; updPile();
+    if (eat < need && !hungryLogged) { hungryLogged = true; logEvent(pick(['The pantry is bare. Tummies rumble across town.', 'Not enough bread to go round this morning.'])); }
+    else if (eat >= need) hungryLogged = false;
+    if (seasonNow() !== groundSeason) startSeason(seasonNow());
+    else logEvent(pick(['The rooster crows. A new day in Meepleton.', 'Morning mist rolls off the pond.', 'Smoke curls up from the chimneys.', 'Sunrise over the rooftops.']));
+  }
   for (const m of meeples) {
     m.moving = false;
     if (!m.co) m.co = nextRoutine(m);
@@ -1776,25 +2453,25 @@ function simStep(dt, now) {
     stumpT = 2;
     for (let k = stumps.length - 1; k >= 0; k--) { const s = stumps[k]; s.stumpT += 2; const o = occ[id(s.i, s.j)]; if (s.state !== 'stump') { stumps.splice(k, 1); continue; } if (s.stumpT > 80 || o === O_SITE || o === O_BLD) { removeTree(s); stumps.splice(k, 1); } }
   }
-  updTrees(dt);
+  updTrees(dt); weatherTick(dt); growFields(dt); lampTick(); assignLamplighters();
   for (const r of rocks) if (r.shake > 0) { r.shake -= dt; rockMatrix(r); }
 }
 let last = performance.now();
 function frame(now) {
   requestAnimationFrame(frame);
   const raw = clamp((now - last) / 1000, 0, 0.05); last = now;
-  const dt = raw * SPEED, steps = Math.max(1, Math.ceil(dt / 0.05)), sdt = dt / steps;
+  const dt = raw * SPEED * simSpeed, steps = Math.max(1, Math.ceil(dt / 0.05)), sdt = dt / steps;
   for (let s = 0; s < steps; s++) simStep(sdt, now);
   for (const m of meeples) animMeeple(m, dt);
-  updParticles(dt); updSky(dt); updBuildings(dt, now); updAmbient(dt, now); updCamera(raw);
+  updSeasonSweep(); updPrecip(dt); updCritters(dt, now); updFestival(dt); updParticles(dt); updSky(dt); updBuildings(dt, now); updAmbient(dt, now); updCamera(raw); updSelection(raw);
   waterT -= raw; if (waterT <= 0) { waterT = 0.45; waterPhase = (waterPhase + 1) % 8; for (const [i, j] of waterTiles) drawTile(i, j); gtex.needsUpdate = true; }
   hudT -= raw; if (hudT <= 0) { hudT = 0.5; updHUD(); }
   renderer.render(scene, camera);
 }
-setupTown(); resize(); updSky(0); updHUD();
+setupTown(); resize(); updSky(0); setSpeed(1);
 if (window.__MEEPLE_WARMUP) { for (let k = 0; k < window.__MEEPLE_WARMUP * 20; k++) simStep(0.05, performance.now()); }
 requestAnimationFrame(frame);
-if (window.__MEEPLE_FAST) window.__mt = { astar, accessTile, passable, PILE, quarryTiles, rocks, meeples, buildings, stock, plannedRoads, logLines, trees, phase, dayT, get day() { return dayN; } };
+if (window.__MEEPLE_FAST) window.__mt = { renderer, scene, setClock: (d, t) => { dayN = d; clock = (d - 1) * DAY + t * DAY; }, buildHall: () => { const b = createBuilding('hall', HALF + 4, HALF + 3, 0, { i: HALF + 4, j: HALF }, 'Old Lane', true); b.done = true; }, critters, ground, step: (sec) => { for (let k = 0; k < sec * 20; k++) simStep(0.05, performance.now()); }, planBridge, bridge, road, reach, computeReach, weather: (w) => { wx_.want = w; wx_.t = 999; }, wx: wx_, season: (n) => { dayN = n * SEASON_DAYS + 1; startSeason(seasonNow()); }, camera, select, THREE, nextShot: () => { camTimer = 0; }, astar, accessTile, passable, PILE, quarryTiles, rocks, meeples, buildings, stock, plannedRoads, logLines, trees, phase, dayT, get day() { return dayN; } };
 })();
 </script>
 

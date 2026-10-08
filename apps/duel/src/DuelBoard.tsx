@@ -121,6 +121,190 @@ interface CardFaceProps {
   cost?: { total: number; chained: boolean; affordable: boolean } | null;
 }
 
+function CardIllustration({ card, size = 22 }: { card: Card; size?: number }) {
+  const col = CARDCOL[card.color];
+  const stroke = shade(col, -35);
+  const fill = shade(col, 18);
+
+  let content = null;
+  switch (card.id) {
+    case "lumber_yard":
+    case "logging_camp":
+    case "sawmill":
+      content = (
+        <g stroke={stroke} strokeWidth="1.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 18h16M4 14h16M4 10h16" />
+          <path d="M6 8l2-4h8l2 4" />
+          <circle cx="6" cy="18" r="1.5" fill={fill} />
+          <circle cx="18" cy="18" r="1.5" fill={fill} />
+          <circle cx="6" cy="14" r="1.5" fill={fill} />
+          <circle cx="18" cy="14" r="1.5" fill={fill} />
+        </g>
+      );
+      break;
+    case "clay_pool":
+    case "clay_pit":
+    case "brickyard":
+      content = (
+        <g stroke={stroke} strokeWidth="1.2" fill={fill} strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="5" width="8" height="5" rx="1" />
+          <rect x="13" y="5" width="8" height="5" rx="1" />
+          <rect x="8" y="11" width="8" height="5" rx="1" />
+          <rect x="3" y="17" width="8" height="5" rx="1" />
+          <rect x="13" y="17" width="8" height="5" rx="1" />
+        </g>
+      );
+      break;
+    case "quarry":
+    case "stone_pit":
+    case "shelf_quarry":
+      content = (
+        <g stroke={stroke} strokeWidth="1.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 19l5-10 4 4 4-7 5 13H3z" fill={fill} />
+          <path d="M14 6l3 3m-10 1l-2 2" />
+        </g>
+      );
+      break;
+    case "glassworks":
+    case "glassblower":
+      content = (
+        <g stroke={stroke} strokeWidth="1.2" fill={fill} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M8 4h8l-3 7v5l3 2v2H8v-2l3-2v-5L8 4z" />
+          <path d="M9 7h6" />
+        </g>
+      );
+      break;
+    case "press":
+    case "drying_room":
+      content = (
+        <g stroke={stroke} strokeWidth="1.2" fill={fill} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M6 19c0 1.5 1.5 2 3 2h9c1.5 0 2-.8 2-2V5c0-1.5-.5-2-2-2H9C7.5 3 6 4 6 5.5V19z" />
+          <path d="M6 19c0-1.5 1.5-2 3-2h11" />
+          <path d="M10 7h6M10 11h6M10 15h4" />
+        </g>
+      );
+      break;
+    case "guard_tower":
+    case "garrison":
+    case "palisade":
+    case "fort":
+    case "fortifications":
+    case "walls":
+    case "barracks":
+    case "arsenal":
+      content = (
+        <g stroke={stroke} strokeWidth="1.2" fill={fill} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M5 20V9l3-2 4 2 4-2 3 2v11H5z" />
+          <path d="M5 9h14M9 13h6v7H9v-7z" />
+          <path d="M7 5v2M12 5v2M17 5v2" />
+        </g>
+      );
+      break;
+    case "stable":
+    case "horse_breeders":
+    case "archery_range":
+    case "siege_workshop":
+    case "circus":
+      content = (
+        <g stroke={stroke} strokeWidth="1.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M5 5l14 14M19 5L5 19" />
+          <path d="M5 9V5h4M19 15v4h-4M15 5h4v4M9 19H5v-4" />
+        </g>
+      );
+      break;
+    case "altar":
+    case "baths":
+    case "theater":
+    case "aqueduct":
+    case "temple":
+    case "statue":
+    case "rostrum":
+    case "courthouse":
+    case "pantheon":
+    case "gardens":
+    case "senate":
+    case "town_hall":
+    case "obelisk":
+    case "palace":
+    case "sanctuary":
+      content = (
+        <g stroke={stroke} strokeWidth="1.2" fill={fill} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 20h18M4 17h16M12 3L3 8h18L12 3z" />
+          <path d="M6 8v9M10 8v9M14 8v9M18 8v9" />
+        </g>
+      );
+      break;
+    case "apothecary":
+    case "workshop":
+    case "scriptorium":
+    case "pharmacist":
+    case "dispensary":
+    case "laboratory":
+    case "library":
+    case "school":
+    case "academy":
+    case "study":
+    case "university":
+    case "observatory":
+      content = (
+        <g stroke={stroke} strokeWidth="1.2" fill={fill} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M10 3h4v4l4 8a2 2 0 0 1-2 3H8a2 2 0 0 1-2-3l4-8V3z" />
+          <path d="M9 3h6M8 12h8" />
+          <circle cx="11" cy="15" r="1" />
+        </g>
+      );
+      break;
+    case "tavern":
+    case "brewery":
+      content = (
+        <g stroke={stroke} strokeWidth="1.2" fill={fill} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M7 8h8v11a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V8z" />
+          <path d="M15 11h3a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-3" />
+          <path d="M6 5c1 0 1-1 2-1s1 1 2 1 1-1 2-1 1 1 2 1" />
+        </g>
+      );
+      break;
+    case "lighthouse":
+    case "port":
+      content = (
+        <g stroke={stroke} strokeWidth="1.2" fill={fill} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M9 21l2-13h2l2 13H9z" />
+          <path d="M8 8h8M10 4h4l1 4H9l1-4z" />
+          <path d="M12 2v2M4 6l3 2M20 6l-3 2" />
+        </g>
+      );
+      break;
+    case "arena":
+    case "chamber_of_commerce":
+    case "forum":
+    case "caravansery":
+    case "customs_house":
+    case "stone_reserve":
+    case "clay_reserve":
+    case "wood_reserve":
+      content = (
+        <g stroke={stroke} strokeWidth="1.2" fill={fill} strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="8" />
+          <path d="M12 7v10M9 9.5c0-1 1-1.5 3-1.5s3 .5 3 2-2 2.5-3 3-3 1-3 2.5 1 1.5 3 1.5 3-.5 3-1.5" />
+        </g>
+      );
+      break;
+    default:
+      content = (
+        <g stroke={stroke} strokeWidth="1.2" fill={fill} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 3l3 6 6 1-4.5 4.5 1 6.5-5.5-3-5.5 3 1-6.5L3 10l6-1 3-6z" />
+        </g>
+      );
+      break;
+  }
+
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" style={{ flex: "0 0 auto", opacity: 0.85 }}>
+      {content}
+    </svg>
+  );
+}
+
 function CardFace({ card, w = 74, selected, dim, onClick, cost }: CardFaceProps) {
   const col = CARDCOL[card.color];
   return (
@@ -137,8 +321,6 @@ function CardFace({ card, w = 74, selected, dim, onClick, cost }: CardFaceProps)
         opacity: dim ? 0.55 : 1, filter: dim ? "saturate(.55) brightness(.62)" : "none",
         position: "relative", overflow: "hidden",
         display: "flex", flexDirection: "column", textAlign: "left",
-        /* Filtering by colour is most of reading the board, so every card
-           carries a full-height tint of its own family behind the art. */
         backgroundImage: `linear-gradient(180deg, ${col}22 0%, ${col}00 38%), ${G.card}`,
       }}
     >
@@ -152,14 +334,13 @@ function CardFace({ card, w = 74, selected, dim, onClick, cost }: CardFaceProps)
         <div style={{
           fontSize: 8.5, fontWeight: 700, color: "#fff", lineHeight: 1.12, letterSpacing: .2,
           textShadow: "0 1px 1px rgba(0,0,0,.45)",
-          /* Two lines fits every name in the deck; clamping keeps the banner a
-             fixed height so the cost badge below it never collides. */
           display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
         }}>
           {card.name}
         </div>
       </div>
       <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 3, flexWrap: "wrap", padding: 2 }}>
+        <CardIllustration card={card} size={22} />
         {card.prod && entries(card.prod).flatMap(([r, n]) =>
           Array.from({ length: n }, (_, k) => <Pip key={r + k} r={r} size={14} />))}
         {card.prodChoice && (

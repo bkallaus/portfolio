@@ -100,20 +100,31 @@ body{margin:0;overflow:hidden;background:var(--night);color:var(--ink);font-fami
 <dt>Click</dt><dd>Inspect a meeple or building</dd><dt>Esc</dt><dd>Let go and resume the tour</dd><dt>Space</dt><dd>Pause</dd><dt>1 / 2 / 3</dt><dd>Speed</dd><dt>P</dt><dd>Save a postcard</dd><dt>C</dt><dd>Fold the chronicle</dd></dl>
 <p>Leave it alone and the camera tours the town on its own.</p></div>
 <div class="board" id="log"><h2><button type="button" id="logToggle" aria-expanded="true" aria-controls="logList">Town chronicle</button></h2><div id="logList" role="log" aria-live="polite" aria-relevant="additions"></div></div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" integrity="sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script>
 (function(){
 "use strict";
 const webgl = (() => { try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch (e) { return false; } })();
-if (typeof THREE === 'undefined' || !webgl) {
+function showFallback(why) {
   document.getElementById('fallback').hidden = false;
-  document.getElementById('fallbackWhy').textContent = typeof THREE === 'undefined' ? 'The 3D engine could not be downloaded. Check your connection and reload.' : 'This browser has WebGL switched off, so the island cannot be drawn.';
-  for (const id of ['sign', 'log', 'view']) document.getElementById(id).hidden = true;
-  return;
+  document.getElementById('fallbackWhy').textContent = why;
+  for (const id of ['sign', 'log', 'view', 'card', 'caption', 'help']) document.getElementById(id).hidden = true;
 }
+if (typeof THREE === 'undefined') { showFallback('The 3D engine could not be downloaded. Check your connection and reload.'); return; }
+if (!webgl) { showFallback('This browser has WebGL switched off, so the island cannot be drawn.'); return; }
+let renderer;
+try { renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('view'), antialias: false, alpha: true, preserveDrawingBuffer: false }); }
+catch (e) { showFallback('The graphics card could not start the 3D engine. Try another browser, or reload.'); return; }
+const hookNum = (v, max) => { const n = Number(v); return Number.isFinite(n) && n > 0 ? Math.min(n, max) : 0; };
+const reported = new Set();
+function report(where, err) {
+  if (reported.has(where)) return;
+  reported.add(where); console.error(`Meepleton: ${where} failed and was skipped.`, err);
+}
+const plainKey = e => !e.ctrlKey && !e.metaKey && !e.altKey;
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const N = 40, HALF = N / 2, TPX = 8;
-const SPEED = window.__MEEPLE_FAST || 1;
+const SPEED = hookNum(window.__MEEPLE_FAST, 64) || 1;
 const SEED = (() => {
   const q = new URLSearchParams(location.search).get('seed');
   if (q && /^\d{1,9}$/.test(q)) return Number(q);
@@ -563,7 +574,6 @@ function updParticles(dt) {
 }
 
 const canvasEl = document.getElementById('view');
-const renderer = new THREE.WebGLRenderer({ canvas: canvasEl, antialias: false, alpha: true, preserveDrawingBuffer: false });
 renderer.setClearColor(0x000000, 0); renderer.setPixelRatio(1);
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.BasicShadowMap;
 const scene = new THREE.Scene();
@@ -3192,7 +3202,7 @@ function updBuildings(dt, now) {
   if (chance(dt * 1.2)) emit(FIRE.x, 0.45, FIRE.z, { n: 1, color: ['#bdb8c4', '#9a96a2'], v: 0.05, vy: [0.3, 0.45], size: 0.09, life: [1.4, 2], grav: 0, grow: 2, spread: 0.03 });
 }
 
-let W = innerWidth, H = innerHeight, az = Math.PI * 0.25, camHalf = 12, halfGoal = 12, camTimer = 20, camStep = 0, follow = null, extent = 8, extT = 0;
+let W = Math.max(1, innerWidth), H = Math.max(1, innerHeight), az = Math.PI * 0.25, camHalf = 12, halfGoal = 12, camTimer = 20, camStep = 0, follow = null, extent = 8, extT = 0;
 const camFocus = new V3(0, 0, 0), focusGoal = new V3(0, 0, 0);
 const CYCLE = ['town', 'close', 'town', 'close', 'island'];
 function updCamera(dt) {
@@ -3228,7 +3238,7 @@ function updCamera(dt) {
   camera.left = -camHalf * aspect; camera.right = camHalf * aspect; camera.top = camHalf; camera.bottom = -camHalf; camera.updateProjectionMatrix();
 }
 function resize() {
-  W = innerWidth; H = innerHeight; const PX = Math.max(1, Math.round(W / 640));
+  W = Math.max(1, innerWidth); H = Math.max(1, innerHeight); const PX = Math.max(1, Math.round(W / 640));
   renderer.setSize(Math.ceil(W / PX), Math.ceil(H / PX), false); drawStars();
 }
 addEventListener('resize', resize);
@@ -3299,7 +3309,7 @@ function renderCard() {
 }
 cardBody.addEventListener('click', e => { const b = e.target.closest('.who'); if (b) select(meeples.find(m => m.id === Number(b.dataset.id)) || null); });
 document.getElementById('cardClose').addEventListener('click', () => select(null));
-addEventListener('keydown', e => { if (e.key === 'Escape' && selected) select(null); });
+addEventListener('keydown', e => { if (e.key === 'Escape' && plainKey(e) && selected) select(null); });
 const captionEl = document.getElementById('caption');
 let captionFor = null, captionT = 0;
 captionEl.addEventListener('click', () => { if (captionFor) select(captionFor); });
@@ -3344,7 +3354,7 @@ function rotateBy(r) { takeControl(true); az += r; }
 const ptrs = new Map(); let pinch0 = 0, dragMoved = 0, rotateDrag = false;
 canvasEl.addEventListener('contextmenu', e => e.preventDefault());
 canvasEl.addEventListener('pointerdown', e => {
-  canvasEl.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  try { canvasEl.setPointerCapture(e.pointerId); } catch (err) {} ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
   dragMoved = 0; rotateDrag = e.button === 2 || e.shiftKey; canvasEl.classList.add('dragging');
   if (ptrs.size === 2) { const [p, q] = [...ptrs.values()]; pinch0 = Math.hypot(p.x - q.x, p.y - q.y); }
 });
@@ -3358,11 +3368,12 @@ canvasEl.addEventListener('pointermove', e => {
   else panBy(dx, dy);
 });
 function endPtr(e) {
+  if (!ptrs.has(e.pointerId)) return;
   if (ptrs.size === 1 && dragMoved < 6 && !rotateDrag) pickAt(e.clientX, e.clientY); ptrs.delete(e.pointerId); pinch0 = 0; if (!ptrs.size) canvasEl.classList.remove('dragging'); }
 canvasEl.addEventListener('pointerup', endPtr); canvasEl.addEventListener('pointercancel', endPtr);
 canvasEl.addEventListener('wheel', e => { e.preventDefault(); zoomBy(Math.exp(clamp(e.deltaY, -120, 120) * 0.0015)); }, { passive: false });
 addEventListener('keydown', e => {
-  if (e.target.closest && e.target.closest('input,textarea')) return;
+  if (!plainKey(e) || (e.target.closest && e.target.closest('input,textarea'))) return;
   const k = e.key.toLowerCase(), step = 40;
   if (k === 'q') rotateBy(-0.12); else if (k === 'e') rotateBy(0.12);
   else if (k === '+' || k === '=') zoomBy(0.85); else if (k === '-' || k === '_') zoomBy(1 / 0.85);
@@ -3415,7 +3426,13 @@ function checkRank() {
   rankEl.textContent = RANKS[rankIdx][1];
   if (!fullLogged && pop >= MAXPOP) { fullLogged = true; logEvent('Every home is full. Meepleton has grown as big as the island allows.'); }
 }
+let postcardBusy = false;
 function savePostcard() {
+  if (postcardBusy || contextLost) return;
+  postcardBusy = true;
+  try { drawPostcard(); } catch (e) { postcardBusy = false; report('postcard', e); }
+}
+function drawPostcard() {
   renderer.render(scene, camera);
   const src = renderer.domElement, scale = Math.max(1, Math.round(1600 / src.width)), w = src.width * scale, h = src.height * scale, pad = Math.round(w * 0.025), foot = Math.round(w * 0.06);
   const c = document.createElement('canvas'); c.width = w + pad * 2; c.height = h + pad * 2 + foot; const x = c.getContext('2d');
@@ -3430,7 +3447,7 @@ function savePostcard() {
   x.fillText('Greetings from Meepleton', pad, pad * 1.5 + h + foot / 2);
   x.font = `${Math.round(fs * 0.55)}px "Silkscreen", monospace`; x.fillStyle = '#6d5a48'; x.textAlign = 'right';
   x.fillText(`Day ${dayN} · ${SEASON_NAMES[seasonNow()]} · ${RANKS[rankIdx][1]} of ${meeples.length} · Island #${SEED}`, pad + w, pad * 1.5 + h + foot / 2);
-  c.toBlob(b => { if (!b) return; const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `meepleton-${SEED}-day-${dayN}.png`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }, 'image/png');
+  c.toBlob(b => { postcardBusy = false; if (!b) return; const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `meepleton-${SEED}-day-${dayN}.png`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }, 'image/png');
   toast('Postcard saved', `Greetings from day ${dayN}!`);
 }
 document.getElementById('postcard').addEventListener('click', savePostcard);
@@ -3442,12 +3459,12 @@ document.getElementById('helpClose').addEventListener('click', () => { setHelp(f
 logToggle.addEventListener('click', () => foldLog(!logBox.classList.contains('folded')));
 if (matchMedia('(max-width:520px)').matches) foldLog(true);
 addEventListener('keydown', e => {
-  if (e.target.closest && e.target.closest('input,textarea')) return;
+  if (!plainKey(e) || e.repeat || (e.target.closest && e.target.closest('input,textarea'))) return;
   if (e.key === '?') setHelp(helpEl.hidden);
   else if (e.key === 'Escape' && !helpEl.hidden) setHelp(false);
   else if (e.key.toLowerCase() === 'c') foldLog(!logBox.classList.contains('folded'));
 });
-addEventListener('keydown', e => { if (e.key.toLowerCase() === 'p' && !(e.target.closest && e.target.closest('input,textarea'))) savePostcard(); });
+addEventListener('keydown', e => { if (e.key.toLowerCase() === 'p' && plainKey(e) && !e.repeat && !(e.target.closest && e.target.closest('input,textarea'))) savePostcard(); });
 let describeT = 0;
 function updHUD() {
   checkRank();
@@ -3504,7 +3521,7 @@ let reachT = 0, waterT = 0, birthT = 6, hudT = 0, stumpT = 0, hungryLogged = fal
 const timers = [];
 function after(sec, fn) { timers.push({ at: clock + sec, fn }); }
 function runTimers() {
-  for (let k = timers.length - 1; k >= 0; k--) if (timers[k].at <= clock) { const t = timers[k]; timers.splice(k, 1); t.fn(); }
+  for (let k = timers.length - 1; k >= 0; k--) if (timers[k].at <= clock) { const t = timers[k]; timers.splice(k, 1); try { t.fn(); } catch (e) { report('a timed event', e); } }
 }
 let simSpeed = 1, lastSpeed = 1;
 const speedBtns = [...document.querySelectorAll('#ctl button[data-speed]')];
@@ -3516,10 +3533,14 @@ function setSpeed(v) {
 }
 for (const b of speedBtns) b.addEventListener('click', () => setSpeed(Number(b.dataset.speed)));
 addEventListener('keydown', e => {
-  if (e.target.closest && e.target.closest('button,input,textarea')) return;
+  if (!plainKey(e) || e.repeat || (e.target.closest && e.target.closest('button,input,textarea'))) return;
   if (e.code === 'Space') { e.preventDefault(); setSpeed(simSpeed ? 0 : lastSpeed); }
   else if (e.key === '1') setSpeed(1); else if (e.key === '2') setSpeed(2); else if (e.key === '3') setSpeed(4);
 });
+function resetMeeple(m) {
+  m.co = null; m.act = null; m.busy = '';
+  setTool(m, null); setCarry(m, null);
+}
 function simStep(dt, now) {
   const prevDay = Math.floor(clock / DAY); clock += dt; runTimers();
   if (Math.floor(clock / DAY) > prevDay) {
@@ -3532,8 +3553,8 @@ function simStep(dt, now) {
   }
   for (const m of meeples) {
     m.moving = false;
-    if (!m.co) m.co = nextRoutine(m);
-    const r = m.co.next(dt); if (r.done) m.co = null;
+    try { if (!m.co) m.co = nextRoutine(m); if (m.co.next(dt).done) m.co = null; }
+    catch (e) { report('a meeple routine', e); resetMeeple(m); }
     m.social = Math.min(1, m.social + dt * 0.02); greetTick(m, dt);
     if (m.age < 1) { m.age = Math.min(1, m.age + dt / (DAY * 1.5)); if (m.age >= 1) { m.hat.visible = true; logEvent(`${m.name} is all grown up and joins the ${m.role}s.`); } }
   }
@@ -3548,9 +3569,14 @@ function simStep(dt, now) {
   updTrees(dt); weatherTick(dt); growFields(dt); lampTick(); assignLamplighters(); assignEvening();
   for (const r of rocks) if (r.shake > 0) { r.shake -= dt; rockMatrix(r); }
 }
-let last = performance.now();
+let last = performance.now(), contextLost = false;
+canvasEl.addEventListener('webglcontextlost', e => { e.preventDefault(); contextLost = true; toast('Graphics paused', 'The browser took the canvas away. The village carries on.'); });
+canvasEl.addEventListener('webglcontextrestored', () => { contextLost = false; gtex.needsUpdate = true; resize(); toast('Graphics back', 'The island is drawn again.'); });
 function frame(now) {
   requestAnimationFrame(frame);
+  try { tick(now); } catch (e) { report('a frame', e); }
+}
+function tick(now) {
   const raw = clamp((now - last) / 1000, 0, 0.05); last = now;
   const dt = raw * SPEED * simSpeed, steps = Math.max(1, Math.ceil(dt / 0.05)), sdt = dt / steps;
   for (let s = 0; s < steps; s++) simStep(sdt, now);
@@ -3558,10 +3584,10 @@ function frame(now) {
   updSeasonSweep(); updPrecip(dt); updCritters(dt, now); updFestival(dt); updParticles(dt); updSky(dt); updBuildings(dt, now); updAmbient(dt, now); updCamera(raw); updSelection(raw);
   waterT -= raw; if (waterT <= 0) { waterT = 0.45; waterPhase = (waterPhase + 1) % 8; for (const [i, j] of waterTiles) drawTile(i, j); gtex.needsUpdate = true; }
   hudT -= raw; if (hudT <= 0) { hudT = 0.5; updHUD(); }
-  renderer.render(scene, camera);
+  if (!contextLost) renderer.render(scene, camera);
 }
 setupTown(); resize(); updSky(0); setSpeed(1);
-if (window.__MEEPLE_WARMUP) { for (let k = 0; k < window.__MEEPLE_WARMUP * 20; k++) simStep(0.05, performance.now()); }
+{ const warm = hookNum(window.__MEEPLE_WARMUP, 3600); for (let k = 0; k < warm * 20; k++) simStep(0.05, performance.now()); }
 requestAnimationFrame(frame);
 if (window.__MEEPLE_FAST) window.__mt = { renderer, scene, setClock: (d, t) => { dayN = d; clock = (d - 1) * DAY + t * DAY; }, buildHall: () => { const b = createBuilding('hall', HALF + 4, HALF + 3, 0, { i: HALF + 4, j: HALF }, 'Yet-gil', true); b.done = true; }, critters, ground, step: (sec) => { for (let k = 0; k < sec * 20; k++) simStep(0.05, performance.now()); }, planBridge, bridge, road, reach, computeReach, weather: (w) => { wx_.want = w; wx_.t = 999; }, wx: wx_, season: (n) => { dayN = n * SEASON_DAYS + 1; startSeason(seasonNow()); }, camera, select, THREE, nextShot: () => { camTimer = 0; }, astar, accessTile, passable, PILE, quarryTiles, rocks, meeples, buildings, stock, plannedRoads, logLines, trees, phase, dayT, snowmen, leafPiles, forage, eggs, view: (x, z, h, a) => { manualT = 1e9; focusGoal.set(x, 0.3, z); camFocus.copy(focusGoal); halfGoal = camHalf = h; if (a !== undefined) az = a; }, get wedding() { return wedding; }, get tonight() { return tonight; }, get day() { return dayN; } };
 })();

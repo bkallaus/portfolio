@@ -50,6 +50,7 @@ body{margin:0;overflow:hidden;background:var(--night);color:var(--ink);font-fami
 #help p{margin:8px 0 0;color:var(--muted)}
 #helpClose{position:absolute;top:4px;right:4px;font-family:var(--f-ui);font-size:12px;width:22px;height:22px;padding:0;display:grid;place-items:center;color:var(--ink);background:#fff8e6;border:2px solid var(--ink);cursor:pointer}
 #log p .d{color:var(--accent)}
+#logList .st{font:inherit;font-weight:700;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-decoration:underline dotted}#logList .st:hover{color:var(--accent)}
 #log h2{display:flex;justify-content:space-between;align-items:center;gap:12px}
 #logMore{font:inherit;font-size:9px;letter-spacing:.06em;text-transform:none;color:var(--accent);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline}
 #logMore[aria-pressed="true"]{color:var(--muted)}
@@ -109,16 +110,16 @@ body.map #caption{right:192px}
 <canvas id="moon" width="16" height="16"></canvas>
 <canvas id="view" role="img" aria-label="Meepleton, a pixel-art Korean village building itself"></canvas>
 <div class="board" id="fallback" hidden><h1>Meepleton</h1><p id="fallbackWhy"></p><p>The meeples will wait for you.</p></div>
-<div class="board" id="sign"><h1>Meepleton <span id="rank">Camp</span></h1><div id="clock">Day 1 · 06:00</div><div id="seedRow"><a id="seedLink" title="Permalink to this island">Island #</a><button type="button" id="newTown" title="Found a new island">New island</button></div><div id="stats"></div><div id="ctl" role="group" aria-label="Simulation speed"><button type="button" data-speed="0" aria-label="Pause" title="Pause (Space)">II</button><button type="button" data-speed="1" title="Normal speed (1)">1x</button><button type="button" data-speed="2" title="Double speed (2)">2x</button><button type="button" data-speed="4" title="Fast (3)">4x</button><button type="button" data-speed="8" title="Fastest (4)">8x</button><button type="button" id="helpBtn" title="Controls (?)" aria-label="Show controls" aria-expanded="false" aria-controls="help">?</button><button type="button" id="mapBtn" title="Map (M)" aria-pressed="false" aria-controls="minimap">Map</button><button type="button" id="postcard" title="Save a postcard (P)" aria-label="Save a postcard">Postcard</button></div></div>
+<div class="board" id="sign"><h1>Meepleton <span id="rank">Camp</span></h1><div id="clock">Day 1 · 06:00</div><div id="seedRow"><a id="seedLink" title="Permalink to this island">Island #</a><button type="button" id="newTown" title="Found a new island">New island</button></div><div id="stats"></div><div id="ctl" role="group" aria-label="Controls"><button type="button" data-speed="0" aria-label="Pause" title="Pause (Space)">II</button><button type="button" data-speed="1" title="Normal speed (1)">1x</button><button type="button" data-speed="2" title="Double speed (2)">2x</button><button type="button" data-speed="4" title="Fast (3)">4x</button><button type="button" data-speed="8" title="Fastest (4)">8x</button><button type="button" id="helpBtn" title="Controls (?)" aria-label="Show controls" aria-expanded="false" aria-controls="help">?</button><button type="button" id="mapBtn" title="Map (M)" aria-pressed="false" aria-controls="minimap">Map</button><button type="button" id="postcard" title="Save a postcard (P)" aria-label="Save a postcard">Postcard</button></div></div>
 <canvas class="board" id="minimap" width="160" height="160" hidden role="img" aria-label="Map of the island. Click to look there."></canvas>
 <div id="sr" class="sr" aria-live="polite"></div>
 <div class="board" id="card" hidden role="region" aria-label="Inspector"><button type="button" id="cardClose" aria-label="Close" title="Close (Esc)">X</button><div id="cardBody"></div></div>
 <button type="button" class="board" id="caption" hidden></button>
 <div id="toast" role="status" aria-live="polite"></div>
 <div class="board" id="help" hidden role="dialog" aria-modal="true" aria-labelledby="helpTitle"><button type="button" id="helpClose" aria-label="Close">X</button><h3 id="helpTitle">Getting around</h3><dl>
-<dt>Drag</dt><dd>Pan the island</dd><dt>Right-drag, Q / E</dt><dd>Rotate</dd><dt>Wheel, pinch, + / -</dt><dd>Zoom</dd><dt>Arrows, WASD</dt><dd>Pan</dd>
-<dt>Click</dt><dd>Inspect a meeple or building</dd><dt>Esc</dt><dd>Let go and resume the tour</dd><dt>N / Shift+N</dt><dd>Visit the next or previous meeple</dd><dt>Space</dt><dd>Pause</dd><dt>1 - 4</dt><dd>Speed</dd><dt>P</dt><dd>Save a postcard</dd><dt>C</dt><dd>Fold the chronicle</dd><dt>M</dt><dd>Show the map</dd><dt>H</dt><dd>Hide the signs</dd><dt>F</dt><dd>Full screen</dd></dl>
-<p>Leave it alone and the camera tours the town on its own.</p></div>
+<dt>Drag</dt><dd>Pan the island</dd><dt>Right-drag, Q / E</dt><dd>Rotate</dd><dt>Wheel, pinch, + / -</dt><dd>Zoom toward the pointer</dd><dt>Double-click</dt><dd>Zoom in on a spot</dd><dt>Arrows, WASD</dt><dd>Pan</dd>
+<dt>Click</dt><dd>Inspect a meeple or building</dd><dt>Esc, 0</dt><dd>Let go and resume the tour</dd><dt>N / Shift+N</dt><dd>Visit the next or previous meeple</dd><dt>Space</dt><dd>Pause</dd><dt>1 - 4</dt><dd>Speed</dd><dt>P</dt><dd>Save a postcard</dd><dt>C</dt><dd>Fold the chronicle</dd><dt>M</dt><dd>Show the map</dd><dt>H</dt><dd>Hide the signs</dd><dt>F</dt><dd>Full screen</dd></dl>
+<p>Leave it alone and the camera tours the town on its own. Click a street name in the chronicle to fly there.</p></div>
 <div class="board" id="log"><h2><button type="button" id="logToggle" aria-expanded="true" aria-controls="logList">Town chronicle</button><button type="button" id="logMore" aria-pressed="false" aria-controls="logList">Earlier</button></h2><div id="logList" role="log" aria-live="polite" aria-relevant="additions"></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" integrity="sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script>
@@ -600,7 +601,7 @@ const scene = new THREE.Scene();
 const camera = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, 400);
 const hemi = new THREE.HemisphereLight(0xd9f0ff, 0x6a7a4a, 0.55); scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xffffff, 1); sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.mapSize.setScalar(Math.min(screen.width, screen.height) < 700 || (navigator.deviceMemory || 8) <= 4 ? 1024 : 2048);
 { const sc = sun.shadow.camera; sc.left = -30; sc.right = 30; sc.top = 30; sc.bottom = -30; sc.near = 1; sc.far = 160; }
 sun.shadow.bias = -0.0015; scene.add(sun); scene.add(sun.target);
 scene.add(pMesh);
@@ -1493,6 +1494,7 @@ function updSeasonSweep() {
   if (treeSweep.length) { const se = seasonNow(); for (const t of treeSweep.splice(0, 25)) if (t.state !== 'gone') paintTree(t, se); }
 }
 const dayT = () => (clock % DAY) / DAY;
+const windDir = () => 0.9 + Math.sin(dayN) * 0.5;
 function phase() { const t = dayT(); if (t < 0.23 || t >= 0.875) return 'night'; if (t < 0.28) return 'dawn'; if (t < 0.72) return 'work'; return 'evening'; }
 const plannedRoads = new Set(), roadRes = new Int32Array(N * N);
 const inflight = { wood: 0, stone: 0 };
@@ -2112,6 +2114,7 @@ function greetTick(m, dt) {
   for (const o of meeples) {
     if (o === m || o.inside || o.riding || o.act || o.greetCD > clock || o.busy === 'chat' || o.busy === 'sleep' || o.busy === 'play' || Math.abs(o.x - m.x) > 0.9 || Math.abs(o.z - m.z) > 0.9) continue;
     const close = bondOf(m, o) >= 2;
+    if (o.elder && !m.elder) { emote(m, 'heart', 1); emote(o, 'smile', 1); m.hop = 0.3; bond(m, o, 0.25); m.greetCD = o.greetCD = clock + rr(25, 45); return; }
     emote(m, 'wave', 1); if (close || chance(0.4)) emote(o, close ? pick(['wave', 'smile']) : 'wave', 1);
     m.hop = o.hop = 0.3; bond(m, o, 0.25);
     m.greetCD = o.greetCD = clock + rr(25, 45);
@@ -2778,6 +2781,7 @@ function pickLeisure(m) {
   if (shoreTiles.length && m.age >= 1 && seasonNow() !== 3 && !isRaining()) opts.push([1.6, () => rFish(m)]);
   if ((se === 0 || se === 2) && !wet && ph !== 'dawn' && kites < 3) opts.push([kid ? 2.2 : 0.6, () => rKite(m)]);
   if (se === 3 && kid && !wet) opts.push([1.8, () => rJegi(m)]);
+  if (puddleT > 0 && kid && !wet && se !== 3) opts.push([3, () => rPuddle(m)]);
   { const cat = critters.find(c => c.kind === 'cat' && c.petUntil < clock && Math.hypot(c.x - m.x, c.z - m.z) < 8); if (cat) opts.push([kid ? 1.6 : 0.6, () => rPetCat(m, cat)]); }
   if (buildings.some(b => b.type === 'well' && b.done)) opts.push([1.2, () => rWell(m)]);
   if (buildings.some(b => b.type === 'stall' && b.done)) opts.push([1.2, () => rStall(m)]);
@@ -2811,7 +2815,7 @@ function* rKite(m) {
   try {
     yield* goOut(m);
     if (!(yield* walkTo(m, spot[0], spot[1]))) return;
-    const wa = 0.9 + Math.sin(dayN) * 0.5; m.face = wa + Math.PI; kite = makeKite(pick(KITE_COLS));
+    const wa = windDir(); m.face = wa + Math.PI; kite = makeKite(pick(KITE_COLS));
     if (kiteSeason !== dayN) { kiteSeason = dayN; logEvent(`${m.name} sends a kite up over the meadow.`); }
     m.act = 'kite'; m.actT = 0; let rise = 0;
     const dur = rr(10, 16);
@@ -2847,6 +2851,16 @@ function* rJegi(m) {
     yield* wait(0.8);
   } finally { m.act = null; scene.remove(jegi); }
 }
+function* rPuddle(m) {
+  let spot = null; const ci = tI(m.x), cj = tJ(m.z);
+  for (let k = 0; k < 30 && !spot; k++) { const i = ci + ri(-5, 5), j = cj + ri(-5, 5); if (inb(i, j) && passable(i, j) && reach[id(i, j)] && (road[id(i, j)] >= 2 || ground[id(i, j)] === G_DIRT)) spot = [i, j]; }
+  if (!spot) return;
+  m.doing = 'Splashing in puddles'; m.busy = 'idle';
+  yield* goOut(m);
+  if (!(yield* walkTo(m, spot[0], spot[1]))) return;
+  yield* doAct(m, 'jump', rr(2.4, 4), () => emit(m.x, 0.03, m.z, { n: 8, color: ['#cfeaf8', '#9fc3e0', '#ffffff'], v: 0.9, vy: [0.6, 1.4], size: 0.035, life: [0.3, 0.5] }));
+  emote(m, pick(['smile', 'drop', 'star']), 1.3);
+}
 function* rPetCat(m, c) {
   m.doing = 'Petting a cat'; m.busy = 'idle';
   yield* goOut(m);
@@ -2855,6 +2869,27 @@ function* rPetCat(m, c) {
   c.petUntil = clock + 4; faceTo(m, c.x, c.z);
   yield* doAct(m, 'crouch', 3, () => { if (chance(0.5)) worldEmote(c.x, 0.35, c.z, 'heart', 1.2, 0.12); });
   emote(m, pick(['heart', 'smile']), 1.3);
+}
+const watch = { day: 0, m: null, seen: new Set() };
+function assignWatch() {
+  const t = dayT(); if (watch.day === dayN || t < 0.876 || t > 0.95 || lamps.length < 4 || meeples.length < 10) return;
+  watch.day = dayN; const c = meeples.filter(m => m.age >= 1 && !m.elder && m.busy === 'sleep' && m !== watch.m);
+  if (!c.length) return;
+  const m = pick(c); watch.m = m; if (m.co) m.co.return(); m.act = null; m.co = rWatch(m);
+  if (!watch.seen.has(m)) { watch.seen.add(m); logEvent(`${m.name} keeps the night watch, lantern in hand.`); }
+}
+function* rWatch(m) {
+  m.doing = 'Keeping the night watch'; m.busy = 'work';
+  const glow = new THREE.Sprite(glowMat.clone()); glow.scale.set(1.2, 1.2, 1);
+  try {
+    yield* goOut(m); setTool(m, 'pole'); m.toolPiv.add(glow); glow.position.set(0, 0.7, 0);
+    while (phase() === 'night') {
+      glow.material.opacity = 0.35 + nightF * 0.5;
+      const l = pick(lamps); if (!(yield* walkNear(m, l.i, l.j))) { yield* wait(2); continue; }
+      m.face += rr(-1, 1); yield* wait(rr(2, 5));
+      if (chance(0.2)) emote(m, pick(['star', 'zzz', 'music']), 1.4);
+    }
+  } finally { m.toolPiv.remove(glow); glow.material.dispose(); setTool(m, null); }
 }
 let kimjang = null;
 function kimjangTick() {
@@ -2911,7 +2946,7 @@ function* rRing(m) {
 function* seq(m, g) { yield* g; m.busy = 'idle'; yield* wait(rr(0.15, 0.6)); }
 function nextRoutine(m) {
   const ph = phase(); m.busy = '';
-  if (ph === 'night') return rSleep(m);
+  if (ph === 'night') return m === watch.m && watch.day === dayN ? rWatch(m) : rSleep(m);
   if (ph === 'evening') return rEvening(m);
   if (kimjang && kimjang.on && m.age >= 1 && chance(0.8)) return seq(m, rKimjang(m));
   if (m.age < 1 || ph === 'dawn') return seq(m, pickLeisure(m));
@@ -3073,7 +3108,8 @@ function planTick() {
   for (const b of buildings) {
     if (b.done) continue;
     const sig = b.delivered.wood + b.delivered.stone * 100 + Math.round(b.prog * 1000) * 10000 + b.trees.filter(t => t.state === 'standing').length;
-    if (sig !== b.sig || b.builders || b.pending.wood + b.pending.stone) { b.sig = sig; b.stallT = 0; }
+    const starved = ['wood', 'stone'].some(r => b.delivered[r] < b.T.cost[r] && stock[r] - reserved[r] <= 0);
+    if (sig !== b.sig || b.builders || b.pending.wood + b.pending.stone || starved) { b.sig = sig; b.stallT = 0; }
     else if ((b.stallT = (b.stallT || 0) + 3.5) > DAY * 1.2) { scrapSite(b); break; }
   }
   for (const b of buildings) if (!b.done) { if (nearReach(b.i0, b.j0, b.size)) b.lostT = 0; else if ((b.lostT = (b.lostT || 0) + 3.5) > 30 && b.builders === 0 && b.pending.wood + b.pending.stone === 0) { scrapSite(b); break; } }
@@ -3268,9 +3304,9 @@ function weatherTick(dt) {
   if (wx_.t <= 0) {
     const se = seasonNow();
     if (wx_.want === 'clear') { if (chance(WEATHER_ODDS[se])) { wx_.want = se === 3 ? 'snow' : 'rain'; wx_.storm = (se === 1 || se === 2) && chance(0.35); thunderLogged = false; wx_.t = rr(35, 80); logEvent(wx_.storm ? 'Thunderheads pile up over the hills. A storm!' : pick(WEATHER_LINES[wx_.want])); } else wx_.t = rr(40, 90); }
-    else { logEvent(pick(WEATHER_LINES['clear' + wx_.want])); if (wx_.want === 'rain' && phase() === 'work') rainbowT = 70; wx_.want = 'clear'; wx_.storm = false; wx_.t = rr(60, 140); }
+    else { logEvent(pick(WEATHER_LINES['clear' + wx_.want])); if (wx_.want === 'rain' && phase() === 'work') rainbowT = 70; if (wx_.want === 'rain') puddleT = 70; wx_.want = 'clear'; wx_.storm = false; wx_.t = rr(60, 140); }
   }
-  rainbowT = Math.max(0, rainbowT - dt);
+  rainbowT = Math.max(0, rainbowT - dt); puddleT = Math.max(0, puddleT - dt);
   if (wx_.storm && wx_.kind === 'rain' && wx_.wet > 0.6 && chance(dt * 0.1)) {
     boltT = REDUCED ? 0 : 0.3;
     if (!thunderLogged) { thunderLogged = true; logEvent('Thunder rolls across the island.'); }
@@ -3682,19 +3718,19 @@ function updFrost(dt) {
   frost = clamp(frost + Math.sign(want - frost) * dt * 0.08, 0, 1);
   for (const k in roofTexCache) roofTexCache[k].emissive.setRGB(0.5 * frost, 0.53 * frost, 0.58 * frost);
 }
-let rainbowT = 0, boltT = 0, thunderLogged = false;
+let rainbowT = 0, boltT = 0, thunderLogged = false, puddleT = 0;
 function updAmbient(dt, now) {
   updFlyers(dt); updMist(dt); updFrost(dt); lilies.visible = groundSeason !== 3;
   if (seasonNow() === 2 && !REDUCED && chance(dt * 7)) for (let k = 0; k < 4; k++) {
     const t = trees[Math.floor(rnd() * trees.length)];
     if (!t || t.kind !== 'oak' || t.state !== 'standing' || t.tint < 0.15) continue;
-    emit(t.x, 0.7 * t.sc, t.z, { n: 1, color: AUTUMN, spread: 0.3, v: 0.1, vx: 0.18, vz: 0.1, vy: [-0.18, 0], size: 0.04, life: [2.5, 3.5], grav: 0.15, keep: true });
+    emit(t.x, 0.7 * t.sc, t.z, { n: 1, color: AUTUMN, spread: 0.3, v: 0.1, vx: Math.sin(windDir()) * 0.2, vz: Math.cos(windDir()) * 0.2, vy: [-0.18, 0], size: 0.04, life: [2.5, 3.5], grav: 0.15, keep: true });
     break;
   }
   if (seasonNow() === 0 && !REDUCED && chance(dt * 9)) for (let k = 0; k < 4; k++) {
     const t = trees[Math.floor(rnd() * trees.length)];
     if (!t || t.kind !== 'oak' || t.state !== 'standing' || t.tint >= 0.72) continue;
-    emit(t.x, 0.75 * t.sc, t.z, { n: 1, color: ['#f7bfd4', '#fbd3e2', '#f4a7c4', '#ffffff'], spread: 0.3, v: 0.12, vx: 0.22, vz: 0.08, vy: [-0.12, 0.04], size: 0.032, life: [2.5, 4], grav: 0.12, keep: true });
+    emit(t.x, 0.75 * t.sc, t.z, { n: 1, color: ['#f7bfd4', '#fbd3e2', '#f4a7c4', '#ffffff'], spread: 0.3, v: 0.12, vx: Math.sin(windDir()) * 0.22, vz: Math.cos(windDir()) * 0.22, vy: [-0.12, 0.04], size: 0.032, life: [2.5, 4], grav: 0.12, keep: true });
     break;
   }
   for (const c of clouds) { c.g.position.x += c.v * dt; if (c.g.position.x > N) { c.g.position.x = -N; c.g.position.z = rr(-N / 2, N / 2); } }
@@ -3749,7 +3785,7 @@ function updBuildings(dt, now) {
     if (b.clockH) { const t = dayT() * Math.PI * 4; b.clockH.rotation.z = -t; b.clockM.rotation.z = -t * 12; }
     if (b.chimney && (b.occupants > 0 || (ph === 'evening' && b.residents.length) || b.type === 'tavern' && ph === 'evening' || b.type === 'bakery' && (ph === 'work' || ph === 'dawn'))) {
       b.smokeT -= dt;
-      if (b.smokeT < 0) { b.smokeT = rr(0.35, 0.7) * [1, 1.6, 1, 0.55][seasonNow()]; b.g.localToWorld(_cw.copy(b.chimney)); emit(_cw.x, _cw.y, _cw.z, { n: 1, color: ['#e8e4ec', '#d4d0da', '#c3bfc9'], v: 0.08, vx: 0.15, vy: [0.35, 0.5], size: 0.11, life: [1.8, 2.6], grav: 0, grow: 2.2, spread: 0.03 }); }
+      if (b.smokeT < 0) { b.smokeT = rr(0.35, 0.7) * [1, 1.6, 1, 0.55][seasonNow()]; b.g.localToWorld(_cw.copy(b.chimney)); emit(_cw.x, _cw.y, _cw.z, { n: 1, color: ['#e8e4ec', '#d4d0da', '#c3bfc9'], v: 0.08, vx: Math.sin(windDir()) * 0.15, vz: Math.cos(windDir()) * 0.15, vy: [0.35, 0.5], size: 0.11, life: [1.8, 2.6], grav: 0, grow: 2.2, spread: 0.03 }); }
     }
     if (ph === 'night' && b.T.cap > 0 && b.occupants > 0) { b.zzzT -= dt; if (b.zzzT < 0) { b.zzzT = rr(5, 9); worldEmote(b.cx + rr(-.2, .2), (b.roofTop || 1) + 0.25, b.cz, 'zzz', 2.4, 0.4); } }
     if (b.dry) { b.dry.fruit.visible = groundSeason >= 2; b.dry.chili.visible = groundSeason === 1 || groundSeason === 2; }
@@ -3897,6 +3933,8 @@ function announce(t) { srEl.textContent = ''; requestAnimationFrame(() => { srEl
 cardBody.addEventListener('click', e => { const b = e.target.closest('.who'); if (b) select(meeples.find(m => m.id === Number(b.dataset.id)) || null); });
 document.getElementById('cardClose').addEventListener('click', () => select(null));
 addEventListener('keydown', e => { if (e.key === 'Escape' && plainKey(e) && selected) select(null); });
+function resumeTour() { if (selected) select(null); manualT = 0.01; follow = null; }
+addEventListener('keydown', e => { if ((e.key === '0' || e.key === 'Home') && plainKey(e) && !(e.target.closest && e.target.closest('input,textarea'))) resumeTour(); });
 const captionEl = document.getElementById('caption');
 let captionFor = null, captionT = 0;
 captionEl.addEventListener('click', () => { if (captionFor) select(captionFor); });
@@ -3916,7 +3954,9 @@ function updCaption(dt) {
 }
 const mapEl = document.getElementById('minimap'), mapBtn = document.getElementById('mapBtn'), mapX = mapEl.getContext('2d');
 let mapT = 0;
-function setMap(on) { mapEl.hidden = !on; document.body.classList.toggle('map', on); mapBtn.setAttribute('aria-pressed', String(on)); mapT = 0; }
+function setMap(on) { mapEl.hidden = !on; document.body.classList.toggle('map', on); mapBtn.setAttribute('aria-pressed', String(on)); mapT = 0; savePref('map', on ? 1 : 0); }
+function savePref(k, v) { try { localStorage.setItem('meepleton.' + k, String(v)); } catch (e) { return; } }
+function loadPref(k) { try { return localStorage.getItem('meepleton.' + k); } catch (e) { return null; } }
 mapBtn.addEventListener('click', () => setMap(mapEl.hidden));
 mapEl.addEventListener('click', e => {
   const r = mapEl.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * N - HALF, z = (e.clientY - r.top) / r.height * N - HALF;
@@ -4039,9 +4079,19 @@ const statEls = {};
 const clockEl = document.getElementById('clock'), logEl = document.getElementById('logList');
 const logLines = [];
 const LOG_KEEP = 60;
+function streetTiles(name) { const t = []; for (let k = 0; k < N * N; k++) if (roadName[k] === name) t.push(k); return t; }
+logEl.addEventListener('click', e => {
+  const b = e.target.closest('.st'); if (!b) return;
+  const t = streetTiles(b.textContent); if (!t.length) return;
+  let x = 0, z = 0; for (const k of t) { x += wx(k % N); z += wz(Math.floor(k / N)); }
+  if (selected) select(null);
+  takeControl(false); focusGoal.set(x / t.length, 0.3, z / t.length); halfGoal = Math.min(halfGoal, 7);
+});
 function logEvent(html) {
   logLines.unshift(`<span class="d">D${dayN}</span> ${html}`); if (logLines.length > LOG_KEEP) logLines.pop();
-  const p = document.createElement('p'); p.innerHTML = logLines[0]; logEl.prepend(p);
+  const p = document.createElement('p'); p.innerHTML = logLines[0];
+  for (const b of p.querySelectorAll('b')) if (streetTiles(b.textContent).length) { const s = document.createElement('button'); s.type = 'button'; s.className = 'st'; s.textContent = b.textContent; s.title = `Look at ${b.textContent}`; b.replaceWith(s); }
+  logEl.prepend(p);
   while (logEl.children.length > LOG_KEEP) logEl.lastElementChild.remove();
 }
 const RANKS = [[0, 'Camp'], [6, 'Hamlet'], [14, 'Village'], [30, 'Town'], [50, 'Market Town']];
@@ -4213,7 +4263,7 @@ function runTimers() {
 let simSpeed = 1, lastSpeed = 1;
 const speedBtns = [...document.querySelectorAll('#ctl button[data-speed]')];
 function setSpeed(v) {
-  if (v > 0) lastSpeed = v;
+  if (v > 0) { lastSpeed = v; savePref('speed', v); }
   simSpeed = v;
   for (const b of speedBtns) b.setAttribute('aria-pressed', String(Number(b.dataset.speed) === v));
   updHUD();
@@ -4265,7 +4315,7 @@ function simStep(dt, now) {
     decorTick(2); henTick(2);
     for (let k = stumps.length - 1; k >= 0; k--) { const s = stumps[k]; s.stumpT += 2; const o = occ[id(s.i, s.j)]; if (s.state !== 'stump') { stumps.splice(k, 1); continue; } if (s.stumpT > 80 || o === O_SITE || o === O_BLD) { removeTree(s); stumps.splice(k, 1); } }
   }
-  updTrees(dt); weatherTick(dt); growFields(dt); lampTick(); kimjangTick(); assignLamplighters(); assignEvening();
+  updTrees(dt); weatherTick(dt); growFields(dt); lampTick(); kimjangTick(); assignWatch(); assignLamplighters(); assignEvening();
   for (const r of rocks) if (r.shake > 0) { r.shake -= dt; rockMatrix(r); }
 }
 let last = performance.now(), contextLost = false;
@@ -4293,7 +4343,8 @@ function fastForward(sec) {
   for (let k = 1; k <= sec * 20; k++) { simStep(0.05, t0 + k * 50); if (k % 5 === 0) animateWorld(0.25, 0.25, t0 + k * 50); }
   updHUD();
 }
-setupTown(); resize(); updSky(0); setSpeed(1);
+setupTown(); resize(); updSky(0); setSpeed([1, 2, 4, 8].includes(Number(loadPref('speed'))) ? Number(loadPref('speed')) : 1);
+if (loadPref('map') === '1' && !matchMedia('(max-width:700px)').matches) setMap(true);
 { const warm = hookNum(window.__MEEPLE_WARMUP, 3600); for (let k = 0; k < warm * 20; k++) simStep(0.05, performance.now()); }
 requestAnimationFrame(frame);
 if (window.__MEEPLE_FAST) window.__mt = { renderer, scene, setClock: (d, t) => { dayN = d; clock = (d - 1) * DAY + t * DAY; }, buildHall: () => { const b = createBuilding('hall', HALF + 4, HALF + 3, 0, { i: HALF + 4, j: HALF }, 'Yet-gil', true); b.done = true; }, critters, ground, step: fastForward, planBridge, bridge, road, reach, computeReach, weather: (w) => { wx_.want = w; wx_.t = 999; }, wx: wx_, season: (n) => { dayN = n * SEASON_DAYS + 1; startSeason(seasonNow()); }, camera, select, THREE, nextShot: () => { camTimer = 0; }, astar, accessTile, passable, PILE, quarryTiles, rocks, meeples, buildings, stock, plannedRoads, logLines, trees, phase, dayT, snowmen, leafPiles, forage, eggs, view: (x, z, h, a) => { manualT = 1e9; follow = null; focusGoal.set(x, 0.3, z); camFocus.copy(focusGoal); halfGoal = camHalf = h; if (a !== undefined) az = a; }, get wedding() { return wedding; }, get tonight() { return tonight; }, get day() { return dayN; } };

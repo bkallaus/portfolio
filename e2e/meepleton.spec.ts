@@ -264,6 +264,23 @@ test.describe('meepleton controls', () => {
     await expect(map).toBeHidden();
   });
 
+  test('street names in the chronicle fly the camera there', async ({ page }) => {
+    const street = page.locator('#logList .st').first();
+    await page.evaluate(() => window.__mt.step(20));
+    await expect(street).toBeVisible();
+    await street.click();
+    await expect(page.locator('#card')).toBeHidden();
+  });
+
+  test('the chosen speed and map survive a reload', async ({ page }) => {
+    await page.keyboard.press('2');
+    await page.keyboard.press('m');
+    await page.reload();
+    await page.waitForFunction(() => !!window.__mt);
+    await expect(page.getByRole('button', { name: '2x' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#minimap')).toBeVisible();
+  });
+
   test('4 runs the island at eight times speed', async ({ page }) => {
     await page.keyboard.press('4');
     await expect(page.getByRole('button', { name: '8x' })).toHaveAttribute('aria-pressed', 'true');

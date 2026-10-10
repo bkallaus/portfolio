@@ -253,6 +253,17 @@ test.describe('meepleton controls', () => {
     await expect(sign(page)).toBeVisible();
   });
 
+  test('M shows a minimap that pans the camera when clicked', async ({ page }) => {
+    const map = page.locator('#minimap');
+    await expect(map).toBeHidden();
+    await page.keyboard.press('m');
+    await expect(map).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Map' })).toHaveAttribute('aria-pressed', 'true');
+    await map.click({ position: { x: 10, y: 10 } });
+    await page.getByRole('button', { name: 'Map' }).click();
+    await expect(map).toBeHidden();
+  });
+
   test('4 runs the island at eight times speed', async ({ page }) => {
     await page.keyboard.press('4');
     await expect(page.getByRole('button', { name: '8x' })).toHaveAttribute('aria-pressed', 'true');

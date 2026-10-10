@@ -87,6 +87,10 @@ body.bare .board:not(#fallback):not(#help),body.bare #toast{visibility:hidden}
 #card .who{font:inherit;background:none;border:0;padding:0;color:var(--accent);cursor:pointer;text-decoration:underline}
 #cardClose{position:absolute;top:4px;right:4px;font-family:var(--f-ui);font-size:12px;width:22px;height:22px;padding:0;display:grid;place-items:center;color:var(--ink);background:#fff8e6;border:2px solid var(--ink);cursor:pointer;line-height:1}
 #cardClose:hover{background:#ffe9b8}
+#minimap{right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));width:160px;height:160px;padding:0;image-rendering:pixelated;pointer-events:auto;cursor:crosshair}
+#minimap[hidden]{display:none}
+body.map #caption{right:192px}
+@media (max-width:700px){#mapBtn{display:none}#minimap{display:none}}
 #caption{right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));pointer-events:auto;cursor:pointer;font:inherit;font-size:10px;color:var(--ink);text-align:left;max-width:min(300px,calc(100vw - 48px));opacity:0;transform:translateY(6px);transition:opacity .4s,transform .4s}
 #caption.on{opacity:1;transform:none}
 #caption[hidden]{display:none}
@@ -104,13 +108,14 @@ body.bare .board:not(#fallback):not(#help),body.bare #toast{visibility:hidden}
 <canvas id="moon" width="16" height="16"></canvas>
 <canvas id="view" role="img" aria-label="Meepleton, a pixel-art Korean village building itself"></canvas>
 <div class="board" id="fallback" hidden><h1>Meepleton</h1><p id="fallbackWhy"></p><p>The meeples will wait for you.</p></div>
-<div class="board" id="sign"><h1>Meepleton <span id="rank">Camp</span></h1><div id="clock">Day 1 · 06:00</div><div id="seedRow"><a id="seedLink" title="Permalink to this island">Island #</a><button type="button" id="newTown" title="Found a new island">New island</button></div><div id="stats"></div><div id="ctl" role="group" aria-label="Simulation speed"><button type="button" data-speed="0" aria-label="Pause" title="Pause (Space)">II</button><button type="button" data-speed="1" title="Normal speed (1)">1x</button><button type="button" data-speed="2" title="Double speed (2)">2x</button><button type="button" data-speed="4" title="Fast (3)">4x</button><button type="button" data-speed="8" title="Fastest (4)">8x</button><button type="button" id="helpBtn" title="Controls (?)" aria-label="Show controls" aria-expanded="false" aria-controls="help">?</button><button type="button" id="postcard" title="Save a postcard (P)" aria-label="Save a postcard">Postcard</button></div></div>
+<div class="board" id="sign"><h1>Meepleton <span id="rank">Camp</span></h1><div id="clock">Day 1 · 06:00</div><div id="seedRow"><a id="seedLink" title="Permalink to this island">Island #</a><button type="button" id="newTown" title="Found a new island">New island</button></div><div id="stats"></div><div id="ctl" role="group" aria-label="Simulation speed"><button type="button" data-speed="0" aria-label="Pause" title="Pause (Space)">II</button><button type="button" data-speed="1" title="Normal speed (1)">1x</button><button type="button" data-speed="2" title="Double speed (2)">2x</button><button type="button" data-speed="4" title="Fast (3)">4x</button><button type="button" data-speed="8" title="Fastest (4)">8x</button><button type="button" id="helpBtn" title="Controls (?)" aria-label="Show controls" aria-expanded="false" aria-controls="help">?</button><button type="button" id="mapBtn" title="Map (M)" aria-pressed="false" aria-controls="minimap">Map</button><button type="button" id="postcard" title="Save a postcard (P)" aria-label="Save a postcard">Postcard</button></div></div>
+<canvas class="board" id="minimap" width="160" height="160" hidden role="img" aria-label="Map of the island. Click to look there."></canvas>
 <div class="board" id="card" hidden aria-live="polite"><button type="button" id="cardClose" aria-label="Close" title="Close (Esc)">X</button><div id="cardBody"></div></div>
 <button type="button" class="board" id="caption" hidden></button>
 <div id="toast" role="status" aria-live="polite"></div>
 <div class="board" id="help" hidden role="dialog" aria-modal="true" aria-labelledby="helpTitle"><button type="button" id="helpClose" aria-label="Close">X</button><h3 id="helpTitle">Getting around</h3><dl>
 <dt>Drag</dt><dd>Pan the island</dd><dt>Right-drag, Q / E</dt><dd>Rotate</dd><dt>Wheel, pinch, + / -</dt><dd>Zoom</dd><dt>Arrows, WASD</dt><dd>Pan</dd>
-<dt>Click</dt><dd>Inspect a meeple or building</dd><dt>Esc</dt><dd>Let go and resume the tour</dd><dt>N / Shift+N</dt><dd>Visit the next or previous meeple</dd><dt>Space</dt><dd>Pause</dd><dt>1 - 4</dt><dd>Speed</dd><dt>P</dt><dd>Save a postcard</dd><dt>C</dt><dd>Fold the chronicle</dd><dt>H</dt><dd>Hide the signs</dd><dt>F</dt><dd>Full screen</dd></dl>
+<dt>Click</dt><dd>Inspect a meeple or building</dd><dt>Esc</dt><dd>Let go and resume the tour</dd><dt>N / Shift+N</dt><dd>Visit the next or previous meeple</dd><dt>Space</dt><dd>Pause</dd><dt>1 - 4</dt><dd>Speed</dd><dt>P</dt><dd>Save a postcard</dd><dt>C</dt><dd>Fold the chronicle</dd><dt>M</dt><dd>Show the map</dd><dt>H</dt><dd>Hide the signs</dd><dt>F</dt><dd>Full screen</dd></dl>
 <p>Leave it alone and the camera tours the town on its own.</p></div>
 <div class="board" id="log"><h2><button type="button" id="logToggle" aria-expanded="true" aria-controls="logList">Town chronicle</button><button type="button" id="logMore" aria-pressed="false" aria-controls="logList">Earlier</button></h2><div id="logList" role="log" aria-live="polite" aria-relevant="additions"></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" integrity="sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -121,7 +126,7 @@ const webgl = (() => { try { const c = document.createElement('canvas'); return 
 function showFallback(why) {
   document.getElementById('fallback').hidden = false;
   document.getElementById('fallbackWhy').textContent = why;
-  for (const id of ['sign', 'log', 'view', 'card', 'caption', 'help']) document.getElementById(id).hidden = true;
+  for (const id of ['sign', 'log', 'view', 'card', 'caption', 'help', 'minimap']) document.getElementById(id).hidden = true;
 }
 if (typeof THREE === 'undefined') { showFallback('The 3D engine could not be downloaded. Check your connection and reload.'); return; }
 if (!webgl) { showFallback('This browser has WebGL switched off, so the island cannot be drawn.'); return; }
@@ -1452,6 +1457,7 @@ function animMeeple(m, dt) {
   if (m.hop > 0) { m.hop = Math.max(0, m.hop - dt); if (m.act !== 'chat') y += Math.sin(m.hop / 0.3 * Math.PI) * 0.12; }
   if (m.throwT > 0) { m.throwT = Math.max(0, m.throwT - dt); const f = 1 - m.throwT / 0.45; rx += f < 0.45 ? -0.35 * f / 0.45 : 0.45 * Math.sin((f - 0.45) / 0.55 * Math.PI); }
   if (m.sink > 0.01) { y -= 0.3 * m.sink + Math.sin(performance.now() / 500 + m.id) * 0.015 * m.sink; rz *= 1 - m.sink * 0.6; if (m.moving && chance(dt * 3)) emit(m.x, 0.02, m.z, { n: 2, color: ['#cfeaf8', '#ffffff'], v: 0.3, vy: [0.2, 0.5], size: 0.03, life: [0.3, 0.5] }); }
+  if (m.moving && !m.swim && !m.glide && groundSeason === 3 && !m.riding && chance(dt * 2.2)) emit(m.x, 0.012, m.z, { n: 1, color: '#c4d0da', v: 0, vy: [0, 0], size: 0.045, life: [4, 6], grav: 0, spread: 0.03, keep: true });
   if (m.moving && !m.swim && groundSeason === 3 && chance(dt * 0.7)) emit(m.x + Math.sin(m.face) * 0.14, 0.5 * grown, m.z + Math.cos(m.face) * 0.14, { n: 1, color: '#f4f7fa', v: 0.02, vx: Math.sin(m.face) * 0.25, vz: Math.cos(m.face) * 0.25, vy: [0.04, 0.1], size: 0.045, life: [0.5, 0.8], grav: 0, grow: 1.6, spread: 0.01 });
   if (m.glide && m.moving && chance(dt * 4)) emit(m.x, 0.02, m.z, { n: 1, color: '#ffffff', v: 0.2, vy: [0.1, 0.3], size: 0.03, life: [0.3, 0.5] });
   b.position.y = y; b.rotation.set(rx, 0, rz); b.scale.set(grown * (2 - sy) ** 0.5, grown * sy, grown);
@@ -3668,7 +3674,7 @@ function updBuildings(dt, now) {
   fireLight.intensity = (nightF * 1.6 + (ph === 'evening' ? 0.5 : 0)) * fl;
   for (const l of lamps) {
     l.glowA += ((l.lit ? nightF * 0.75 + 0.15 : 0) - l.glowA) * Math.min(1, dt * 4);
-    l.glow.material.opacity = l.glowA;
+    l.glow.material.opacity = l.glowA * (REDUCED ? 1 : 0.92 + Math.sin(now / 130 + l.offT * 40) * 0.05 + Math.sin(now / 47 + l.offT * 9) * 0.03);
     if (l.bulb) l.bulb.material = l.lit ? lampOn : lampOff;
   }
   if (chance(dt * (2 + nightF * 4))) emit(FIRE.x, 0.3, FIRE.z, { n: 1, color: ['#ffb040', '#ffe066', '#ff7a2a'], v: 0.15, vy: [0.6, 1.2], size: 0.035, life: [0.6, 1.1], grav: -0.2, glow: true, spread: 0.08 });
@@ -3678,6 +3684,7 @@ function updBuildings(dt, now) {
 let W = Math.max(1, innerWidth), H = Math.max(1, innerHeight), az = Math.PI * 0.25, camHalf = 12, halfGoal = 12, camTimer = 20, camStep = 0, follow = null, extent = 8, extT = 0;
 const camFocus = new V3(0, 0, 0), focusGoal = new V3(0, 0, 0);
 const CYCLE = ['town', 'close', 'town', 'close', 'island'];
+const NOTABLE = new Set(['kite', 'kick', 'strum', 'tell', 'hug', 'jump', 'roll', 'lie', 'fish']);
 function updCamera(dt) {
   if (!REDUCED) az += dt * 0.03;
   extT -= dt; if (extT <= 0) { extT = 2; let e = 7; for (const b of buildings) e = Math.max(e, Math.hypot(b.cx, b.cz) + b.size); for (let k = 0; k < N * N; k++) if (road[k] >= 2) e = Math.max(e, Math.hypot(wx(k % N), wz(Math.floor(k / N))) + 1); extent = e; }
@@ -3690,7 +3697,9 @@ function updCamera(dt) {
     camStep = (camStep + 1) % CYCLE.length; const mode = CYCLE[camStep]; follow = null;
     if (mode === 'close') {
       const sites = buildings.filter(b => !b.done && b.prog > 0), outs = meeples.filter(m => !m.inside && m.g.visible && m.busy !== 'sleep');
-      if (sites.length && chance(0.4)) { const s = pick(sites); focusGoal.set(s.cx, 0.3, s.cz); }
+      const fun = outs.filter(m => NOTABLE.has(m.act) || m.busy === 'wed' || m.busy === 'perform' || m.riding || m.glide || m.swim || (m.dog && m.dog.fetch));
+      if (fun.length && chance(0.65)) follow = pick(fun);
+      else if (sites.length && chance(0.4)) { const s = pick(sites); focusGoal.set(s.cx, 0.3, s.cz); }
       else if (outs.length) follow = pick(outs); else focusGoal.set(0, 0, 0);
       camTimer = 14;
     } else { focusGoal.set(0, 0, 0); camTimer = mode === 'island' ? 12 : 22; }
@@ -3807,7 +3816,26 @@ function updCaption(dt) {
   captionEl.innerHTML = `<b><span class="sw" style="background:${who.color}"></span>${esc(who.name)} the ${role}</b>${esc(who.doing)}`;
   captionEl.setAttribute('aria-label', `${who.name} the ${role}: ${who.doing}. Open details.`);
 }
+const mapEl = document.getElementById('minimap'), mapBtn = document.getElementById('mapBtn'), mapX = mapEl.getContext('2d');
+let mapT = 0;
+function setMap(on) { mapEl.hidden = !on; document.body.classList.toggle('map', on); mapBtn.setAttribute('aria-pressed', String(on)); mapT = 0; }
+mapBtn.addEventListener('click', () => setMap(mapEl.hidden));
+mapEl.addEventListener('click', e => {
+  const r = mapEl.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * N - HALF, z = (e.clientY - r.top) / r.height * N - HALF;
+  takeControl(false); focusGoal.set(clamp(x, -HALF, HALF), 0.3, clamp(z, -HALF, HALF));
+});
+const toMap = v => (v + HALF) / N * 160;
+function updMinimap(dt) {
+  if (mapEl.hidden || (mapT -= dt) > 0) return; mapT = 0.4;
+  const x = mapX; x.imageSmoothingEnabled = false; x.drawImage(gcv, 0, 0, 160, 160);
+  for (const b of buildings) { x.fillStyle = b.done ? (b.T.cap ? '#3f4756' : '#8a5a2e') : '#c9a26a'; x.fillRect(toMap(b.cx - b.size / 2), toMap(b.cz - b.size / 2), b.size * 4, b.size * 4); }
+  for (const m of meeples) if (!m.inside) { x.fillStyle = '#1b1426'; x.fillRect(toMap(m.x) - 1.5, toMap(m.z) - 1.5, 3, 3); x.fillStyle = m.color; x.fillRect(toMap(m.x) - 0.5, toMap(m.z) - 0.5, 1, 1); }
+  x.fillStyle = '#ff9a40'; x.fillRect(toMap(FIRE.x) - 1, toMap(FIRE.z) - 1, 2, 2);
+  const r = canvasEl.getBoundingClientRect(), corners = [[r.left, r.top], [r.right, r.top], [r.right, r.bottom], [r.left, r.bottom]].map(([cx, cy]) => { const p = groundAt(cx, cy); return p ? [toMap(p.x), toMap(p.z)] : null; });
+  if (corners.every(Boolean)) { x.strokeStyle = '#c8443f'; x.lineWidth = 2; x.beginPath(); corners.forEach(([a, b], k) => k ? x.lineTo(a, b) : x.moveTo(a, b)); x.closePath(); x.stroke(); }
+}
 function updSelection(dt) {
+  updMinimap(dt);
   updCaption(dt);
   if (!selected) return;
   cardT -= dt; if (cardT <= 0) { cardT = 0.3; renderCard(); }
@@ -3852,7 +3880,34 @@ function endPtr(e) {
   if (!ptrs.has(e.pointerId)) return;
   if (ptrs.size === 1 && dragMoved < 6 && !rotateDrag) pickAt(e.clientX, e.clientY); ptrs.delete(e.pointerId); pinch0 = 0; if (!ptrs.size) canvasEl.classList.remove('dragging'); }
 canvasEl.addEventListener('pointerup', endPtr); canvasEl.addEventListener('pointercancel', endPtr);
-canvasEl.addEventListener('wheel', e => { e.preventDefault(); zoomBy(Math.exp(clamp(e.deltaY, -120, 120) * 0.0015)); }, { passive: false });
+const groundPlane = new THREE.Plane(new V3(0, 1, 0), 0), _hit = new V3();
+function groundAt(cx, cy) {
+  const r = canvasEl.getBoundingClientRect();
+  _ndc.set((cx - r.left) / r.width * 2 - 1, -((cy - r.top) / r.height) * 2 + 1);
+  raycaster.setFromCamera(_ndc, camera);
+  return raycaster.ray.intersectPlane(groundPlane, _hit) ? _hit : null;
+}
+function zoomAt(cx, cy, f) {
+  const before = halfGoal; zoomBy(f);
+  const p = groundAt(cx, cy); if (!p || selFollow) return;
+  const k = halfGoal / before;
+  focusGoal.x = clamp(p.x + (focusGoal.x - p.x) * k, -HALF, HALF); focusGoal.z = clamp(p.z + (focusGoal.z - p.z) * k, -HALF, HALF);
+}
+canvasEl.addEventListener('wheel', e => { e.preventDefault(); zoomAt(e.clientX, e.clientY, Math.exp(clamp(e.deltaY, -120, 120) * 0.0015)); }, { passive: false });
+canvasEl.addEventListener('dblclick', e => { e.preventDefault(); zoomAt(e.clientX, e.clientY, 0.5); });
+let hoverT = 0;
+canvasEl.addEventListener('pointermove', e => {
+  if (ptrs.size || e.pointerType !== 'mouse' || performance.now() < hoverT) return;
+  hoverT = performance.now() + 120;
+  canvasEl.style.cursor = hoverTarget(e.clientX, e.clientY) ? 'pointer' : '';
+});
+function hoverTarget(cx, cy) {
+  const r = canvasEl.getBoundingClientRect();
+  _ndc.set((cx - r.left) / r.width * 2 - 1, -((cy - r.top) / r.height) * 2 + 1);
+  raycaster.setFromCamera(_ndc, camera);
+  const targets = []; for (const m of meeples) if (m.g.visible) targets.push(m.g); for (const b of buildings) targets.push(b.g);
+  return raycaster.intersectObjects(targets, true).some(h => ownerOf(h.object));
+}
 addEventListener('keydown', e => {
   if (!plainKey(e) || (e.target.closest && e.target.closest('input,textarea'))) return;
   const k = e.key.toLowerCase(), step = 40;
@@ -3925,9 +3980,21 @@ function savePostcard() {
   postcardBusy = true;
   try { drawPostcard(); } catch (e) { postcardBusy = false; report('postcard', e); }
 }
+const FILLER = /rooster|mist rolls|Smoke curls|Sunrise|Surveyors|Plans drawn|patters|shower|clouds|clears|snowfall|Snow begins|snowflakes|lamplighter/;
+function postcardNews() {
+  const tmp = document.createElement('div');
+  for (const l of logLines) { tmp.innerHTML = l; const t = tmp.textContent.replace(/^D\d+\s*/, ''); if (!FILLER.test(t)) return t; }
+  return '';
+}
+function drawStamp(x, cx, cy, u) {
+  const ic = ['leaf', 'sun', 'wheat', 'snow'][seasonNow()], s = u * 10;
+  x.fillStyle = '#fff8e6'; x.fillRect(cx - s / 2, cy - s / 2, s, s);
+  x.fillStyle = '#c8443f'; for (let k = 0; k < 10; k += 2) { x.fillRect(cx - s / 2 + k * u, cy - s / 2 - u, u, u); x.fillRect(cx - s / 2 + k * u, cy + s / 2, u, u); x.fillRect(cx - s / 2 - u, cy - s / 2 + k * u, u, u); x.fillRect(cx + s / 2, cy - s / 2 + k * u, u, u); }
+  x.imageSmoothingEnabled = false; x.drawImage(iconCanvas(ic), cx - u * 4, cy - u * 4, u * 8, u * 8);
+}
 function drawPostcard() {
   renderer.render(scene, camera);
-  const src = renderer.domElement, scale = Math.max(1, Math.round(1600 / src.width)), w = src.width * scale, h = src.height * scale, pad = Math.round(w * 0.025), foot = Math.round(w * 0.06);
+  const src = renderer.domElement, scale = Math.max(1, Math.round(1600 / src.width)), w = src.width * scale, h = src.height * scale, pad = Math.round(w * 0.025), foot = Math.round(w * 0.08);
   const c = document.createElement('canvas'); c.width = w + pad * 2; c.height = h + pad * 2 + foot; const x = c.getContext('2d');
   x.fillStyle = '#f4e6c4'; x.fillRect(0, 0, c.width, c.height);
   const grad = x.createLinearGradient(0, pad, 0, pad + h), stops = (skyEl.style.background.match(/rgb\([^)]+\)|#[0-9a-f]{6}/gi) || ['#5aa0e0', '#cfe9f7']);
@@ -3935,11 +4002,14 @@ function drawPostcard() {
   if (nightF > 0.05) { x.globalAlpha = nightF * 0.9; x.imageSmoothingEnabled = false; x.drawImage(starsEl, pad, pad, w, h); x.globalAlpha = Number(moonEl.style.opacity) || 0; const ms = 48 * (moonPos.s || 1) * w / innerWidth; x.drawImage(moonEl, pad + moonPos.x * w / innerWidth - ms / 2, pad + moonPos.y * h / innerHeight - ms / 2, ms, ms); x.globalAlpha = 1; }
   x.imageSmoothingEnabled = false; x.drawImage(src, pad, pad, w, h);
   x.strokeStyle = '#1b1426'; x.lineWidth = Math.max(3, scale * 2); x.strokeRect(pad, pad, w, h);
-  const fs = Math.round(foot * 0.42);
+  const fs = Math.round(foot * 0.32), top = pad * 1.5 + h, news = postcardNews();
   x.fillStyle = '#1b1426'; x.font = `700 ${fs}px "Pixelify Sans", monospace`; x.textBaseline = 'middle';
-  x.fillText('Greetings from Meepleton', pad, pad * 1.5 + h + foot / 2);
-  x.font = `${Math.round(fs * 0.55)}px "Silkscreen", monospace`; x.fillStyle = '#6d5a48'; x.textAlign = 'right';
-  x.fillText(`Day ${dayN} · ${SEASON_NAMES[seasonNow()]} · ${RANKS[rankIdx][1]} of ${meeples.length} · Island #${SEED}`, pad + w, pad * 1.5 + h + foot / 2);
+  x.fillText('Greetings from Meepleton', pad, top + foot * 0.32);
+  x.font = `${Math.round(fs * 0.55)}px "Silkscreen", monospace`; x.fillStyle = '#6d5a48';
+  if (news) x.fillText(news.length > 90 ? news.slice(0, 89) + '…' : news, pad, top + foot * 0.74);
+  x.textAlign = 'right';
+  x.fillText(`Day ${dayN} · ${SEASON_NAMES[seasonNow()]} · ${RANKS[rankIdx][1]} of ${meeples.length} · Island #${SEED}`, pad + w - foot * 1.25, top + foot * 0.32);
+  drawStamp(x, pad + w - foot * 0.62, top + foot * 0.48, Math.round(foot * 0.07));
   c.toBlob(b => { postcardBusy = false; if (!b) return; const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `meepleton-${SEED}-day-${dayN}.png`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }, 'image/png');
   toast('Postcard saved', `Greetings from day ${dayN}!`, true);
 }
@@ -3970,6 +4040,7 @@ addEventListener('keydown', e => {
   else if (e.key.toLowerCase() === 'n') cycleMeeple(e.shiftKey ? -1 : 1);
   else if (e.key.toLowerCase() === 'h') document.body.classList.toggle('bare');
   else if (e.key.toLowerCase() === 'f') toggleFullscreen();
+  else if (e.key.toLowerCase() === 'm') setMap(mapEl.hidden);
 });
 addEventListener('keydown', e => { if (e.key.toLowerCase() === 'p' && plainKey(e) && !e.repeat && !(e.target.closest && e.target.closest('input,textarea'))) savePostcard(); });
 let describeT = 0;

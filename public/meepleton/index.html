@@ -50,11 +50,20 @@ body{margin:0;overflow:hidden;background:var(--night);color:var(--ink);font-fami
 #help p{margin:8px 0 0;color:var(--muted)}
 #helpClose{position:absolute;top:4px;right:4px;font-family:var(--f-ui);font-size:12px;width:22px;height:22px;padding:0;display:grid;place-items:center;color:var(--ink);background:#fff8e6;border:2px solid var(--ink);cursor:pointer}
 #log p .d{color:var(--accent)}
+#log h2{display:flex;justify-content:space-between;align-items:center;gap:12px}
+#logMore{font:inherit;font-size:9px;letter-spacing:.06em;text-transform:none;color:var(--accent);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline}
+#logMore[aria-pressed="true"]{color:var(--muted)}
+#log.folded #logMore{display:none}
+#log:not(.more) #logList p:nth-child(n+6){display:none}
+#log:not(.more) #logList p:nth-child(2){opacity:.83}#log:not(.more) #logList p:nth-child(3){opacity:.66}#log:not(.more) #logList p:nth-child(4){opacity:.49}#log:not(.more) #logList p:nth-child(5){opacity:.32}
+#log.more #logList{max-height:min(46vh,340px);overflow-y:auto;padding-right:4px;overscroll-behavior:contain}
+#log.more #logList p+p{border-top:1px dotted var(--board-edge);padding-top:2px;margin-top:2px}
+body.bare .board:not(#fallback):not(#help),body.bare #toast{visibility:hidden}
 #rank{display:inline-block;vertical-align:4px;margin-left:6px;font-family:var(--f-ui);font-size:9px;font-weight:400;letter-spacing:.08em;text-transform:uppercase;background:var(--accent);color:#fff8e6;padding:3px 5px 2px;border:2px solid var(--ink)}
 #toast{position:fixed;left:50%;top:calc(18px + env(safe-area-inset-top,0px));transform:translate(-50%,-140%);background:var(--board);border:3px solid var(--ink);box-shadow:inset 0 0 0 2px var(--board-edge),4px 4px 0 rgba(20,14,30,.55);padding:10px 16px;font-family:var(--f-display);font-size:18px;font-weight:700;text-align:center;pointer-events:none;transition:transform .5s cubic-bezier(.2,1.4,.4,1),visibility 0s .5s;visibility:hidden;white-space:nowrap;max-width:calc(100vw - 32px)}
 #toast small{display:block;font-family:var(--f-ui);font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px}
 #toast.on{transform:translate(-50%,0);visibility:visible;transition:transform .5s cubic-bezier(.2,1.4,.4,1)}
-@media (max-width:700px){#toast{top:auto;bottom:calc(120px + env(safe-area-inset-bottom,0px));transform:translate(-50%,200%);font-size:15px}#toast.on{transform:translate(-50%,0);visibility:visible;transition:transform .5s cubic-bezier(.2,1.4,.4,1)}}
+@media (max-width:700px){#toast{font-size:15px;z-index:6}}
 #seedRow{display:flex;align-items:center;gap:8px;margin-top:3px;font-size:9px;letter-spacing:.06em;pointer-events:auto}
 #seedLink{color:var(--muted);text-decoration:none;border-bottom:1px dotted var(--muted);font-variant-numeric:tabular-nums}
 #seedLink:hover{color:var(--accent);border-color:var(--accent)}
@@ -83,7 +92,7 @@ body{margin:0;overflow:hidden;background:var(--night);color:var(--ink);font-fami
 #caption[hidden]{display:none}
 #caption b{font-family:var(--f-display);font-size:14px;display:block}
 #caption .sw{display:inline-block;width:9px;height:9px;border:2px solid var(--ink);margin-right:5px;vertical-align:-1px}
-@media (max-width:700px){#caption{bottom:auto;top:calc(12px + env(safe-area-inset-top,0px))}}
+@media (max-width:700px){#caption{bottom:calc(60px + env(safe-area-inset-bottom,0px));max-width:calc(100vw - 24px)}#card{top:auto;bottom:calc(60px + env(safe-area-inset-bottom,0px));left:12px;right:12px;width:auto;max-height:46vh;overflow-y:auto}}
 @media (max-width:520px){#sign h1{font-size:18px}#stats{font-size:10px;gap:3px 8px}#log{font-size:9px}}
 </style>
 </head>
@@ -95,15 +104,15 @@ body{margin:0;overflow:hidden;background:var(--night);color:var(--ink);font-fami
 <canvas id="moon" width="16" height="16"></canvas>
 <canvas id="view" role="img" aria-label="Meepleton, a pixel-art Korean village building itself"></canvas>
 <div class="board" id="fallback" hidden><h1>Meepleton</h1><p id="fallbackWhy"></p><p>The meeples will wait for you.</p></div>
-<div class="board" id="sign"><h1>Meepleton <span id="rank">Camp</span></h1><div id="clock">Day 1 · 06:00</div><div id="seedRow"><a id="seedLink" title="Permalink to this island">Island #</a><button type="button" id="newTown" title="Found a new island">New island</button></div><div id="stats"></div><div id="ctl" role="group" aria-label="Simulation speed"><button type="button" data-speed="0" aria-label="Pause" title="Pause (Space)">II</button><button type="button" data-speed="1" title="Normal speed (1)">1x</button><button type="button" data-speed="2" title="Double speed (2)">2x</button><button type="button" data-speed="4" title="Fast (3)">4x</button><button type="button" id="helpBtn" title="Controls (?)" aria-label="Show controls" aria-expanded="false" aria-controls="help">?</button><button type="button" id="postcard" title="Save a postcard (P)" aria-label="Save a postcard">Postcard</button></div></div>
+<div class="board" id="sign"><h1>Meepleton <span id="rank">Camp</span></h1><div id="clock">Day 1 · 06:00</div><div id="seedRow"><a id="seedLink" title="Permalink to this island">Island #</a><button type="button" id="newTown" title="Found a new island">New island</button></div><div id="stats"></div><div id="ctl" role="group" aria-label="Simulation speed"><button type="button" data-speed="0" aria-label="Pause" title="Pause (Space)">II</button><button type="button" data-speed="1" title="Normal speed (1)">1x</button><button type="button" data-speed="2" title="Double speed (2)">2x</button><button type="button" data-speed="4" title="Fast (3)">4x</button><button type="button" data-speed="8" title="Fastest (4)">8x</button><button type="button" id="helpBtn" title="Controls (?)" aria-label="Show controls" aria-expanded="false" aria-controls="help">?</button><button type="button" id="postcard" title="Save a postcard (P)" aria-label="Save a postcard">Postcard</button></div></div>
 <div class="board" id="card" hidden aria-live="polite"><button type="button" id="cardClose" aria-label="Close" title="Close (Esc)">X</button><div id="cardBody"></div></div>
 <button type="button" class="board" id="caption" hidden></button>
 <div id="toast" role="status" aria-live="polite"></div>
-<div class="board" id="help" hidden><button type="button" id="helpClose" aria-label="Close">X</button><h3>Getting around</h3><dl>
+<div class="board" id="help" hidden role="dialog" aria-modal="true" aria-labelledby="helpTitle"><button type="button" id="helpClose" aria-label="Close">X</button><h3 id="helpTitle">Getting around</h3><dl>
 <dt>Drag</dt><dd>Pan the island</dd><dt>Right-drag, Q / E</dt><dd>Rotate</dd><dt>Wheel, pinch, + / -</dt><dd>Zoom</dd><dt>Arrows, WASD</dt><dd>Pan</dd>
-<dt>Click</dt><dd>Inspect a meeple or building</dd><dt>Esc</dt><dd>Let go and resume the tour</dd><dt>Space</dt><dd>Pause</dd><dt>1 / 2 / 3</dt><dd>Speed</dd><dt>P</dt><dd>Save a postcard</dd><dt>C</dt><dd>Fold the chronicle</dd></dl>
+<dt>Click</dt><dd>Inspect a meeple or building</dd><dt>Esc</dt><dd>Let go and resume the tour</dd><dt>N / Shift+N</dt><dd>Visit the next or previous meeple</dd><dt>Space</dt><dd>Pause</dd><dt>1 - 4</dt><dd>Speed</dd><dt>P</dt><dd>Save a postcard</dd><dt>C</dt><dd>Fold the chronicle</dd><dt>H</dt><dd>Hide the signs</dd><dt>F</dt><dd>Full screen</dd></dl>
 <p>Leave it alone and the camera tours the town on its own.</p></div>
-<div class="board" id="log"><h2><button type="button" id="logToggle" aria-expanded="true" aria-controls="logList">Town chronicle</button></h2><div id="logList" role="log" aria-live="polite" aria-relevant="additions"></div></div>
+<div class="board" id="log"><h2><button type="button" id="logToggle" aria-expanded="true" aria-controls="logList">Town chronicle</button><button type="button" id="logMore" aria-pressed="false" aria-controls="logList">Earlier</button></h2><div id="logList" role="log" aria-live="polite" aria-relevant="additions"></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" integrity="sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script>
 (function(){
@@ -1158,7 +1167,7 @@ function setStage(b) {
   b.icon.material.map = emoteTexture(siteReady(b) || p > 0 ? 'hammer' : footprintHasTree(b) ? 'axe' : b.delivered.wood < b.T.cost.wood ? 'wood' : 'stone');
 }
 function finishBuilding(b) {
-  b.done = true; b.prog = 1;
+  b.done = true; b.prog = 1; b.builtDay = dayN;
   for (const o of [b.site, b.scaf]) if (o) b.g.remove(o);
   for (const o of [b.icon, b.barBg, b.barFg]) if (o) { scene.remove(o); o.material.dispose(); }
   for (let a = 0; a < b.size; a++) for (let c = 0; c < b.size; c++) occ[id(b.i0 + a, b.j0 + c)] = O_BLD;
@@ -3407,6 +3416,13 @@ function select(o) {
 }
 const ROLE_LABEL = { builder: 'Builder', woodcutter: 'Woodcutter', miner: 'Miner', farmer: 'Farmer' };
 const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+function moodOf(m) {
+  if (hungryLogged && stock.food < Math.ceil(meeples.length / 3)) return 'Hungry';
+  if (!m.home) return 'Looking for a home';
+  let friends = 0; for (const v of m.bonds.values()) if (v >= 2) friends++;
+  const score = 1 + (m.partner ? 1 : 0) + Math.min(2, friends) * 0.5 + (isFestival() ? 1 : 0) + (m.dog ? 0.4 : 0) - (isRaining() && !m.inside && !m.umb ? 0.6 : 0);
+  return score >= 2.8 ? 'Overjoyed' : score >= 2 ? 'Cheerful' : score >= 1.4 ? 'Content' : 'A little lonely';
+}
 function tallyLine(m) {
   const t = m.tally, parts = [];
   if (t.build) parts.push(`${t.build} built`); if (t.trees) parts.push(`${t.trees} trees felled`); if (t.stone) parts.push(`${t.stone} stone cut`);
@@ -3428,12 +3444,12 @@ function renderCard() {
     const res = o.residents.map(m => `<button type="button" class="who" data-id="${m.id}">${esc(m.name)}</button>`).join(', ');
     cardBody.innerHTML = `<h3>${esc(o.T.label[0].toUpperCase() + o.T.label.slice(1))}</h3><div class="sub">${esc(o.street)}</div>` +
       (o.done ? '' : `<div class="bar"><i style="width:${Math.round(o.prog * 100)}%"></i></div>`) +
-      `<div class="doing">${esc(buildingStatus(o))}</div><dl>` + (o.T.cap ? `<dt>Home to</dt><dd>${res || 'nobody yet'}</dd>` : '') + `</dl>`;
+      `<div class="doing">${esc(buildingStatus(o))}</div><dl>` + (o.T.cap ? `<dt>Home to</dt><dd>${res || 'nobody yet'}</dd>` : '') + (o.done ? `<dt>Built</dt><dd>${o.builtDay ? 'day ' + o.builtDay : 'by the founders'}</dd>` : '') + `</dl>`;
   } else {
     const home = o.home ? esc(o.home.street) : 'Nowhere yet', who = p => `<button type="button" class="who" data-id="${p.id}">${esc(p.name)}</button>`, bf = bestFriend(o);
     const rel = (o.partner ? `<dt>Married to</dt><dd>${who(o.partner)}</dd>` : '') + (bf ? `<dt>${!o.partner && bondOf(o, bf) >= 7 ? 'Sweetheart' : 'Best friend'}</dt><dd>${who(bf)}</dd>` : '') + (o.dog ? `<dt>Dog</dt><dd>${esc(o.dog.name)}</dd>` : '');
     cardBody.innerHTML = `<h3><span class="sw" style="background:${o.color}"></span>${esc(o.name)}</h3><div class="sub">${o.age < 1 ? 'Youngster' : ROLE_LABEL[o.role]} · since day ${o.since}</div>` +
-      `<div class="doing">${esc(o.doing)}</div><dl><dt>Home</dt><dd>${home}</dd><dt>Record</dt><dd>${esc(tallyLine(o))}</dd>${rel}</dl>`;
+      `<div class="doing">${esc(o.doing)}</div><dl><dt>Home</dt><dd>${home}</dd><dt>Mood</dt><dd>${moodOf(o)}</dd><dt>Record</dt><dd>${esc(tallyLine(o))}</dd>${rel}</dl>`;
   }
 }
 cardBody.addEventListener('click', e => { const b = e.target.closest('.who'); if (b) select(meeples.find(m => m.id === Number(b.dataset.id)) || null); });
@@ -3529,9 +3545,11 @@ const statEls = {};
 }
 const clockEl = document.getElementById('clock'), logEl = document.getElementById('logList');
 const logLines = [];
+const LOG_KEEP = 60;
 function logEvent(html) {
-  logLines.unshift(`<span class="d">D${dayN}</span> ${html}`); if (logLines.length > 5) logLines.pop();
-  logEl.innerHTML = logLines.map((l, k) => `<p style="opacity:${(1 - k * 0.17).toFixed(2)}">${l}</p>`).join('');
+  logLines.unshift(`<span class="d">D${dayN}</span> ${html}`); if (logLines.length > LOG_KEEP) logLines.pop();
+  const p = document.createElement('p'); p.innerHTML = logLines[0]; logEl.prepend(p);
+  while (logEl.children.length > LOG_KEEP) logEl.lastElementChild.remove();
 }
 const RANKS = [[0, 'Camp'], [6, 'Hamlet'], [14, 'Village'], [30, 'Town'], [50, 'Market Town']];
 let rankIdx = 0, toastTimer = 0, fullLogged = false;
@@ -3539,7 +3557,7 @@ const rankEl = document.getElementById('rank'), toastEl = document.getElementByI
 const toastQ = [];
 function toast(kicker, text, urgent) {
   if (urgent || (!toastEl.classList.contains('on') && !toastQ.length)) showToast(kicker, text);
-  else if (toastQ.length < 4 && !toastQ.some(q => q[1] === text)) toastQ.push([kicker, text]);
+  else if (toastQ.length < 4 && !toastQ.some(q => q[1] === text)) toastQ.push([kicker, text, clock]);
 }
 function showToast(kicker, text) {
   toastEl.innerHTML = `<small>${esc(kicker)}</small>${esc(text)}`; toastEl.classList.add('on');
@@ -3547,7 +3565,8 @@ function showToast(kicker, text) {
 }
 function hideToast() {
   toastEl.classList.remove('on');
-  if (toastQ.length) toastTimer = setTimeout(() => showToast(...toastQ.shift()), 700);
+  while (toastQ.length && clock - toastQ[0][2] > 40) toastQ.shift();
+  if (toastQ.length) toastTimer = setTimeout(() => { const q = toastQ.shift(); if (q) showToast(q[0], q[1]); }, 700);
 }
 function celebrate() {
   for (let k = 0; k < 4; k++) emit(FIRE.x + rr(-1.5, 1.5), 2 + k * 0.4, FIRE.z + rr(-1.5, 1.5), { n: 35, color: ['#e34b4b', '#f2c230', '#3f7fd9', '#49a84f', '#ffffff', '#ef7fb0'], v: 2, vy: [1.5, 3.5], size: 0.07, life: [1.2, 2], grav: 3, glow: true, drag: 1.2 });
@@ -3590,8 +3609,19 @@ function drawPostcard() {
 }
 document.getElementById('postcard').addEventListener('click', savePostcard);
 const helpEl = document.getElementById('help'), helpBtn = document.getElementById('helpBtn'), logBox = document.getElementById('log'), logToggle = document.getElementById('logToggle');
-function setHelp(on) { helpEl.hidden = !on; helpBtn.setAttribute('aria-expanded', String(on)); if (on) document.getElementById('helpClose').focus(); }
+function setHelp(on) { const was = !helpEl.hidden; helpEl.hidden = !on; helpBtn.setAttribute('aria-expanded', String(on)); if (on) document.getElementById('helpClose').focus(); else if (was && helpEl.contains(document.activeElement)) helpBtn.focus(); }
+helpEl.addEventListener('keydown', e => { if (e.key === 'Tab') { e.preventDefault(); document.getElementById('helpClose').focus(); } });
 function foldLog(on) { logBox.classList.toggle('folded', on); logToggle.setAttribute('aria-expanded', String(!on)); }
+const logMore = document.getElementById('logMore');
+logMore.addEventListener('click', () => { const on = !logBox.classList.contains('more'); logBox.classList.toggle('more', on); logMore.setAttribute('aria-pressed', String(on)); logMore.textContent = on ? 'Recent' : 'Earlier'; if (!on) logEl.scrollTop = 0; });
+function cycleMeeple(dir) {
+  const list = meeples.filter(m => m.g.visible || m.inside); if (!list.length) return;
+  const k = selected && !selected.T ? list.indexOf(selected) : -1;
+  select(list[k < 0 ? (dir > 0 ? 0 : list.length - 1) : (k + dir + list.length) % list.length]);
+}
+function toggleFullscreen() {
+  try { if (document.fullscreenElement) document.exitFullscreen(); else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {}); } catch (e) { report('full screen', e); }
+}
 helpBtn.addEventListener('click', () => setHelp(helpEl.hidden));
 document.getElementById('helpClose').addEventListener('click', () => { setHelp(false); helpBtn.focus(); });
 logToggle.addEventListener('click', () => foldLog(!logBox.classList.contains('folded')));
@@ -3601,6 +3631,9 @@ addEventListener('keydown', e => {
   if (e.key === '?') setHelp(helpEl.hidden);
   else if (e.key === 'Escape' && !helpEl.hidden) setHelp(false);
   else if (e.key.toLowerCase() === 'c') foldLog(!logBox.classList.contains('folded'));
+  else if (e.key.toLowerCase() === 'n') cycleMeeple(e.shiftKey ? -1 : 1);
+  else if (e.key.toLowerCase() === 'h') document.body.classList.toggle('bare');
+  else if (e.key.toLowerCase() === 'f') toggleFullscreen();
 });
 addEventListener('keydown', e => { if (e.key.toLowerCase() === 'p' && plainKey(e) && !e.repeat && !(e.target.closest && e.target.closest('input,textarea'))) savePostcard(); });
 let describeT = 0;
@@ -3613,7 +3646,12 @@ function updHUD() {
   }
   const t = dayT(), mins = Math.floor(t * 24 * 60), hh = String(Math.floor(mins / 60)).padStart(2, '0'), mm = String(Math.floor(mins % 60 / 10) * 10).padStart(2, '0');
   const ph = { night: 'Night', dawn: 'Dawn', work: 'Workday', evening: 'Evening' }[phase()];
-  clockEl.textContent = `Day ${dayN} · ${SEASON_NAMES[seasonNow()]} · ${hh}:${mm} · ${simSpeed === 0 ? 'Paused' : ph}`;
+  const sky = wx_.wet < 0.3 ? '' : wx_.kind === 'snow' ? ' · Snow' : wx_.storm ? ' · Storm' : wx_.kind === 'rain' ? ' · Rain' : '';
+  clockEl.textContent = `Day ${dayN} · ${SEASON_NAMES[seasonNow()]} · ${hh}:${mm} · ${simSpeed === 0 ? 'Paused' : ph}${sky}`;
+  const need = Math.ceil(meeples.length / 3), beds = homeCap() - meeples.length, kids = meeples.filter(m => m.age < 1).length;
+  statEls.wheat.parentNode.title = `Food: ${stock.food} in the pantry, the town eats ${need} a day`;
+  statEls.house.parentNode.title = `Homes: ${beds > 0 ? beds + ' beds free' : 'every bed taken'}`;
+  statEls.meeple.parentNode.title = `Meeples: ${meeples.length - kids} grown-ups, ${kids} youngsters`;
   statEls.meeple.textContent = meeples.length;
   statEls.house.textContent = buildings.filter(b => b.done && b.T.cap > 0).length;
   statEls.star.textContent = buildings.filter(b => b.done).length;
@@ -3673,7 +3711,7 @@ for (const b of speedBtns) b.addEventListener('click', () => setSpeed(Number(b.d
 addEventListener('keydown', e => {
   if (!plainKey(e) || e.repeat || (e.target.closest && e.target.closest('button,input,textarea'))) return;
   if (e.code === 'Space') { e.preventDefault(); setSpeed(simSpeed ? 0 : lastSpeed); }
-  else if (e.key === '1') setSpeed(1); else if (e.key === '2') setSpeed(2); else if (e.key === '3') setSpeed(4);
+  else if (e.key === '1') setSpeed(1); else if (e.key === '2') setSpeed(2); else if (e.key === '3') setSpeed(4); else if (e.key === '4') setSpeed(8);
 });
 function resetMeeple(m) {
   m.co = null; m.act = null; m.busy = '';

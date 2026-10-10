@@ -230,6 +230,34 @@ test.describe('meepleton controls', () => {
     await expect(page.locator('#toast')).toContainText('Postcard saved');
   });
 
+  test('the chronicle opens its earlier history and folds it back', async ({ page }) => {
+    const more = page.getByRole('button', { name: 'Earlier' });
+    await more.click();
+    await expect(page.locator('#log')).toHaveClass(/more/);
+    await expect(page.getByRole('button', { name: 'Recent' })).toHaveAttribute('aria-pressed', 'true');
+    await page.getByRole('button', { name: 'Recent' }).click();
+    await expect(page.locator('#log')).not.toHaveClass(/more/);
+  });
+
+  test('N visits each meeple in turn and H hides the signs', async ({ page }) => {
+    const names = await page.evaluate(() => window.__mt.meeples.map((m) => m.name));
+    await page.keyboard.press('n');
+    await expect(page.locator('#card')).toContainText(names[0]);
+    await page.keyboard.press('n');
+    await expect(page.locator('#card')).toContainText(names[1]);
+    await page.keyboard.press('Shift+N');
+    await expect(page.locator('#card')).toContainText(names[0]);
+    await page.keyboard.press('h');
+    await expect(sign(page)).toBeHidden();
+    await page.keyboard.press('h');
+    await expect(sign(page)).toBeVisible();
+  });
+
+  test('4 runs the island at eight times speed', async ({ page }) => {
+    await page.keyboard.press('4');
+    await expect(page.getByRole('button', { name: '8x' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
   test('inspecting a meeple opens a card that Escape closes', async ({ page }) => {
     const name = await page.evaluate(() => {
       const m = window.__mt.meeples[0];

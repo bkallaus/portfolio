@@ -7,8 +7,8 @@ const threeSource = readFileSync(createRequire(import.meta.url).resolve('three/b
 
 type Hooks = {
   step: (sec: number) => void;
-  meeples: { id: number; name: string; co: Generator | null; doing: string; x: number; z: number }[];
-  buildings: { done: boolean }[];
+  meeples: { id: number; name: string; co: Generator | null; doing: string; x: number; z: number; elder?: boolean }[];
+  buildings: { done: boolean; tileRoof?: boolean }[];
   ground: Uint8Array;
   renderer: { getContext: () => WebGLRenderingContext };
   select: (o: unknown) => void;
@@ -230,6 +230,62 @@ test.describe('meepleton controls', () => {
     await expect(page.locator('#toast')).toContainText('Postcard saved');
   });
 
+  test('the chronicle opens its earlier history and folds it back', async ({ page }) => {
+    const more = page.getByRole('button', { name: 'Earlier' });
+    await more.click();
+    await expect(page.locator('#log')).toHaveClass(/more/);
+    await expect(page.getByRole('button', { name: 'Recent' })).toHaveAttribute('aria-pressed', 'true');
+    await page.getByRole('button', { name: 'Recent' }).click();
+    await expect(page.locator('#log')).not.toHaveClass(/more/);
+  });
+
+  test('N visits each meeple in turn and H hides the signs', async ({ page }) => {
+    const names = await page.evaluate(() => window.__mt.meeples.map((m) => m.name));
+    await page.keyboard.press('n');
+    await expect(page.locator('#card')).toContainText(names[0]);
+    await page.keyboard.press('n');
+    await expect(page.locator('#card')).toContainText(names[1]);
+    await page.keyboard.press('Shift+N');
+    await expect(page.locator('#card')).toContainText(names[0]);
+    await page.keyboard.press('h');
+    await expect(sign(page)).toBeHidden();
+    await page.keyboard.press('h');
+    await expect(sign(page)).toBeVisible();
+  });
+
+  test('M shows a minimap that pans the camera when clicked', async ({ page }) => {
+    const map = page.locator('#minimap');
+    await expect(map).toBeHidden();
+    await page.keyboard.press('m');
+    await expect(map).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Map' })).toHaveAttribute('aria-pressed', 'true');
+    await map.click({ position: { x: 10, y: 10 } });
+    await page.getByRole('button', { name: 'Map' }).click();
+    await expect(map).toBeHidden();
+  });
+
+  test('street names in the chronicle fly the camera there', async ({ page }) => {
+    const street = page.locator('#logList .st').first();
+    await page.evaluate(() => window.__mt.step(20));
+    await expect(street).toBeVisible();
+    await street.click();
+    await expect(page.locator('#card')).toBeHidden();
+  });
+
+  test('the chosen speed and map survive a reload', async ({ page }) => {
+    await page.keyboard.press('2');
+    await page.keyboard.press('m');
+    await page.reload();
+    await page.waitForFunction(() => !!window.__mt);
+    await expect(page.getByRole('button', { name: '2x' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#minimap')).toBeVisible();
+  });
+
+  test('4 runs the island at eight times speed', async ({ page }) => {
+    await page.keyboard.press('4');
+    await expect(page.getByRole('button', { name: '8x' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
   test('inspecting a meeple opens a card that Escape closes', async ({ page }) => {
     const name = await page.evaluate(() => {
       const m = window.__mt.meeples[0];
@@ -239,6 +295,8 @@ test.describe('meepleton controls', () => {
     const card = page.locator('#card');
     await expect(card).toBeVisible();
     await expect(card).toContainText(name);
+    await expect(card).not.toHaveAttribute('aria-live');
+    await expect(page.locator('#sr')).toContainText(name);
     await page.keyboard.press('Escape');
     await expect(card).toBeHidden();
   });
@@ -263,6 +321,26 @@ test.describe('meepleton under stress', () => {
     expect(errors).toEqual([]);
   });
 
+  test('a full town keeps changing: tiled roofs, elders and unique names', async ({ page }) => {
+    test.setTimeout(240_000);
+    const errors = collectErrors(page);
+    await open(page);
+
+    for (let day = 0; day < 28; day++) await page.evaluate(() => window.__mt.step(160));
+
+    const town = await page.evaluate(() => ({
+      tiled: window.__mt.buildings.filter((b) => b.tileRoof).length,
+      elders: window.__mt.meeples.filter((m) => m.elder).length,
+      names: new Set(window.__mt.meeples.map((m) => m.name)).size,
+      meeples: window.__mt.meeples.length,
+    }));
+    expect(town.tiled).toBeGreaterThan(0);
+    expect(town.elders).toBeGreaterThan(0);
+    expect(town.names).toBe(town.meeples);
+    await expect(page.locator('#clock')).toContainText('of year 3');
+    expect(errors).toEqual([]);
+  });
+
   test('one broken routine does not stall the rest of the town', async ({ page }) => {
     const errors = collectErrors(page);
     await open(page);
@@ -277,6 +355,7 @@ test.describe('meepleton under stress', () => {
       const where = () => rest.map((m) => `${m.x.toFixed(2)},${m.z.toFixed(2)}`).join('|');
       const before = { t: window.__mt.dayT(), where: where() };
       window.__mt.step(30);
+      window.__mt.step(0.05);
       return {
         recovered: broken.co !== null,
         clockRan: window.__mt.dayT() > before.t,

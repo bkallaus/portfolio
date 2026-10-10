@@ -1157,7 +1157,7 @@ function createBuilding(type, i0, j0, o, entry, street, instant) {
   buildings.push(b); setStage(b); if (instant) bakeBuilding(b); if (typeof computeReach === 'function' && !instant) computeReach();
   return b;
 }
-function bakeBuilding(b) { bakeStatic(b.g, [b.door, b.spin, b.flag && b.flag.parent, b.clockH, b.clockM, b.bucket, b.cropMat, b.prodMat]); addDrying(b); }
+function bakeBuilding(b) { bakeStatic(b.g, [b.door, b.spin, b.flag && b.flag.parent, b.clockH, b.clockM, b.bucket, b.cropMat, b.prodMat]); if (b.door) bakeStatic(b.door); if (b.spin) bakeStatic(b.spin); addDrying(b); }
 const DRYING = { cottage: { strings: [-0.34, -0.22, 0.22, 0.34], z: 0.43, top: 0.5, mat: [-0.46, 0.25, Math.PI / 2] }, house: { strings: [-0.64, -0.52, 0.52, 0.64], z: 0.78, top: 0.72, mat: [-0.55, 0.9, 0] } };
 function addDrying(b) {
   const d = DRYING[b.type]; if (!d) return;
@@ -1169,7 +1169,7 @@ function addDrying(b) {
   const [mx, mz, mr] = d.mat, mat = new THREE.Group(); mat.position.set(mx, 0, mz); mat.rotation.y = mr; chili.add(mat);
   part(mat, boxG(0.3, 0.012, 0.15), '#d9b45a', 0, 0, 0);
   for (let k = 0; k < 16; k++) { const c = part(mat, boxG(0.05, 0.016, 0.018), k % 5 ? '#c8342c' : '#e0443e', rr(-0.12, 0.12), 0.012, rr(-0.055, 0.055)); c.rotation.y = rr(0, 3); }
-  for (const g of [fruit, chili]) { g.traverse(o => o.castShadow = false); g.visible = false; b.g.add(g); }
+  for (const g of [fruit, chili]) { g.traverse(o => o.castShadow = false); b.g.add(g); bakeStatic(g); g.visible = false; }
   b.dry = { fruit, chili };
 }
 function siteReady(b) { return !b.done && b.delivered.wood >= b.T.cost.wood && b.delivered.stone >= b.T.cost.stone && !footprintHasTree(b); }
@@ -1360,7 +1360,7 @@ function makeMeeple(opts) {
   m.eyes.forEach(e => e.castShadow = false);
   const ck = M(m.color === '#ef7fb0' ? '#e34b4b' : '#f28bb8');
   part(m.b, cheekGeo, ck, -0.07, 0.445, 0.085).castShadow = false; part(m.b, cheekGeo, ck, 0.07, 0.445, 0.085).castShadow = false;
-  m.hat = makeHat(m.role); m.hat.traverse(o => o.castShadow = false); m.hat.position.set(0, 0.565, 0); m.b.add(m.hat);
+  m.hat = makeHat(m.role); m.hat.traverse(o => o.castShadow = false); bakeStatic(m.hat); m.hat.position.set(0, 0.565, 0); m.b.add(m.hat);
   m.toolPiv = new THREE.Group(); m.toolPiv.position.set(0.27, 0.3, 0.02); m.b.add(m.toolPiv);
   m.carryG = new THREE.Group(); m.carryG.position.set(0, 0.62, 0); m.b.add(m.carryG);
   m.tool = null; m.carry = null;
@@ -1415,7 +1415,7 @@ function umbrellaFor(m) {
   part(g, (() => { const q = new THREE.ConeGeometry(0.3, 0.13, 16); q.translate(0, 0.065, 0); return q; })(), c, 0, 0.6, 0, 0.012);
   for (let k = 0; k < 8; k++) { const r = part(g, boxG(0.006, 0.006, 0.31), shade(c, 0.6), 0, 0.665, 0); r.rotation.set(0.42, k * Math.PI / 4, 0, 'YXZ'); r.position.set(Math.sin(k * Math.PI / 4) * 0.15, 0.668, Math.cos(k * Math.PI / 4) * 0.15); }
   part(g, new THREE.IcosahedronGeometry(0.02, 0), '#4a4458', 0, 0.74, 0);
-  g.traverse(o => o.castShadow = false); m.b.add(g); return g;
+  g.traverse(o => o.castShadow = false); bakeStatic(g); m.b.add(g); return g;
 }
 function animMeeple(m, dt) {
   const grown = 0.58 + 0.42 * m.age;
@@ -2538,7 +2538,7 @@ function dogTick() {
   if (!cands.length) return;
   const m = pick(cands), c = makeCritter('dog', m.home.doorWorld.x, m.home.doorWorld.z, null);
   const taken = new Set(critters.map(d => d.name)), names = DOG_NAMES.filter(n => !taken.has(n));
-  c.owner = m; c.name = names.length ? pick(names) : pick(DOG_NAMES); m.dog = c;
+  c.owner = m; c.name = names.length ? pick(names) : pick(DOG_NAMES); m.dog = c; c.g.userData.meeple = m;
   logEvent(`${m.name} adopted a puppy named <b>${c.name}</b>.`);
 }
 function updDog(c, dt, now) {
@@ -3192,7 +3192,7 @@ function birthTick() {
   stock.food -= 4; updPile();
   const m = makeMeeple({ x: h.doorWorld.x, z: h.doorWorld.z, home: h, baby: true, color: mum ? pick([mum.color, mum.partner.color]) : chance(0.5) ? h.residents[0].color : undefined });
   if (mum) { bond(m, mum, 4); bond(m, mum.partner, 4); m.parents = [mum, mum.partner]; }
-  h.residents.push(m); m.role = pick(ROLES); m.b.remove(m.hat); m.hat = makeHat(m.role); m.hat.position.set(0, 0.565, 0); m.hat.visible = false; m.b.add(m.hat);
+  h.residents.push(m); m.role = pick(ROLES); m.b.remove(m.hat); m.hat = makeHat(m.role); m.hat.traverse(o => o.castShadow = false); bakeStatic(m.hat); m.hat.position.set(0, 0.565, 0); m.hat.visible = false; m.b.add(m.hat);
   worldEmote(h.cx, h.roofTop + 0.3, h.cz, 'heart', 2.5);
   for (const p of h.residents) if (p !== m && !p.inside) { emote(p, 'heart'); p.hop = 0.3; }
   logEvent(mum ? `<b>${mum.name}</b> and <b>${mum.partner.name}</b> welcomed little ${m.name} on <b>${h.street}</b>.` : `Little ${m.name} was born ${'on <b>' + h.street + '</b>'}.`);
@@ -3405,7 +3405,7 @@ function makeCritter(kind, x, z, home) {
     part(b, boxG(0.03, 0.06, 0.06), '#e8e2d6', -0.08, 0.12, 0);
     for (const sz of [-0.03, 0.03]) part(b, boxG(0.015, 0.06, 0.015), '#f2a23a', 0, 0, sz);
   }
-  b.traverse(o => o.castShadow = false);
+  b.traverse(o => o.castShadow = false); bakeStatic(b, [b.userData.tail]);
   const c = { kind, g, b, x, y: 0, z, tx: x, tz: z, t: rr(0, 3), face: rr(0, 6.28), home, peck: 0, tail: b.userData.tail || null, flee: 0, eggT: rr(40, 120), lure: null, fetch: null, nap: 0, petUntil: 0 };
   g.position.set(x, 0, z); critters.push(c); return c;
 }
@@ -3861,6 +3861,7 @@ function pickAt(cx, cy) {
   const targets = [];
   for (const m of meeples) if (m.g.visible) targets.push(m.g);
   for (const b of buildings) targets.push(b.g);
+  for (const c of critters) if (c.kind === 'dog') targets.push(c.g);
   const hits = raycaster.intersectObjects(targets, true);
   let best = null;
   for (const h of hits) { const o = ownerOf(h.object); if (o) { best = o; break; } }
@@ -4104,7 +4105,7 @@ function toast(kicker, text, urgent) {
 }
 function showToast(kicker, text) {
   toastEl.innerHTML = `<small>${esc(kicker)}</small>${esc(text)}`; toastEl.classList.add('on');
-  clearTimeout(toastTimer); toastTimer = setTimeout(hideToast, 4500);
+  clearTimeout(toastTimer); toastTimer = setTimeout(hideToast, innerWidth <= 700 ? 3000 : 4500);
 }
 function hideToast() {
   toastEl.classList.remove('on');

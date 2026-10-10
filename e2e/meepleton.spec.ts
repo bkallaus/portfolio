@@ -7,8 +7,8 @@ const threeSource = readFileSync(createRequire(import.meta.url).resolve('three/b
 
 type Hooks = {
   step: (sec: number) => void;
-  meeples: { id: number; name: string; co: Generator | null; doing: string; x: number; z: number }[];
-  buildings: { done: boolean }[];
+  meeples: { id: number; name: string; co: Generator | null; doing: string; x: number; z: number; elder?: boolean }[];
+  buildings: { done: boolean; tileRoof?: boolean }[];
   ground: Uint8Array;
   renderer: { getContext: () => WebGLRenderingContext };
   select: (o: unknown) => void;
@@ -288,6 +288,26 @@ test.describe('meepleton under stress', () => {
     expect(town.day).toBeGreaterThanOrEqual(12);
     expect(town.meeples).toBeGreaterThan(4);
     expect(town.built).toBeGreaterThan(2);
+    expect(errors).toEqual([]);
+  });
+
+  test('a full town keeps changing: tiled roofs, elders and unique names', async ({ page }) => {
+    test.setTimeout(240_000);
+    const errors = collectErrors(page);
+    await open(page);
+
+    for (let day = 0; day < 28; day++) await page.evaluate(() => window.__mt.step(160));
+
+    const town = await page.evaluate(() => ({
+      tiled: window.__mt.buildings.filter((b) => b.tileRoof).length,
+      elders: window.__mt.meeples.filter((m) => m.elder).length,
+      names: new Set(window.__mt.meeples.map((m) => m.name)).size,
+      meeples: window.__mt.meeples.length,
+    }));
+    expect(town.tiled).toBeGreaterThan(0);
+    expect(town.elders).toBeGreaterThan(0);
+    expect(town.names).toBe(town.meeples);
+    await expect(page.locator('#clock')).toContainText('of year 3');
     expect(errors).toEqual([]);
   });
 

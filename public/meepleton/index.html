@@ -908,7 +908,7 @@ const BUILD = {
   },
 
   cottage(b) {
-    const choga = chance(0.6);
+    const choga = b.tileRoof ? false : chance(0.6); b.choga = choga;
     gidan(b, 0.86, 0.78, 0.1);
     hanokWalls(b, 0.7, 0.4, 0.6, 0.1, 2);
     part(b.W, boxG(0.46, 0.035, 0.12), '#b5874f', 0, 0.1, 0.36, 0.01);
@@ -1273,7 +1273,7 @@ const meepleGeo = (() => {
   g.translate(0, 0.022, -0.06); return g;
 })();
 const eyeGeo = boxG(0.028, 0.045, 0.012), cheekGeo = boxG(0.035, 0.018, 0.01);
-const NAMES = ['Minji', 'Jiho', 'Seoyeon', 'Dohyun', 'Haneul', 'Bora', 'Jun', 'Yuna', 'Sora', 'Taeyang', 'Nari', 'Somi', 'Hana', 'Dami', 'Ara', 'Baram', 'Byeol', 'Chorong', 'Dal', 'Garam', 'Haemi', 'Iseul', 'Jinu', 'Kkotnim', 'Mirae', 'Narae', 'Ondal', 'Pureum', 'Rahee', 'Saebom', 'Yeoreum', 'Gaeul', 'Gyeoul', 'Hyun', 'Jisu', 'Sumin', 'Eunbi', 'Woojin', 'Dasol', 'Sejin', 'Yerin', 'Minho', 'Seojun', 'Hayun', 'Doyun', 'Siwoo', 'Jian', 'Yujin', 'Hoon', 'Mingyu', 'Duri'];
+const NAMES = ['Minji', 'Jiho', 'Seoyeon', 'Dohyun', 'Haneul', 'Bora', 'Jun', 'Yuna', 'Sora', 'Taeyang', 'Nari', 'Somi', 'Hana', 'Dami', 'Ara', 'Baram', 'Byeol', 'Chorong', 'Dal', 'Garam', 'Haemi', 'Iseul', 'Jinu', 'Kkotnim', 'Mirae', 'Narae', 'Ondal', 'Pureum', 'Rahee', 'Saebom', 'Yeoreum', 'Gaeul', 'Gyeoul', 'Hyun', 'Jisu', 'Sumin', 'Eunbi', 'Woojin', 'Dasol', 'Sejin', 'Yerin', 'Minho', 'Seojun', 'Hayun', 'Doyun', 'Siwoo', 'Jian', 'Yujin', 'Hoon', 'Mingyu', 'Duri', 'Areum', 'Bitna', 'Chaewon', 'Daeun', 'Eunho', 'Gayoung', 'Gyumin', 'Haru', 'Hyerin', 'Iljin', 'Jaeyun', 'Jiwoo', 'Kyungmin', 'Mirim', 'Nabi', 'Ohsung', 'Raon', 'Sarang', 'Seulgi', 'Sohee', 'Taeho', 'Ujin', 'Yeseul', 'Yoonseo', 'Dongha', 'Geon', 'Hanbyeol'];
 const ROLES = ['builder', 'woodcutter', 'miner', 'farmer', 'builder', 'woodcutter'];
 function makeHat(role) {
   const g = new THREE.Group();
@@ -1321,8 +1321,12 @@ const CARRY = {
   basket(g) { part(g, cylG(0.09, 0.07, 0.09, 8), '#b58a55', 0, 0, 0, 0.012); part(g, new THREE.TorusGeometry(0.07, 0.008, 4, 10, Math.PI), '#8a5a2e', 0, 0.09, 0); for (let k = 0; k < 3; k++) part(g, new THREE.IcosahedronGeometry(0.03, 0), pick(['#e34b4b', '#f6ecd2', '#9ad14b', '#d9a35a']), -0.03 + k * 0.03, 0.09, 0); },
 };
 const meeples = []; let meepleId = 0;
+function freshName() {
+  const used = new Set(meeples.map(m => m.name)), free = NAMES.filter(n => !used.has(n));
+  return free.length ? pick(free) : pick(NAMES) + ' ' + pick(['the younger', 'of the hills', 'from the coast']);
+}
 function makeMeeple(opts) {
-  const m = { id: ++meepleId, name: opts.name || NAMES[(meepleId * 7 + ri(0, 50)) % NAMES.length], role: opts.role || pick(ROLES), color: opts.color || pick(C.meeple), home: opts.home || null, x: opts.x, z: opts.z, face: rr(0, 6.28), faceV: 0, speed: rr(1.35, 1.7), phase: rr(0, 6), co: null, inside: null, moving: false, act: null, actT: 0, emotes: [], social: rr(0, 1), age: opts.baby ? 0 : 1, blinkT: rr(1, 4), hop: 0, lane: { x: rr(-0.14, 0.14), z: rr(-0.14, 0.14) }, busy: '', talkT: 0, doing: 'Looking around', since: dayN, tally: { trees: 0, stone: 0, build: 0, pave: 0, food: 0, plant: 0 }, bonds: new Map(), partner: null, dog: null, greetCD: 0, greetT: rr(0, 1), sink: 0, swim: false, glide: false, riding: null, throwT: 0, umb: null };
+  const m = { id: ++meepleId, name: opts.name || freshName(), role: opts.role || pick(ROLES), color: opts.color || pick(C.meeple), home: opts.home || null, x: opts.x, z: opts.z, face: rr(0, 6.28), faceV: 0, speed: rr(1.35, 1.7), phase: rr(0, 6), co: null, inside: null, moving: false, act: null, actT: 0, emotes: [], social: rr(0, 1), age: opts.baby ? 0 : 1, blinkT: rr(1, 4), hop: 0, lane: { x: rr(-0.14, 0.14), z: rr(-0.14, 0.14) }, busy: '', talkT: 0, doing: 'Looking around', since: dayN, tally: { trees: 0, stone: 0, build: 0, pave: 0, food: 0, plant: 0 }, bonds: new Map(), partner: null, dog: null, greetCD: 0, greetT: rr(0, 1), sink: 0, swim: false, glide: false, riding: null, throwT: 0, umb: null };
   m.g = new THREE.Group(); m.b = new THREE.Group(); m.g.add(m.b); scene.add(m.g); m.g.userData.meeple = m;
   m.style = opts.style || (chance(0.5) ? 'chima' : 'baji');
   if (m.style === 'baji' && !opts.color && chance(0.55)) m.color = pick(C.baji);
@@ -1494,7 +1498,7 @@ function* moveTo(m, x, z, mul = 1) {
     const dt = yield; el += dt;
     const dx = x - m.x, dz = z - m.z, d = Math.hypot(dx, dz);
     const ti = tI(m.x), tj = tJ(m.z); const onRoad = inb(ti, tj) && road[id(ti, tj)] >= 2;
-    const sp = m.speed * mul * (onRoad ? 1.2 : 1) * (0.7 + 0.3 * m.age) * dt;
+    const sp = m.speed * mul * (onRoad ? 1.2 : 1) * (0.7 + 0.3 * m.age) * (hungryLogged ? 0.85 : 1) * (m.elder ? 0.85 : 1) * dt;
     if (d <= sp || el > lim) { m.x = x; m.z = z; return; }
     m.x += dx / d * sp; m.z += dz / d * sp; m.face = Math.atan2(dx, dz); m.moving = true;
   }
@@ -1917,7 +1921,7 @@ function* rWed(m) {
   yield* doAct(m, 'hug', 2.4);
   m.hop = o.hop = 0.3; emote(m, 'star', 2); emote(o, 'star', 2);
   for (let k = 0; k < 3; k++) emit(FIRE.x + rr(-0.4, 0.4), 1.2 + k * 0.2, z, { n: 30, color: ['#f28bb8', '#ffffff', '#f2c230', '#ef7fb0', '#b9a7ff'], v: 1.4, vy: [1.2, 2.6], size: 0.05, life: [1.2, 2], grav: 2, glow: true, drag: 1.4 });
-  m.partner = o; o.partner = m; bond(m, o, 3);
+  m.partner = o; o.partner = m; bond(m, o, 3); after(6, () => cohabit(m, o));
   logEvent(`<b>${m.name}</b> and <b>${o.name}</b> were married by the Hearth.`); toast(`Day ${dayN} · A wedding`, `${m.name} & ${o.name} are wed!`);
   yield* wait(2.5); w.stage = 'party'; w.done = true;
 }
@@ -2583,11 +2587,92 @@ function findWork(m) {
   { let be = null, bd = 1e9; for (const e of eggs) { if (e.res || e.failUntil > clock || !reach[id(tI(e.x), tJ(e.z))]) continue; const d = D(e.x, e.z); if (d < bd) { bd = d; be = e; } } if (be) c.push({ s: 6.5 + rb('farmer') * 1.2 - bd * 0.05, go: () => { be.res = m.id; return rEggs(m, be); } }); }
   let live = 0; for (const t of trees) if (t && (t.state === 'standing' || t.state === 'sapling')) live++;
   if (live < treeTarget) c.push({ s: 4 + rb('woodcutter') * 0.6, go: () => rPlant(m) });
+  if (meeples.length >= 44 && stock.stone - reserved.stone >= 3 && stock.wood - reserved.wood >= 1) {
+    let rb_ = null, rd = 1e9; for (const b of buildings) if (b.done && b.choga && !b.reroofing && nearReach(b.i0, b.j0)) { const d = D(b.cx, b.cz); if (d < rd) { rd = d; rb_ = b; } }
+    if (rb_) c.push({ s: 6 + rb('builder') - rd * 0.05, go: () => { rb_.reroofing = m.id; return rReroof(m, rb_); } });
+  }
+  if (meeples.length >= 36 && benches.length < meeples.length / 5 && stock.wood - reserved.wood >= 2) c.push({ s: 4.5 + rb('builder') * 0.5, go: () => rBench(m) });
   if (!c.length) return null;
   let best = null, bs = -1e9; for (const x of c) { const s = x.s + rnd() * 2.5; if (s > bs) { bs = s; best = x; } }
   return best.go();
 }
 let treeTarget = 0;
+function rebuild(b) {
+  scene.remove(b.g); b.g.traverse(o => { if (o.isMesh && o.userData.baked) o.geometry.dispose(); });
+  b.g = new THREE.Group(); b.g.userData.bld = b; b.g.position.set(b.cx, 0, b.cz); b.g.rotation.y = b.o * Math.PI / 2; scene.add(b.g);
+  b.W = new THREE.Group(); b.R = new THREE.Group(); b.D = new THREE.Group(); b.g.add(b.W, b.R, b.D);
+  BUILD[b.type](b);
+  b.D.traverse(o => { if (o.isMesh && o.geometry.boundingSphere === null) o.geometry.computeBoundingSphere(); if (o.isMesh && o.geometry.boundingSphere.radius < 0.12) o.castShadow = false; });
+  setStage(b); bakeBuilding(b);
+}
+function* rReroof(m, b) {
+  m.doing = `Re-roofing the cottage on ${b.street} with tiles`;
+  let took = false;
+  try {
+    yield* goOut(m);
+    if (!(yield* walkNear(m, PILE.i, PILE.j))) return;
+    faceTo(m, PILE.x, PILE.z); yield* wait(0.3);
+    if (stock.stone - reserved.stone < 3 || stock.wood - reserved.wood < 1 || !b.choga) return;
+    stock.stone -= 3; stock.wood -= 1; took = true; updPile(); setCarry(m, 'stone');
+    if (!(yield* walkNear(m, b.i0, b.j0))) return;
+    m.busy = 'work'; faceTo(m, b.cx, b.cz); setCarry(m, null); setTool(m, 'hammer');
+    yield* doAct(m, 'hammer', 7, () => emit(b.cx + rr(-0.3, 0.3), 0.85, b.cz + rr(-0.3, 0.3), { n: 3, color: ['#d9b45a', '#cfa64e', '#4a5160'], v: 0.8, vy: [0.8, 1.6], size: 0.045, life: [0.4, 0.8], grav: 4 }));
+    if (!buildings.includes(b) || !b.choga) return;
+    b.tileRoof = true; rebuild(b); took = false; m.tally.build++;
+    emit(b.cx, 1.1, b.cz, { n: 24, color: ['#e34b4b', '#f2c230', '#3f7fd9', '#ffffff'], v: 1.2, vy: [1.5, 2.6], size: 0.05, life: [0.8, 1.3], grav: 4, glow: true, drag: 1.2 });
+    emote(m, 'star', 1.6);
+    if (!reroofLogged) { reroofLogged = true; logEvent(`${m.name} swapped the thatch on <b>${b.street}</b> for grey tiles. Meepleton is going up in the world.`); }
+  } finally { b.reroofing = 0; setTool(m, null); if (took) { stock.stone += 3; stock.wood += 1; updPile(); } if (m.carry === 'stone') setCarry(m, null); }
+}
+let reroofLogged = false;
+const benches = [];
+function benchSpot() {
+  const cands = [];
+  for (let k = 0; k < N * N; k++) {
+    if (road[k] < 2 || bridge[k]) continue; const i = k % N, j = Math.floor(k / N);
+    for (const [dx, dz] of DIRS) { const a = i + dx, c = j + dz; if (!openGrass(a, c) || benches.some(b => Math.abs(b.i - a) + Math.abs(b.j - c) < 3) || DIR8.some(([ex, ez]) => inb(a + ex, c + ez) && (occ[id(a + ex, c + ez)] === O_BLD || occ[id(a + ex, c + ez)] === O_SITE))) continue; cands.push({ i: a, j: c, ri: i, rj: j, s: Math.hypot(wx(a), wz(c)) + rnd() * 4 }); }
+  }
+  cands.sort((p, q) => p.s - q.s); return cands[0] || null;
+}
+function placeBench(sp) {
+  const g = new THREE.Group(), dx = sp.ri - sp.i, dz = sp.rj - sp.j; g.position.set(wx(sp.i) + dx * 0.3, 0, wz(sp.j) + dz * 0.3); g.rotation.y = Math.atan2(dx, dz); scene.add(g);
+  part(g, boxG(0.5, 0.035, 0.15), '#9a6a40', 0, 0.16, 0, 0.012);
+  for (const x of [-0.2, 0.2]) part(g, boxG(0.04, 0.16, 0.12), '#6b4428', x, 0, 0);
+  part(g, boxG(0.5, 0.12, 0.03), '#8a5a2e', 0, 0.22, -0.07, 0.01);
+  bakeStatic(g);
+  occ[id(sp.i, sp.j)] = O_DECO; computeReach();
+  const b = { i: sp.i, j: sp.j, g, x: g.position.x + dx * 0.05, z: g.position.z + dz * 0.05, face: g.rotation.y, res: 0, ri: sp.ri, rj: sp.rj };
+  benches.push(b); return b;
+}
+function* rBench(m) {
+  const sp = benchSpot(); if (!sp) return;
+  m.doing = 'Building a bench by the road';
+  let took = false;
+  try {
+    yield* goOut(m);
+    if (!(yield* walkNear(m, PILE.i, PILE.j))) return;
+    faceTo(m, PILE.x, PILE.z); yield* wait(0.3);
+    if (stock.wood - reserved.wood < 2) return;
+    stock.wood -= 2; took = true; updPile(); setCarry(m, 'log');
+    if (!(yield* walkTo(m, sp.ri, sp.rj))) return;
+    if (!openGrass(sp.i, sp.j)) return;
+    m.busy = 'work'; faceTo(m, wx(sp.i), wz(sp.j)); setCarry(m, null); setTool(m, 'hammer');
+    yield* doAct(m, 'hammer', 4, () => emit(wx(sp.i), 0.15, wz(sp.j), { n: 2, color: ['#d9b27a', '#8a5a2e'], v: 0.6, vy: [0.6, 1.2], size: 0.04, life: [0.3, 0.6] }));
+    if (!openGrass(sp.i, sp.j)) return;
+    placeBench(sp); took = false; emote(m, 'smile', 1.3);
+    if (benches.length === 1) logEvent(`${m.name} built the first bench in Meepleton. Somewhere to rest your feet.`);
+  } finally { setTool(m, null); if (took) { stock.wood += 2; updPile(); } if (m.carry === 'log') setCarry(m, null); }
+}
+function* rSitBench(m, b) {
+  b.res = m.id; m.doing = 'Resting on a bench'; m.busy = 'idle';
+  try {
+    yield* goOut(m);
+    if (!(yield* walkTo(m, b.ri, b.rj))) return;
+    yield* moveTo(m, b.x, b.z, 0.5); m.face = b.face;
+    yield* doAct(m, 'sit', rr(5, 10), () => { if (chance(0.12)) emote(m, pick(['sun', 'music', 'smile', 'leaf']), 1.4); });
+    yield* moveTo(m, wx(b.ri), wz(b.rj), 0.5);
+  } finally { b.res = 0; }
+}
 function pickLeisure(m) {
   const opts = [[3, () => rWander(m)]];
   const se = seasonNow(), wet = isRaining(), kid = m.age < 1, ph = phase();
@@ -2633,6 +2718,7 @@ function pickLeisure(m) {
   if (buildings.some(b => b.type === 'statue' && b.done)) opts.push([0.6, () => rVisit(m, 'statue', 'Circling the pagoda', ['star', 'exclaim', 'heart'])]);
   if (m.home && m.home.done) opts.push([isRaining() ? 6 : 1, () => rBreak(m)]);
   if (buildings.some(b => b.type === 'garden' && b.done)) opts.push([1.4, () => rGarden(m)]);
+  { const b = benches.find(q => !q.res && Math.hypot(q.x - m.x, q.z - m.z) < 10); if (b && !wet) opts.push([m.elder ? 2.5 : 1, () => rSitBench(m, b)]); }
   let tot = 0; for (const o of opts) tot += o[0]; let r = rnd() * tot;
   for (const o of opts) { r -= o[0]; if (r <= 0) return o[1](); }
   return opts[0][1]();
@@ -2975,16 +3061,29 @@ function spawnArrival(home) {
   home.residents.push(m); m.co = rArrive(m, home);
   logEvent(`${m.name} the ${m.role} arrived with a bindle and moved in ${'on <b>' + home.street + '</b>'}.`);
 }
+function moveHome(m, to) {
+  const from = m.home; if (from === to || !to || to.residents.length >= to.T.cap) return false;
+  if (from) from.residents.splice(from.residents.indexOf(m), 1);
+  m.home = to; to.residents.push(m); return true;
+}
+function cohabit(a, b) {
+  if (a.home === b.home) return;
+  const [stay, go] = a.home && a.home.done && a.home.residents.length < a.home.T.cap ? [a, b] : [b, a];
+  if (moveHome(go, stay.home)) logEvent(`${go.name} moved in with ${stay.name} on <b>${stay.home.street}</b>.`);
+}
+const parentsIn = h => h.residents.find(p => p.partner && p.age >= 1 && p.partner.home === h);
 function birthTick() {
   if (stock.food < 4 + Math.ceil(meeples.length / 3) || meeples.length >= MAXPOP || !chance(0.5)) return;
   const homes = buildings.filter(b => b.done && b.T.cap > 0 && b.residents.length < b.T.cap && b.residents.length > 0);
   if (!homes.length) return;
-  const h = pick(homes); stock.food -= 4; updPile();
-  const m = makeMeeple({ x: h.doorWorld.x, z: h.doorWorld.z, home: h, baby: true, color: chance(0.5) ? h.residents[0].color : undefined });
+  const couples = homes.filter(parentsIn), h = couples.length && chance(0.75) ? pick(couples) : pick(homes), mum = parentsIn(h);
+  stock.food -= 4; updPile();
+  const m = makeMeeple({ x: h.doorWorld.x, z: h.doorWorld.z, home: h, baby: true, color: mum ? pick([mum.color, mum.partner.color]) : chance(0.5) ? h.residents[0].color : undefined });
+  if (mum) { bond(m, mum, 4); bond(m, mum.partner, 4); m.parents = [mum, mum.partner]; }
   h.residents.push(m); m.role = pick(ROLES); m.b.remove(m.hat); m.hat = makeHat(m.role); m.hat.position.set(0, 0.565, 0); m.hat.visible = false; m.b.add(m.hat);
   worldEmote(h.cx, h.roofTop + 0.3, h.cz, 'heart', 2.5);
   for (const p of h.residents) if (p !== m && !p.inside) { emote(p, 'heart'); p.hop = 0.3; }
-  logEvent(`Little ${m.name} was born ${'on <b>' + h.street + '</b>'}.`);
+  logEvent(mum ? `<b>${mum.name}</b> and <b>${mum.partner.name}</b> welcomed little ${m.name} on <b>${h.street}</b>.` : `Little ${m.name} was born ${'on <b>' + h.street + '</b>'}.`);
 }
 function growFields(dt) {
   const se = seasonNow(); if (se === 3) return;
@@ -3668,6 +3767,7 @@ function tallyLine(m) {
 function buildingStatus(b) {
   if (b.type === 'field' && b.done) return b.grow >= 1 ? 'Ripe and ready to harvest' : `${b.crop[0].toUpperCase() + b.crop.slice(1)}${GRAIN(b.crop) ? '' : 's'} growing, ${Math.round(b.grow * 100)}%`;
   if (b.type === 'statue' && b.done) return `In honour of ${b.honor}`;
+  if (b.reroofing) return 'Getting a new tiled roof';
   if (b.done) return b.occupants ? `${b.occupants} inside` : 'Quiet for now';
   if (footprintHasTree(b)) return 'Waiting for the lot to be cleared';
   if (b.delivered.wood < b.T.cost.wood || b.delivered.stone < b.T.cost.stone) return `Materials: wood ${b.delivered.wood}/${b.T.cost.wood}, stone ${b.delivered.stone}/${b.T.cost.stone}`;
@@ -3684,7 +3784,7 @@ function renderCard() {
   } else {
     const home = o.home ? esc(o.home.street) : 'Nowhere yet', who = p => `<button type="button" class="who" data-id="${p.id}">${esc(p.name)}</button>`, bf = bestFriend(o);
     const rel = (o.partner ? `<dt>Married to</dt><dd>${who(o.partner)}</dd>` : '') + (bf ? `<dt>${!o.partner && bondOf(o, bf) >= 7 ? 'Sweetheart' : 'Best friend'}</dt><dd>${who(bf)}</dd>` : '') + (o.dog ? `<dt>Dog</dt><dd>${esc(o.dog.name)}</dd>` : '');
-    cardBody.innerHTML = `<h3><span class="sw" style="background:${o.color}"></span>${esc(o.name)}</h3><div class="sub">${o.age < 1 ? 'Youngster' : ROLE_LABEL[o.role]} · since day ${o.since}</div>` +
+    cardBody.innerHTML = `<h3><span class="sw" style="background:${o.color}"></span>${esc(o.name)}</h3><div class="sub">${o.age < 1 ? 'Youngster' : (o.elder ? 'Elder ' + ROLE_LABEL[o.role].toLowerCase() : ROLE_LABEL[o.role])} · since day ${o.since}</div>` +
       `<div class="doing">${esc(o.doing)}</div><dl><dt>Home</dt><dd>${home}</dd><dt>Mood</dt><dd>${moodOf(o)}</dd><dt>Record</dt><dd>${esc(tallyLine(o))}</dd>${rel}</dl>`;
   }
 }
@@ -3883,7 +3983,8 @@ function updHUD() {
   const t = dayT(), mins = Math.floor(t * 24 * 60), hh = String(Math.floor(mins / 60)).padStart(2, '0'), mm = String(Math.floor(mins % 60 / 10) * 10).padStart(2, '0');
   const ph = { night: 'Night', dawn: 'Dawn', work: 'Workday', evening: 'Evening' }[phase()];
   const sky = wx_.wet < 0.3 ? '' : wx_.kind === 'snow' ? ' · Snow' : wx_.storm ? ' · Storm' : wx_.kind === 'rain' ? ' · Rain' : '';
-  clockEl.textContent = `Day ${dayN} · ${SEASON_NAMES[seasonNow()]} · ${hh}:${mm} · ${simSpeed === 0 ? 'Paused' : ph}${sky}`;
+  const yr = Math.floor((dayN - 1) / YEAR) + 1;
+  clockEl.textContent = `Day ${dayN} · ${SEASON_NAMES[seasonNow()]}${yr > 1 ? ' of year ' + yr : ''} · ${hh}:${mm} · ${simSpeed === 0 ? 'Paused' : ph}${sky}`;
   const need = Math.ceil(meeples.length / 3), beds = homeCap() - meeples.length, kids = meeples.filter(m => m.age < 1).length;
   statEls.wheat.parentNode.title = `Food: ${stock.food} in the pantry, the town eats ${need} a day`;
   statEls.house.parentNode.title = `Homes: ${beds > 0 ? beds + ' beds free' : 'every bed taken'}`;
@@ -3949,6 +4050,14 @@ addEventListener('keydown', e => {
   if (e.code === 'Space') { e.preventDefault(); setSpeed(simSpeed ? 0 : lastSpeed); }
   else if (e.key === '1') setSpeed(1); else if (e.key === '2') setSpeed(2); else if (e.key === '3') setSpeed(4); else if (e.key === '4') setSpeed(8);
 });
+const YEAR = SEASON_DAYS * 4;
+function makeElder(m) {
+  m.elder = true;
+  const g = new THREE.Group(); m.b.add(g);
+  if (m.style === 'chima') part(g, new THREE.IcosahedronGeometry(0.056, 0), '#d6d1c8', 0, 0.47, -0.1).castShadow = false;
+  else { part(g, boxG(0.08, 0.06, 0.02), '#f4efe6', 0, 0.37, 0.09).castShadow = false; part(g, boxG(0.05, 0.03, 0.02), '#f4efe6', 0, 0.345, 0.092).castShadow = false; }
+}
+const andList = a => a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1];
 function resetMeeple(m) {
   m.co = null; m.act = null; m.busy = '';
   setTool(m, null); setCarry(m, null);
@@ -3960,6 +4069,10 @@ function simStep(dt, now) {
     if (eat < need && !hungryLogged) { hungryLogged = true; logEvent(pick(['The pantry is bare. Tummies rumble across town.', 'Not enough rice to go round this morning.'])); }
     else if (eat >= need) hungryLogged = false;
     planWedding(); dogTick(); wildlifeTick();
+    const newElders = meeples.filter(m => !m.elder && m.age >= 1 && dayN - m.since >= YEAR * 2);
+    newElders.forEach(makeElder);
+    if (newElders.length) logEvent(`${andList(newElders.slice(0, 4).map(m => m.name).concat(newElders.length > 4 ? ['others'] : []))} ${newElders.length > 1 ? 'have' : 'has'} lived here two years and ${newElders.length > 1 ? 'are now elders' : 'is now an elder'} of Meepleton.`);
+    if ((dayN - 1) % YEAR === 0) { const y = (dayN - 1) / YEAR + 1; logEvent(`Meepleton turns ${y - 1}! Year ${y} begins.`); toast(`Day ${dayN} · Spring`, `Happy ${y - 1 === 1 ? 'first' : y - 1 === 2 ? 'second' : y - 1 === 3 ? 'third' : (y - 1) + 'th'} birthday, Meepleton!`); celebrate(); }
     if (seasonNow() !== groundSeason) startSeason(seasonNow());
     else logEvent(pick(['The rooster crows. A new day in Meepleton.', 'Morning mist rolls off the pond.', 'Smoke curls up from the chimneys.', 'Sunrise over the rooftops.']));
   }

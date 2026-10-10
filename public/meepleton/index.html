@@ -1149,7 +1149,21 @@ function createBuilding(type, i0, j0, o, entry, street, instant) {
   buildings.push(b); setStage(b); if (instant) bakeBuilding(b); if (typeof computeReach === 'function' && !instant) computeReach();
   return b;
 }
-function bakeBuilding(b) { bakeStatic(b.g, [b.door, b.spin, b.flag && b.flag.parent, b.clockH, b.clockM, b.bucket, b.cropMat, b.prodMat]); }
+function bakeBuilding(b) { bakeStatic(b.g, [b.door, b.spin, b.flag && b.flag.parent, b.clockH, b.clockM, b.bucket, b.cropMat, b.prodMat]); addDrying(b); }
+const DRYING = { cottage: { strings: [-0.34, -0.22, 0.22, 0.34], z: 0.43, top: 0.5, mat: [-0.46, 0.25, Math.PI / 2] }, house: { strings: [-0.64, -0.52, 0.52, 0.64], z: 0.78, top: 0.72, mat: [-0.55, 0.9, 0] } };
+function addDrying(b) {
+  const d = DRYING[b.type]; if (!d) return;
+  const fruit = new THREE.Group(), chili = new THREE.Group();
+  for (const x of d.strings) {
+    const n = ri(3, 5); part(fruit, boxG(0.006, n * 0.05 + 0.02, 0.006), '#c9a26a', x, d.top - n * 0.05 - 0.02, d.z);
+    for (let k = 0; k < n; k++) part(fruit, boxG(0.042, 0.038, 0.042), k % 2 ? '#f08a2b' : '#e8762a', x, d.top - 0.07 - k * 0.05, d.z);
+  }
+  const [mx, mz, mr] = d.mat, mat = new THREE.Group(); mat.position.set(mx, 0, mz); mat.rotation.y = mr; chili.add(mat);
+  part(mat, boxG(0.3, 0.012, 0.15), '#d9b45a', 0, 0, 0);
+  for (let k = 0; k < 16; k++) { const c = part(mat, boxG(0.05, 0.016, 0.018), k % 5 ? '#c8342c' : '#e0443e', rr(-0.12, 0.12), 0.012, rr(-0.055, 0.055)); c.rotation.y = rr(0, 3); }
+  for (const g of [fruit, chili]) { g.traverse(o => o.castShadow = false); g.visible = false; b.g.add(g); }
+  b.dry = { fruit, chili };
+}
 function siteReady(b) { return !b.done && b.delivered.wood >= b.T.cost.wood && b.delivered.stone >= b.T.cost.stone && !footprintHasTree(b); }
 function footprintHasTree(b) {
   return b.trees.some(t => t.state === 'standing' || t.state === 'sapling' || t.state === 'falling');
@@ -1380,8 +1394,8 @@ function updEmoteSprite(e, dt, sz = 0.36) {
   const k = t < 0.18 ? (t / 0.18) * 1.25 : t < 0.28 ? 1.25 - (t - 0.18) / 0.1 * 0.25 : t > d - 0.2 ? Math.max(0, (d - t) / 0.2) : 1;
   e.s.scale.set(sz * k, sz * k, 1); return t < d;
 }
-const BEAT = { chop: 0.55, hammer: 0.4, mine: 0.6, hoe: 0.7, pave: 0.35, dance: 0.5, crank: 0.5, plant: 0.6, jump: 0.6, strum: 0.5, tell: 2.4, roll: 0.8 };
-const HANDS = new Set(['chop', 'mine', 'hammer', 'pave', 'hoe', 'crank', 'plant', 'roll', 'strum', 'hug', 'lie', 'fish']);
+const BEAT = { kick: 0.7, chop: 0.55, hammer: 0.4, mine: 0.6, hoe: 0.7, pave: 0.35, dance: 0.5, crank: 0.5, plant: 0.6, jump: 0.6, strum: 0.5, tell: 2.4, roll: 0.8 };
+const HANDS = new Set(['chop', 'mine', 'hammer', 'pave', 'hoe', 'crank', 'plant', 'roll', 'strum', 'hug', 'lie', 'fish', 'kite', 'kick']);
 function umbrellaFor(m) {
   const g = new THREE.Group(); g.position.set(0.2, 0.22, 0.02); g.rotation.z = 0.22;
   part(g, cylG(0.01, 0.01, 0.62, 4), '#b5874f', 0, 0, 0);
@@ -1418,6 +1432,8 @@ function animMeeple(m, dt) {
     else if (m.act === 'chat') { y = m.hop > 0 ? Math.sin(m.hop / 0.3 * Math.PI) * 0.1 : 0; rz = Math.sin(m.actT * 3) * 0.05; }
     else if (m.act === 'sit') { y = -0.08; sy = 0.82; }
     else if (m.act === 'stretch') { sy = 1 + Math.sin(m.actT * 4) * 0.08; }
+    else if (m.act === 'kite') { rx = -0.14; rz = Math.sin(m.actT * 1.7) * 0.07; tp.rotation.x = -1.5 + Math.sin(m.actT * 2.3) * 0.15; }
+    else if (m.act === 'kick') { const k = Math.max(0, Math.sin(f * Math.PI * 2)); y = k * 0.05; rz = k * 0.25 * (Math.floor(m.actT / bt) % 2 ? 1 : -1); }
     else if (m.act === 'hug') { rx = 0.3; sy = 0.97; rz = Math.sin(m.actT * 5) * 0.04; }
     else if (m.act === 'jump') { y = Math.abs(Math.sin(f * Math.PI)) * 0.34; sy = f < 0.1 || f > 0.9 ? 0.85 : 1.06; rz = Math.sin(f * Math.PI * 2) * 0.2; }
     else if (m.act === 'strum') { tp.rotation.set(0.5, 0, 1.25 + Math.sin(f * Math.PI * 2) * 0.08); y = Math.abs(Math.sin(f * Math.PI)) * 0.02; rz = Math.sin(m.actT * 2.2) * 0.07; }
@@ -1821,6 +1837,7 @@ function* rEvening(m) {
   if (wedding && wedding.day === dayN && !wedding.done && (m === wedding.a || m === wedding.b)) yield* rWed(m);
   if (tonight.day === dayN && (m === tonight.musician || m === tonight.storyteller) && phase() === 'evening') return yield* rPerform(m, m === tonight.musician);
   m.doing = isFestival() ? `Celebrating the ${FESTIVALS[seasonNow()]}` : 'Gathering at the hearth';
+  if (isFestival() && seasonNow() === 2 && m.age >= 1 && (ring.day !== dayN || ring.n < 12) && chance(0.75)) { yield* rRing(m); return yield* rNight(m); }
   const tav = nearestB(m, 'tavern');
   if (tav && m.age >= 1 && !isFestival() && !m.partner && chance(0.4)) {
     m.doing = 'Singing at the jumak';
@@ -2606,6 +2623,9 @@ function pickLeisure(m) {
   if (se !== 3 && !wet && critters.some(c => c.kind === 'duck')) opts.push([1, () => rFeedDucks(m)]);
   if (se === 2 && leafPiles.length) { const p = leafPiles.reduce((a, b) => Math.hypot(a.x - m.x, a.z - m.z) < Math.hypot(b.x - m.x, b.z - m.z) ? a : b); opts.push([kid ? 2.5 : 0.5, () => rLeafJump(m, p)]); }
   if (shoreTiles.length && m.age >= 1 && seasonNow() !== 3 && !isRaining()) opts.push([1.6, () => rFish(m)]);
+  if ((se === 0 || se === 2) && !wet && ph !== 'dawn' && kites < 3) opts.push([kid ? 2.2 : 0.6, () => rKite(m)]);
+  if (se === 3 && kid && !wet) opts.push([1.8, () => rJegi(m)]);
+  { const cat = critters.find(c => c.kind === 'cat' && c.petUntil < clock && Math.hypot(c.x - m.x, c.z - m.z) < 8); if (cat) opts.push([kid ? 1.6 : 0.6, () => rPetCat(m, cat)]); }
   if (buildings.some(b => b.type === 'well' && b.done)) opts.push([1.2, () => rWell(m)]);
   if (buildings.some(b => b.type === 'stall' && b.done)) opts.push([1.2, () => rStall(m)]);
   if (buildings.some(b => b.type === 'bakery' && b.done)) opts.push([1.2, () => rVisit(m, 'bakery', 'Buying warm tteok', ['heart', 'smile', 'wheat'])]);
@@ -2617,11 +2637,129 @@ function pickLeisure(m) {
   for (const o of opts) { r -= o[0]; if (r <= 0) return o[1](); }
   return opts[0][1]();
 }
+let kites = 0, kiteSeason = -1;
+const KITE_COLS = ['#d9463f', '#2f6f9a', '#f2c230', '#3f9a6a', '#f4efe6'];
+function makeKite(col) {
+  const g = new THREE.Group(); scene.add(g);
+  part(g, boxG(0.34, 0.44, 0.012), col, 0, -0.22, 0, 0.012);
+  part(g, cylG(0.07, 0.07, 0.016, 10), '#1b1426', 0, -0.07, 0).rotation.x = Math.PI / 2;
+  part(g, boxG(0.34, 0.06, 0.016), shade(col, 0.7), 0, -0.04, 0);
+  for (let k = 0; k < 4; k++) part(g, boxG(0.05, 0.05, 0.01), k % 2 ? '#f4efe6' : shade(col, 0.8), Math.sin(k * 1.3) * 0.04, -0.5 - k * 0.09, 0);
+  g.scale.setScalar(1.4); g.traverse(o => { o.castShadow = false; o.receiveShadow = false; });
+  const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new V3(), new V3()]), new THREE.LineBasicMaterial({ color: 0xf4efe6 }));
+  line.frustumCulled = false; scene.add(line);
+  return { g, line };
+}
+function* rKite(m) {
+  const spot = grassNear(m, 7, roomy); if (!spot) return;
+  m.doing = 'Flying a kite'; m.busy = 'idle'; kites++;
+  let kite = null;
+  try {
+    yield* goOut(m);
+    if (!(yield* walkTo(m, spot[0], spot[1]))) return;
+    const wa = 0.9 + Math.sin(dayN) * 0.5; m.face = wa + Math.PI; kite = makeKite(pick(KITE_COLS));
+    if (kiteSeason !== dayN) { kiteSeason = dayN; logEvent(`${m.name} sends a kite up over the meadow.`); }
+    m.act = 'kite'; m.actT = 0; let rise = 0;
+    const dur = rr(10, 16);
+    while (m.actT < dur && !isRaining()) {
+      const dt = yield; m.actT += dt; rise = Math.min(1, rise + dt / 3);
+      const hx = m.x + Math.sin(m.face) * 0.2, hz = m.z + Math.cos(m.face) * 0.2, sway = Math.sin(m.actT * 0.9) * 0.4;
+      const kx = m.x + Math.sin(wa) * 3 * rise + Math.cos(wa) * sway, kz = m.z + Math.cos(wa) * 3 * rise - Math.sin(wa) * sway, ky = 0.6 + rise * (2.2 + Math.sin(m.actT * 1.3) * 0.2);
+      kite.g.position.set(kx, ky, kz); kite.g.rotation.set(-1.2, wa + Math.PI, Math.sin(m.actT * 1.7) * 0.25, 'YXZ');
+      const pa = kite.line.geometry.attributes.position; pa.setXYZ(0, hx, 0.62 * (0.58 + 0.42 * m.age), hz); pa.setXYZ(1, kx, ky - 0.1, kz); pa.needsUpdate = true;
+      if (chance(dt * 0.15)) emote(m, pick(['star', 'smile', 'music']), 1.3);
+    }
+  } finally {
+    kites--; m.act = null;
+    if (kite) { scene.remove(kite.g, kite.line); kite.line.geometry.dispose(); kite.line.material.dispose(); }
+  }
+}
+function* rJegi(m) {
+  const spot = grassNear(m, 4, roomy) || [tI(m.x), tJ(m.z)];
+  m.doing = 'Kicking a jegi'; m.busy = 'idle';
+  const jegi = new THREE.Group(); part(jegi, cylG(0.03, 0.035, 0.02, 6), '#8f8a84', 0, 0, 0); for (let k = 0; k < 5; k++) part(jegi, boxG(0.012, 0.08, 0.012), pick(['#d9463f', '#f2c230', '#2f6f9a', '#3f9a6a']), Math.sin(k * 1.26) * 0.02, 0.02, Math.cos(k * 1.26) * 0.02).rotation.z = Math.sin(k * 1.26) * 0.5;
+  jegi.visible = false; scene.add(jegi);
+  try {
+    yield* goOut(m);
+    if (!(yield* walkTo(m, spot[0], spot[1]))) return;
+    let kicks = 0; const best = ri(4, 14); jegi.visible = true;
+    m.act = 'kick'; m.actT = 0;
+    while (kicks < best) {
+      const dt = yield; m.actT += dt; const f = (m.actT % BEAT.kick) / BEAT.kick;
+      jegi.position.set(m.x + Math.sin(m.face) * 0.12, 0.12 + Math.sin(f * Math.PI) * 0.75, m.z + Math.cos(m.face) * 0.12);
+      if (Math.floor(m.actT / BEAT.kick) > kicks) kicks++;
+    }
+    m.act = null; jegi.position.y = 0.02; emote(m, best >= 10 ? 'star' : pick(['exclaim', 'smile']), 1.4); m.hop = 0.3;
+    yield* wait(0.8);
+  } finally { m.act = null; scene.remove(jegi); }
+}
+function* rPetCat(m, c) {
+  m.doing = 'Petting a cat'; m.busy = 'idle';
+  yield* goOut(m);
+  if (!(yield* walkNear(m, tI(c.x), tJ(c.z)))) return;
+  if (Math.hypot(c.x - m.x, c.z - m.z) > 1.3) return;
+  c.petUntil = clock + 4; faceTo(m, c.x, c.z);
+  yield* doAct(m, 'crouch', 3, () => { if (chance(0.5)) worldEmote(c.x, 0.35, c.z, 'heart', 1.2, 0.12); });
+  emote(m, pick(['heart', 'smile']), 1.3);
+}
+let kimjang = null;
+function kimjangTick() {
+  const t = dayT();
+  if (!kimjang && seasonNow() === 2 && (dayN - 1) % SEASON_DAYS === 1 && t > 0.36 && t < 0.5 && meeples.length >= 6) {
+    const g = new THREE.Group(); scene.add(g);
+    for (const [dx, dz] of [[0.78, 0], [-0.78, 0], [0, 0.78], [0, -0.78]]) {
+      part(g, cylG(0.2, 0.16, 0.14, 10), '#9a6a40', FIRE.x + dx, 0, FIRE.z + dz, 0.012); part(g, cylG(0.18, 0.18, 0.02, 10), '#c8342c', FIRE.x + dx, 0.12, FIRE.z + dz);
+      for (let k = 0; k < 3; k++) part(g, new THREE.IcosahedronGeometry(0.045, 0), k % 2 ? '#d9534f' : '#b9e07a', FIRE.x + dx + rr(-0.08, 0.08), 0.15, FIRE.z + dz + rr(-0.08, 0.08));
+    }
+    g.traverse(o => o.castShadow = false);
+    kimjang = { day: dayN, on: true, g, seat: 0 };
+    logEvent('Kimjang day! The whole town salts cabbages around the Hearth.'); toast(`Day ${dayN} · Autumn`, 'Kimjang day!');
+  }
+  if (kimjang && kimjang.on && t > 0.62) {
+    kimjang.on = false; scene.remove(kimjang.g);
+    const jars = Math.ceil(meeples.length * 0.6); stock.food += jars; updPile();
+    logEvent(`Kimjang is done: ${jars} jars of kimchi are buried away for winter.`);
+  }
+  if (kimjang && kimjang.day !== dayN && !kimjang.on) kimjang = null;
+}
+function* rKimjang(m) {
+  const k = kimjang, n = k.seat++, ang = n * 2.39996, r = 1.2 + (n % 3) * 0.3;
+  m.doing = 'Making kimchi for winter'; m.busy = 'work';
+  yield* goOut(m);
+  const px = FIRE.x + Math.cos(ang) * r, pz = FIRE.z + Math.sin(ang) * r;
+  if (!(yield* walkTo(m, tI(px), tJ(pz)))) return;
+  if (openAt(px, pz)) yield* moveTo(m, px, pz, 0.6);
+  while (k.on) {
+    faceTo(m, FIRE.x, FIRE.z);
+    yield* doAct(m, 'roll', rr(2.5, 4), () => { if (chance(0.2)) emit(m.x + Math.sin(m.face) * 0.25, 0.2, m.z + Math.cos(m.face) * 0.25, { n: 2, color: ['#c8342c', '#e0443e', '#b9e07a'], v: 0.3, vy: [0.4, 0.8], size: 0.035, life: [0.3, 0.5] }); });
+    if (chance(0.35)) emote(m, pick(['heart', 'smile', 'chat', 'music']), 1.4);
+  }
+  emote(m, 'star', 1.4); m.hop = 0.3;
+}
+const ring = { day: 0, n: 0, ang: 0 };
+function* rRing(m) {
+  if (ring.day !== dayN) { ring.day = dayN; ring.n = 0; }
+  const slot = ring.n++;
+  m.doing = 'Dancing the ganggangsullae under the full moon'; m.busy = 'idle';
+  yield* goOut(m);
+  const R = 1.18, at = () => [FIRE.x + Math.cos(ring.ang + slot * Math.PI / 6) * R, FIRE.z + Math.sin(ring.ang + slot * Math.PI / 6) * R];
+  let [px, pz] = at();
+  if (!(yield* walkTo(m, tI(px), tJ(pz)))) return;
+  try {
+    while (phase() === 'evening') {
+      const dt = yield; [px, pz] = at();
+      const dx = px - m.x, dz = pz - m.z, d = Math.hypot(dx, dz), sp = Math.min(d, dt * 1.6);
+      if (d > 0.01) { m.x += dx / d * sp; m.z += dz / d * sp; m.moving = true; m.face = Math.atan2(dx, dz); }
+      if (chance(dt * 0.12)) emote(m, pick(['music', 'heart', 'star']), 1.3);
+    }
+  } finally { m.act = null; }
+}
 function* seq(m, g) { yield* g; m.busy = 'idle'; yield* wait(rr(0.15, 0.6)); }
 function nextRoutine(m) {
   const ph = phase(); m.busy = '';
   if (ph === 'night') return rSleep(m);
   if (ph === 'evening') return rEvening(m);
+  if (kimjang && kimjang.on && m.age >= 1 && chance(0.8)) return seq(m, rKimjang(m));
   if (m.age < 1 || ph === 'dawn') return seq(m, pickLeisure(m));
   const j = chance(0.88) ? findWork(m) : null;
   return seq(m, j || pickLeisure(m));
@@ -3017,6 +3155,26 @@ function makeCritter(kind, x, z, home) {
     for (const ez of [-0.04, 0.04]) { part(b, boxG(0.012, 0.012, 0.012), '#1b1426', 0.232, 0.11, ez * 0.5); part(b, boxG(0.014, 0.018, 0.012), '#f6f1e6', 0.205, 0.15, ez); part(b, boxG(0.03, 0.03, 0.02), '#2b2238', 0.13, 0.17, ez * 1.2); }
     for (const lx of [-0.08, 0.08]) for (const lz of [-0.05, 0.05]) part(b, boxG(0.035, 0.06, 0.035), '#2b2238', lx, 0, lz);
     part(b, boxG(0.02, 0.04, 0.02), '#2b2238', -0.14, 0.16, 0).rotation.z = 0.6;
+  } else if (kind === 'magpie') {
+    part(b, boxG(0.12, 0.07, 0.07), '#1b1426', 0, 0.05, 0, 0.01);
+    part(b, boxG(0.07, 0.035, 0.074), '#f6f1e6', 0.005, 0.045, 0); part(b, boxG(0.05, 0.025, 0.076), '#f6f1e6', -0.015, 0.09, 0);
+    part(b, boxG(0.055, 0.05, 0.05), '#1b1426', 0.075, 0.1, 0, 0.01); part(b, boxG(0.03, 0.014, 0.014), '#4a4458', 0.115, 0.1, 0);
+    part(b, boxG(0.13, 0.014, 0.03), '#2b3a6a', -0.12, 0.09, 0).rotation.z = 0.3;
+    for (const sz of [-0.015, 0.015]) part(b, boxG(0.008, 0.04, 0.008), '#4a4458', 0.01, 0.0, sz);
+  } else if (kind === 'cat') {
+    const fur = pick(['#e8a24a', '#8f8c98', '#2b2238', '#f6f1e6', '#c98a4a']), dk = shade(fur, 0.7);
+    part(b, boxG(0.17, 0.07, 0.07), fur, 0, 0.05, 0, 0.01);
+    for (const lx of [-0.055, 0.055]) for (const lz of [-0.022, 0.022]) part(b, boxG(0.022, 0.05, 0.022), dk, lx, 0, lz);
+    part(b, boxG(0.075, 0.07, 0.075), fur, 0.1, 0.09, 0, 0.01);
+    for (const ez of [-0.024, 0.024]) { part(b, boxG(0.022, 0.03, 0.018), dk, 0.095, 0.14, ez); part(b, boxG(0.012, 0.014, 0.012), fur === '#2b2238' ? '#f2c230' : '#1b1426', 0.14, 0.1, ez * 0.8); }
+    const tail = new THREE.Group(); tail.position.set(-0.08, 0.08, 0); b.add(tail);
+    part(tail, boxG(0.018, 0.12, 0.018), dk, 0, 0, 0).rotation.z = 0.35; b.userData.tail = tail;
+  } else if (kind === 'crane') {
+    for (const sz of [-0.02, 0.02]) part(b, boxG(0.012, 0.18, 0.012), '#2b2238', 0, 0, sz);
+    part(b, boxG(0.18, 0.09, 0.09), '#f6f6f2', 0, 0.18, 0, 0.012); part(b, boxG(0.07, 0.07, 0.092), '#1b1426', -0.08, 0.19, 0);
+    part(b, boxG(0.022, 0.18, 0.022), '#2b2238', 0.09, 0.24, 0).rotation.z = -0.25;
+    part(b, boxG(0.05, 0.045, 0.04), '#f6f6f2', 0.13, 0.41, 0, 0.01); part(b, boxG(0.03, 0.014, 0.042), '#e0443e', 0.125, 0.44, 0);
+    part(b, boxG(0.075, 0.014, 0.014), '#8f8a84', 0.18, 0.4, 0);
   } else if (kind === 'dog') {
     const fur = pick(['#c98a4a', '#8a5a2e', '#f1e4cc', '#4a4458', '#e0b070']), dk = shade(fur, 0.72);
     part(b, boxG(0.24, 0.1, 0.11), fur, 0, 0.07, 0, 0.012);
@@ -3037,7 +3195,7 @@ function makeCritter(kind, x, z, home) {
     for (const sz of [-0.03, 0.03]) part(b, boxG(0.015, 0.06, 0.015), '#f2a23a', 0, 0, sz);
   }
   b.traverse(o => o.castShadow = false);
-  const c = { kind, g, b, x, z, tx: x, tz: z, t: rr(0, 3), face: rr(0, 6.28), home, peck: 0, tail: b.userData.tail || null, flee: 0, eggT: rr(40, 120), lure: null, fetch: null };
+  const c = { kind, g, b, x, y: 0, z, tx: x, tz: z, t: rr(0, 3), face: rr(0, 6.28), home, peck: 0, tail: b.userData.tail || null, flee: 0, eggT: rr(40, 120), lure: null, fetch: null, nap: 0, petUntil: 0 };
   g.position.set(x, 0, z); critters.push(c); return c;
 }
 const isDeep = (x, z) => { const i = tI(x), j = tJ(z); return inb(i, j) && ground[id(i, j)] === G_WATER && !bridge[id(i, j)] && DIRS.every(([dx, dz]) => inb(i + dx, j + dz) && ground[id(i + dx, j + dz)] === G_WATER); };
@@ -3064,6 +3222,79 @@ function updLivestock(c, dt, now, night) {
   c.b.scale.y = night ? 0.85 : 1;
   if (chance(dt * 0.02)) worldEmote(c.x, 0.45, c.z, c.kind === 'sheep' ? 'heart' : 'smile', 1.2, 0.12);
 }
+function magpieSpot() {
+  const roofs = buildings.filter(b => b.done && b.roofTop && b.T.cap > 0);
+  if (roofs.length && chance(0.5)) { const b = pick(roofs); return [b.cx + rr(-0.15, 0.15), b.roofTop - 0.06, b.cz + rr(-0.1, 0.1)]; }
+  for (let k = 0; k < 30; k++) { const i = HALF + ri(-9, 9), j = HALF + ri(-9, 9); if (passable(i, j) && ground[id(i, j)] !== G_WATER && reach[id(i, j)]) return [wx(i) + rr(-0.3, 0.3), 0, wz(j) + rr(-0.3, 0.3)]; }
+  return [FIRE.x + 2, 0, FIRE.z + 2];
+}
+function updMagpie(c, dt, now) {
+  c.g.visible = nightF < 0.75; if (!c.g.visible || dt === 0) return;
+  if (c.fly) {
+    const f = c.fly; f.t = Math.min(1, f.t + dt / f.dur);
+    c.x = lerp(f.x0, f.x1, f.t); c.z = lerp(f.z0, f.z1, f.t); c.y = lerp(f.y0, f.y1, f.t) + Math.sin(f.t * Math.PI) * f.arc;
+    c.face = Math.atan2(f.x1 - f.x0, f.z1 - f.z0); c.b.rotation.x = Math.sin(now / 40) * 0.5; c.b.position.y = 0;
+    if (f.t >= 1) { c.fly = null; c.b.rotation.x = 0; c.t = rr(6, 18); }
+  } else {
+    c.t -= dt;
+    const spooked = c.y < 0.05 && meeples.some(m => !m.inside && Math.abs(m.x - c.x) < 0.9 && Math.abs(m.z - c.z) < 0.9);
+    if (c.t <= 0 || spooked) {
+      const [x, y, z] = magpieSpot(), d = Math.hypot(x - c.x, z - c.z);
+      c.fly = { t: 0, dur: clamp(d / 3, 0.6, 3), x0: c.x, y0: c.y, z0: c.z, x1: x, y1: y, z1: z, arc: 0.6 + d * 0.08 };
+      if (spooked && chance(0.4)) worldEmote(c.x, c.y + 0.4, c.z, 'music', 1, 0.15);
+    } else { c.hopT = (c.hopT || 0) - dt; if (c.hopT <= 0) { c.hopT = rr(0.6, 2.4); c.face += rr(-1.2, 1.2); if (c.y < 0.05 && chance(0.5)) c.peck = 0.5; } }
+    c.peck = Math.max(0, c.peck - dt);
+    c.b.rotation.z = c.peck > 0 ? -0.5 : 0; c.b.position.y = c.hopT > 0 && c.hopT < 0.15 ? Math.sin(c.hopT / 0.15 * Math.PI) * 0.04 : 0;
+  }
+  let da = c.face - Math.PI / 2 - c.g.rotation.y; da = Math.atan2(Math.sin(da), Math.cos(da)); c.g.rotation.y += da * Math.min(1, dt * 8);
+  c.g.position.set(c.x, c.y, c.z);
+}
+function catSpot(c) {
+  const homes = buildings.filter(b => b.done && b.T.cap > 0);
+  if (homes.length && chance(0.7)) { const h = pick(homes); return [h.doorWorld.x + rr(-0.25, 0.25), h.doorWorld.z + rr(-0.25, 0.25)]; }
+  const s = grassNear(c, 5); return s ? [wx(s[0]), wz(s[1])] : [c.x, c.z];
+}
+function updCat(c, dt, now) {
+  c.g.visible = true; if (dt === 0) return;
+  const dog = critters.find(d => d.kind === 'dog' && Math.abs(d.x - c.x) < 0.7 && Math.abs(d.z - c.z) < 0.7);
+  if (dog && c.flee <= 0) { c.flee = 1.4; const a = Math.atan2(c.x - dog.x, c.z - dog.z); c.tx = c.x + Math.sin(a) * 1.6; c.tz = c.z + Math.cos(a) * 1.6; c.nap = 0; worldEmote(c.x, 0.35, c.z, 'exclaim', 0.9, 0.1); }
+  c.flee = Math.max(0, c.flee - dt);
+  if (c.petUntil > clock) { c.nap = 0; c.b.scale.y = 1; c.tail.rotation.x = Math.sin(now / 160) * 0.5; return; }
+  let moving = false;
+  if (c.nap > 0) c.nap -= dt;
+  else {
+    const dx = c.tx - c.x, dz = c.tz - c.z, d = Math.hypot(dx, dz);
+    if (d > 0.05) { const sp = Math.min(d, dt * (c.flee > 0 ? 1.8 : 0.35)), nx = c.x + dx / d * sp, nz = c.z + dz / d * sp; if (openAt(nx, nz) || c.flee > 0) { c.x = nx; c.z = nz; moving = true; } else c.tx = c.x; c.face = Math.atan2(dx, dz); }
+    else if ((c.t -= dt) <= 0) { if (chance(0.55)) c.nap = rr(15, 40); else [c.tx, c.tz] = catSpot(c); c.t = rr(2, 6); }
+  }
+  let da = c.face - Math.PI / 2 - c.g.rotation.y; da = Math.atan2(Math.sin(da), Math.cos(da)); c.g.rotation.y += da * Math.min(1, dt * 6);
+  c.g.position.set(c.x, 0, c.z);
+  c.b.scale.y = c.nap > 0 ? 0.62 : 1; c.b.position.y = moving ? Math.abs(Math.sin(now / 90 + c.x)) * 0.015 : 0;
+  c.tail.rotation.x = c.nap > 0 ? 1.1 : Math.sin(now / 600 + c.z) * 0.3;
+  if (c.nap > 0 && nightF < 0.5 && chance(dt * 0.04)) worldEmote(c.x, 0.3, c.z, 'zzz', 1.6, 0.15);
+}
+function updCrane(c, dt, now, night) {
+  const f = c.home; c.g.visible = !f.scrapped && seasonNow() === 1 && !night; if (!c.g.visible || dt === 0) return;
+  const dx = c.tx - c.x, dz = c.tz - c.z, d = Math.hypot(dx, dz);
+  if (d > 0.04) { const sp = Math.min(d, dt * 0.12); c.x += dx / d * sp; c.z += dz / d * sp; c.face = Math.atan2(dx, dz); }
+  if ((c.t -= dt) <= 0) { c.t = rr(4, 10); c.tx = f.cx + rr(-0.7, 0.7); c.tz = f.cz + rr(-0.7, 0.7); if (chance(0.6)) c.peck = rr(1, 2.5); }
+  c.peck = Math.max(0, c.peck - dt);
+  let da = c.face - Math.PI / 2 - c.g.rotation.y; da = Math.atan2(Math.sin(da), Math.cos(da)); c.g.rotation.y += da * Math.min(1, dt * 3);
+  c.g.position.set(c.x, 0.03, c.z); c.b.rotation.z = c.peck > 0 ? -0.55 * Math.abs(Math.sin(c.peck * 3)) : 0;
+}
+function wildlifeTick() {
+  const homes = buildings.filter(b => b.done && b.T.cap > 0).length;
+  if (homes >= 3 && !critters.some(c => c.kind === 'magpie')) {
+    for (let k = 0; k < 2; k++) { const [x, y, z] = magpieSpot(), c = makeCritter('magpie', x, z, null); c.y = y; }
+    logEvent('A pair of magpies settle in Meepleton. Good news is on its way.');
+  }
+  const cats = critters.filter(c => c.kind === 'cat').length;
+  if (cats < Math.min(4, Math.floor(homes / 5)) && chance(0.6)) {
+    const h = pick(buildings.filter(b => b.done && b.T.cap > 0)), c = makeCritter('cat', h.doorWorld.x, h.doorWorld.z, null);
+    c.nap = 0; c.petUntil = 0; logEvent(`A stray cat has made itself at home on <b>${h.street}</b>.`);
+  }
+  for (const f of buildings) if (f.type === 'field' && f.done && f.crop === 'rice' && !f.crane && critters.filter(c => c.kind === 'crane').length < 3) { f.crane = makeCritter('crane', f.cx, f.cz, f); }
+}
 function spawnLivestock(p) {
   for (const kind of ['sheep', 'sheep', 'ox', 'pig', 'pig']) makeCritter(kind, p.cx + rr(-0.6, 0.6), p.cz + rr(-0.6, 0.5), p);
 }
@@ -3075,6 +3306,9 @@ function updCritters(dt, now) {
   const winter = seasonNow() === 3, night = phase() === 'night';
   for (const c of critters) {
     if (c.kind === 'dog') { c.g.visible = true; if (dt > 0) updDog(c, dt, now); continue; }
+    if (c.kind === 'magpie') { updMagpie(c, dt, now); continue; }
+    if (c.kind === 'cat') { updCat(c, dt, now); continue; }
+    if (c.kind === 'crane') { updCrane(c, dt, now, night); continue; }
     const duck = c.kind === 'duck' || c.kind === 'duckling', stock_ = c.kind === 'sheep' || c.kind === 'pig' || c.kind === 'ox';
     c.g.visible = duck ? !winter : !c.home.scrapped;
     if (stock_) { if (c.g.visible && dt > 0) updLivestock(c, dt, now, night); continue; }
@@ -3159,6 +3393,7 @@ function updFestival(dt) {
     logEvent(`Bunting goes up around the Hearth for the <b>${name}</b>!`); toast(`Day ${dayN} · ${SEASON_NAMES[seasonNow()]}`, `The ${name} begins!`);
   }
   flash.intensity = Math.max(0, flash.intensity - dt * 4);
+  ring.ang += dt * 0.32;
   if (on && nightF > 0.45 && dayT() < 0.96) {
     rocketT -= dt;
     if (rocketT <= 0) { rocketT = rr(0.5, 1.6); const a = rr(0, 6.28), r = rr(1.5, 4); rockets.push({ x: FIRE.x + Math.cos(a) * r, y: 0.2, z: FIRE.z + Math.sin(a) * r, vy: rr(5.5, 7), t: rr(0.9, 1.3), c: pick(FW) }); }
@@ -3325,6 +3560,7 @@ function updBuildings(dt, now) {
       if (b.smokeT < 0) { b.smokeT = rr(0.35, 0.7) * [1, 1.6, 1, 0.55][seasonNow()]; b.g.localToWorld(_cw.copy(b.chimney)); emit(_cw.x, _cw.y, _cw.z, { n: 1, color: ['#e8e4ec', '#d4d0da', '#c3bfc9'], v: 0.08, vx: 0.15, vy: [0.35, 0.5], size: 0.11, life: [1.8, 2.6], grav: 0, grow: 2.2, spread: 0.03 }); }
     }
     if (ph === 'night' && b.T.cap > 0 && b.occupants > 0) { b.zzzT -= dt; if (b.zzzT < 0) { b.zzzT = rr(5, 9); worldEmote(b.cx + rr(-.2, .2), (b.roofTop || 1) + 0.25, b.cz, 'zzz', 2.4, 0.4); } }
+    if (b.dry) { b.dry.fruit.visible = groundSeason >= 2; b.dry.chili.visible = groundSeason === 1 || groundSeason === 2; }
     if (b.type === 'field' && Math.floor(b.grow * 40) !== b.growQ) { b.growQ = Math.floor(b.grow * 40); updCrops(b); }
   }
   for (let k = worldEmotes.length - 1; k >= 0; k--) { const e = worldEmotes[k]; e.s.position.y = e.y0 + e.t * e.rise; if (!updEmoteSprite(e, dt)) { dropSprite(e.s); worldEmotes.splice(k, 1); } }
@@ -3723,7 +3959,7 @@ function simStep(dt, now) {
     dayN++; const need = Math.ceil(meeples.length / 3), eat = Math.min(stock.food, need); stock.food -= eat; updPile();
     if (eat < need && !hungryLogged) { hungryLogged = true; logEvent(pick(['The pantry is bare. Tummies rumble across town.', 'Not enough rice to go round this morning.'])); }
     else if (eat >= need) hungryLogged = false;
-    planWedding(); dogTick();
+    planWedding(); dogTick(); wildlifeTick();
     if (seasonNow() !== groundSeason) startSeason(seasonNow());
     else logEvent(pick(['The rooster crows. A new day in Meepleton.', 'Morning mist rolls off the pond.', 'Smoke curls up from the chimneys.', 'Sunrise over the rooftops.']));
   }
@@ -3742,7 +3978,7 @@ function simStep(dt, now) {
     decorTick(2); henTick(2);
     for (let k = stumps.length - 1; k >= 0; k--) { const s = stumps[k]; s.stumpT += 2; const o = occ[id(s.i, s.j)]; if (s.state !== 'stump') { stumps.splice(k, 1); continue; } if (s.stumpT > 80 || o === O_SITE || o === O_BLD) { removeTree(s); stumps.splice(k, 1); } }
   }
-  updTrees(dt); weatherTick(dt); growFields(dt); lampTick(); assignLamplighters(); assignEvening();
+  updTrees(dt); weatherTick(dt); growFields(dt); lampTick(); kimjangTick(); assignLamplighters(); assignEvening();
   for (const r of rocks) if (r.shake > 0) { r.shake -= dt; rockMatrix(r); }
 }
 let last = performance.now(), contextLost = false;

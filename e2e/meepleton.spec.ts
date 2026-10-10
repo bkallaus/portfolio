@@ -277,6 +277,7 @@ test.describe('meepleton under stress', () => {
       const where = () => rest.map((m) => `${m.x.toFixed(2)},${m.z.toFixed(2)}`).join('|');
       const before = { t: window.__mt.dayT(), where: where() };
       window.__mt.step(30);
+      window.__mt.step(0.05);
       return {
         recovered: broken.co !== null,
         clockRan: window.__mt.dayT() > before.t,

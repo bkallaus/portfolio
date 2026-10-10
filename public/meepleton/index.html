@@ -17,6 +17,7 @@
 html,body{height:100%}
 body{margin:0;overflow:hidden;background:var(--night);color:var(--ink);font-family:var(--f-ui)}
 #sky{position:fixed;inset:0;background:linear-gradient(#5aa0e0,#cfe9f7)}
+#rainbow{position:fixed;left:50%;top:6vh;width:130vmin;height:65vmin;transform:translateX(-50%);background:radial-gradient(circle at 50% 100%,transparent 0 60%,#e34b4b 60% 62.5%,#f08a2b 62.5% 65%,#f2c230 65% 67.5%,#7ed957 67.5% 70%,#3f95da 70% 72.5%,#8b5cc7 72.5% 75%,transparent 75%);opacity:0;pointer-events:none;-webkit-mask:linear-gradient(#000 55%,transparent);mask:linear-gradient(#000 55%,transparent)}
 #stars{position:fixed;inset:0;width:100%;height:100%;image-rendering:pixelated;opacity:0;pointer-events:none}
 #moon{position:fixed;left:0;top:0;width:48px;height:48px;image-rendering:pixelated;opacity:0;pointer-events:none;will-change:transform}
 #view{position:fixed;inset:0;width:100%;height:100%;image-rendering:pixelated;display:block;touch-action:none;cursor:grab}
@@ -89,6 +90,7 @@ body{margin:0;overflow:hidden;background:var(--night);color:var(--ink);font-fami
 <body>
 
 <div id="sky"></div>
+<div id="rainbow"></div>
 <canvas id="stars"></canvas>
 <canvas id="moon" width="16" height="16"></canvas>
 <canvas id="view" role="img" aria-label="Meepleton, a pixel-art Korean village building itself"></canvas>
@@ -1421,6 +1423,7 @@ function animMeeple(m, dt) {
   if (m.hop > 0) { m.hop = Math.max(0, m.hop - dt); if (m.act !== 'chat') y += Math.sin(m.hop / 0.3 * Math.PI) * 0.12; }
   if (m.throwT > 0) { m.throwT = Math.max(0, m.throwT - dt); const f = 1 - m.throwT / 0.45; rx += f < 0.45 ? -0.35 * f / 0.45 : 0.45 * Math.sin((f - 0.45) / 0.55 * Math.PI); }
   if (m.sink > 0.01) { y -= 0.3 * m.sink + Math.sin(performance.now() / 500 + m.id) * 0.015 * m.sink; rz *= 1 - m.sink * 0.6; if (m.moving && chance(dt * 3)) emit(m.x, 0.02, m.z, { n: 2, color: ['#cfeaf8', '#ffffff'], v: 0.3, vy: [0.2, 0.5], size: 0.03, life: [0.3, 0.5] }); }
+  if (m.moving && !m.swim && groundSeason === 3 && chance(dt * 0.7)) emit(m.x + Math.sin(m.face) * 0.14, 0.5 * grown, m.z + Math.cos(m.face) * 0.14, { n: 1, color: '#f4f7fa', v: 0.02, vx: Math.sin(m.face) * 0.25, vz: Math.cos(m.face) * 0.25, vy: [0.04, 0.1], size: 0.045, life: [0.5, 0.8], grav: 0, grow: 1.6, spread: 0.01 });
   if (m.glide && m.moving && chance(dt * 4)) emit(m.x, 0.02, m.z, { n: 1, color: '#ffffff', v: 0.2, vy: [0.1, 0.3], size: 0.03, life: [0.3, 0.5] });
   b.position.y = y; b.rotation.set(rx, 0, rz); b.scale.set(grown * (2 - sy) ** 0.5, grown * sy, grown);
   const wantUmb = isRaining() && !m.inside && m.sink < 0.1 && !m.carry && !m.tool && !(m.act && HANDS.has(m.act)) && !m.riding;
@@ -2867,7 +2870,7 @@ const SKY = [
   [0.90, '#0d1030', '#26305e', '#8fa8ff', 0.3, '#3a4a8a', '#1a1f33', 0.34],
   [1.00, '#0d1030', '#26305e', '#8fa8ff', 0.3, '#3a4a8a', '#1a1f33', 0.34],
 ];
-const skyEl = document.getElementById('sky'), starsEl = document.getElementById('stars');
+const skyEl = document.getElementById('sky'), starsEl = document.getElementById('stars'), rainbowEl = document.getElementById('rainbow');
 const cA = new THREE.Color(), cB = new THREE.Color();
 let nightF = 0, skyT = 0;
 function mix(a, b, t) { return '#' + cA.set(a).lerp(cB.set(b), t).getHexString(); }
@@ -2879,7 +2882,8 @@ function updSky(dt) {
   dayLight = sun.intensity; nightF = clamp((0.72 - sun.intensity) / 0.38, 0, 1);
   const gloom = wx_.wet * (wx_.kind === 'snow' ? 0.25 : 0.4);
   sun.intensity *= 1 - gloom; hemi.intensity *= 1 - gloom * 0.4; dayLight = sun.intensity;
-  skyT -= dt; if (skyT <= 0) { skyT = 0.25; const grey = wx_.kind === 'snow' ? '#c9cfd8' : '#7d8794'; skyEl.style.background = `linear-gradient(${mix(mix(A[1], B[1], f), grey, gloom * 1.4 * (1 - nightF))}, ${mix(mix(A[2], B[2], f), grey, gloom * 1.4 * (1 - nightF))})`; starsEl.style.opacity = (nightF * 0.9 * (1 - wx_.wet * 0.8)).toFixed(2); updMoon(); if (nightF > 0.3) twinkle(); }
+  if (boltT > 0) { boltT = Math.max(0, boltT - dt); const b = boltT > 0.2 || (boltT > 0.05 && boltT < 0.12) ? 1 : 0; hemi.intensity += b * 1.4; if (b) { skyEl.style.background = '#e9ecff'; skyT = 0.06; } }
+  skyT -= dt; if (skyT <= 0) { skyT = 0.25; const grey = wx_.kind === 'snow' ? '#c9cfd8' : '#7d8794'; skyEl.style.background = `linear-gradient(${mix(mix(A[1], B[1], f), grey, gloom * 1.4 * (1 - nightF))}, ${mix(mix(A[2], B[2], f), grey, gloom * 1.4 * (1 - nightF))})`; starsEl.style.opacity = (nightF * 0.9 * (1 - wx_.wet * 0.8)).toFixed(2); rainbowEl.style.opacity = (clamp(rainbowT / 12, 0, 1) * (1 - wx_.wet) * (1 - nightF) * 0.6).toFixed(2); updMoon(); if (nightF > 0.3) twinkle(); }
   const a = (t - 0.25) * Math.PI * 2, el = Math.sin(a), s = el >= -0.05 ? a : a + Math.PI;
   sun.position.set(Math.cos(s) * 40, Math.max(18, Math.abs(Math.sin(s)) * 50), 16);
 }
@@ -2941,8 +2945,14 @@ function weatherTick(dt) {
   wx_.t -= dt;
   if (wx_.t <= 0) {
     const se = seasonNow();
-    if (wx_.want === 'clear') { if (chance(WEATHER_ODDS[se])) { wx_.want = se === 3 ? 'snow' : 'rain'; wx_.t = rr(35, 80); logEvent(pick(WEATHER_LINES[wx_.want])); } else wx_.t = rr(40, 90); }
-    else { logEvent(pick(WEATHER_LINES['clear' + wx_.want])); wx_.want = 'clear'; wx_.t = rr(60, 140); }
+    if (wx_.want === 'clear') { if (chance(WEATHER_ODDS[se])) { wx_.want = se === 3 ? 'snow' : 'rain'; wx_.storm = (se === 1 || se === 2) && chance(0.35); thunderLogged = false; wx_.t = rr(35, 80); logEvent(wx_.storm ? 'Thunderheads pile up over the hills. A storm!' : pick(WEATHER_LINES[wx_.want])); } else wx_.t = rr(40, 90); }
+    else { logEvent(pick(WEATHER_LINES['clear' + wx_.want])); if (wx_.want === 'rain' && phase() === 'work') rainbowT = 70; wx_.want = 'clear'; wx_.storm = false; wx_.t = rr(60, 140); }
+  }
+  rainbowT = Math.max(0, rainbowT - dt);
+  if (wx_.storm && wx_.kind === 'rain' && wx_.wet > 0.6 && chance(dt * 0.1)) {
+    boltT = REDUCED ? 0 : 0.3;
+    if (!thunderLogged) { thunderLogged = true; logEvent('Thunder rolls across the island.'); }
+    for (const m of meeples) if (!m.inside && m.age < 1 && chance(0.5)) { emote(m, 'exclaim', 1); m.hop = 0.3; }
   }
   if (wx_.want !== 'clear' && wx_.kind !== wx_.want) { wx_.wet = Math.max(0, wx_.wet - dt / 3); if (wx_.wet === 0) wx_.kind = wx_.want; }
   else wx_.wet = clamp(wx_.wet + (wx_.want === 'clear' ? -dt / 6 : dt / 5), 0, 1);
@@ -3171,7 +3181,80 @@ const fireflies = new THREE.Points(ffGeo, ffMat); fireflies.frustumCulled = fals
 const fishMesh = part(scene, boxG(0.18, 0.08, 0.06), '#f08a2b', 0, 0, 0, 0.015); fishMesh.visible = false;
 part(fishMesh, boxG(0.06, 0.1, 0.02), '#d0701a', -0.11, -0.01, 0);
 let fishT = 4, fishJump = null;
+const pixTex = (rows, pal) => { const c = document.createElement('canvas'); c.width = rows[0].length; c.height = rows.length; const x = c.getContext('2d'); rows.forEach((r, y) => [...r].forEach((ch, X) => { if (ch !== '.') { x.fillStyle = pal[ch]; x.fillRect(X, y, 1, 1); } })); const t = new THREE.CanvasTexture(c); t.magFilter = t.minFilter = THREE.NearestFilter; t.generateMipmaps = false; return t; };
+const FLY = {
+  butterfly: { frames: [['C.K.C', 'CCKCC', '.C.C.'], ['..K..', '.CKC.', '..K..']], cols: ['#ffffff', '#f2c230', '#f08a2b', '#b9a7ff', '#f4a7c4'], size: [0.2, 0.12] },
+  dragonfly: { frames: [['TT...TT', '.TTKTT.', '...K...', '...K...'], ['.......', 'TTTKTTT', '...K...', '...K...']], cols: ['#2fb3a6', '#3f7fd9', '#c8443f'], size: [0.26, 0.15] },
+};
+const flyTexCache = {};
+function flyTex(kind, col, f) { const k = kind + col + f; return flyTexCache[k] || (flyTexCache[k] = pixTex(FLY[kind].frames[f], { C: col, K: '#1b1426', T: '#d8f1ff' })); }
+const flyers = [];
+function flyerAnchor(kind) {
+  if (kind === 'dragonfly') { const s = shoreTiles.length ? pick(shoreTiles) : null; return s ? [wx(s.wi), wz(s.wj)] : null; }
+  const gs = buildings.filter(b => b.done && (b.type === 'garden' || b.type === 'fountain'));
+  if (gs.length && chance(0.6)) { const g = pick(gs); return [g.cx, g.cz]; }
+  for (let k = 0; k < 30; k++) { const i = ri(HALF - 12, HALF + 12), j = ri(HALF - 12, HALF + 12); if (inb(i, j) && ground[id(i, j)] === G_GRASS && !road[id(i, j)]) return [wx(i), wz(j)]; }
+  return null;
+}
+function updFlyers(dt) {
+  if (!flyers.length && shoreTiles.length) for (const [kind, n] of [['butterfly', 7], ['dragonfly', 4]]) for (let k = 0; k < n; k++) {
+    const col = pick(FLY[kind].cols), s = new THREE.Sprite(new THREE.SpriteMaterial({ map: flyTex(kind, col, 0), transparent: true, alphaTest: 0.5 }));
+    s.scale.set(...FLY[kind].size, 1); s.visible = false; scene.add(s);
+    flyers.push({ s, kind, col, x: 0, y: 0.5, z: 0, tx: 0, ty: 0.5, tz: 0, t: 0, f: rr(0, 2), anchor: null, life: 0 });
+  }
+  const se = seasonNow(), day = nightF < 0.4 && !isRaining();
+  for (const b of flyers) {
+    const on = day && (b.kind === 'butterfly' ? se <= 1 : se === 1 || se === 2);
+    if (!on) { b.s.visible = false; b.anchor = null; continue; }
+    if (!b.anchor || (b.life -= dt) < 0) { b.anchor = flyerAnchor(b.kind); b.life = rr(20, 50); if (!b.anchor) { b.s.visible = false; continue; } b.x = b.tx = b.anchor[0]; b.z = b.tz = b.anchor[1]; b.y = b.ty = 0.5; }
+    const dart = b.kind === 'dragonfly';
+    if ((b.t -= dt) <= 0) { b.t = dart ? rr(0.5, 1.8) : rr(0.8, 2.2); const r = dart ? 1.8 : 1.2; b.tx = b.anchor[0] + rr(-r, r); b.tz = b.anchor[1] + rr(-r, r); b.ty = dart ? rr(0.25, 0.6) : rr(0.3, 0.9); }
+    const k = Math.min(1, dt * (dart ? 5 : 1.4));
+    b.x += (b.tx - b.x) * k; b.z += (b.tz - b.z) * k; b.y += (b.ty - b.y) * k;
+    b.f += dt * (dart ? 30 : 9);
+    b.s.visible = true; b.s.material.map = flyTex(b.kind, b.col, Math.floor(b.f) % 2);
+    b.s.position.set(b.x, b.y + (dart ? 0 : Math.sin(b.f * 0.7) * 0.05), b.z);
+  }
+}
+const mistTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 32; const x = c.getContext('2d'); const g = x.createRadialGradient(16, 16, 0, 16, 16, 16); g.addColorStop(0, 'rgba(255,255,255,0.85)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 32, 32); return new THREE.CanvasTexture(c); })();
+const mists = [];
+for (let k = 0; k < 7; k++) { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: mistTex, transparent: true, depthWrite: false, opacity: 0 })); s.scale.set(rr(3.5, 5), rr(1.1, 1.6), 1); s.visible = false; s.renderOrder = 6; scene.add(s); mists.push({ s, ox: rr(-4, 4), oz: rr(-4, 4), v: rr(0.05, 0.15) }); }
+function updMist(dt) {
+  const t = dayT(), se = seasonNow(), dawn = clamp(1 - Math.abs(t - 0.27) / 0.08, 0, 1), f = (se === 0 || se === 2 ? 1 : 0.4) * dawn * (REDUCED ? 0.6 : 1);
+  for (const m of mists) {
+    m.s.visible = f > 0.01; if (!m.s.visible) continue;
+    m.ox += m.v * dt; if (m.ox > 5) m.ox = -5;
+    m.s.position.set(wx(lakeC[0]) + m.ox, 0.35, wz(lakeC[1]) + m.oz); m.s.material.opacity = f * 0.32;
+  }
+}
+const lilies = new THREE.Group(); scene.add(lilies);
+function plantLilies() {
+  const spots = waterTiles.filter(([i, j]) => Math.hypot(i - lakeC[0], j - lakeC[1]) < 6.5 && DIR8.some(([dx, dz]) => inb(i + dx, j + dz) && ground[id(i + dx, j + dz)] !== G_WATER));
+  for (let k = 0; k < Math.min(14, spots.length); k++) {
+    const [i, j] = spots.splice(Math.floor(rnd() * spots.length), 1)[0];
+    for (let n = 0, c = ri(1, 3); n < c; n++) {
+      const x = wx(i) + rr(-0.3, 0.3), z = wz(j) + rr(-0.3, 0.3), r = rr(0.11, 0.17);
+      const pad = part(lilies, cylG(r, r, 0.012, 7), pick(['#4f9d45', '#5aa84a', '#3f8a4a']), x, 0.01, z); pad.castShadow = false;
+      if (chance(0.3)) { part(lilies, new THREE.IcosahedronGeometry(0.04, 0), pick(['#f4a7c4', '#ffffff', '#f7bfd4']), x + 0.02, 0.04, z, 0.008).castShadow = false; part(lilies, boxG(0.015, 0.015, 0.015), '#f2c230', x + 0.02, 0.07, z).castShadow = false; }
+    }
+  }
+  bakeStatic(lilies);
+}
+let frost = 0;
+function updFrost(dt) {
+  const want = seasonNow() === 3 ? 1 : 0; if (Math.abs(want - frost) < 0.004) return;
+  frost = clamp(frost + Math.sign(want - frost) * dt * 0.08, 0, 1);
+  for (const k in roofTexCache) roofTexCache[k].emissive.setRGB(0.5 * frost, 0.53 * frost, 0.58 * frost);
+}
+let rainbowT = 0, boltT = 0, thunderLogged = false;
 function updAmbient(dt, now) {
+  updFlyers(dt); updMist(dt); updFrost(dt); lilies.visible = groundSeason !== 3;
+  if (seasonNow() === 2 && !REDUCED && chance(dt * 7)) for (let k = 0; k < 4; k++) {
+    const t = trees[Math.floor(rnd() * trees.length)];
+    if (!t || t.kind !== 'oak' || t.state !== 'standing' || t.tint < 0.15) continue;
+    emit(t.x, 0.7 * t.sc, t.z, { n: 1, color: AUTUMN, spread: 0.3, v: 0.1, vx: 0.18, vz: 0.1, vy: [-0.18, 0], size: 0.04, life: [2.5, 3.5], grav: 0.15, keep: true });
+    break;
+  }
   if (seasonNow() === 0 && !REDUCED && chance(dt * 9)) for (let k = 0; k < 4; k++) {
     const t = trees[Math.floor(rnd() * trees.length)];
     if (!t || t.kind !== 'oak' || t.state !== 'standing' || t.tint >= 0.72) continue;
@@ -3230,7 +3313,7 @@ function updBuildings(dt, now) {
     if (b.clockH) { const t = dayT() * Math.PI * 4; b.clockH.rotation.z = -t; b.clockM.rotation.z = -t * 12; }
     if (b.chimney && (b.occupants > 0 || (ph === 'evening' && b.residents.length) || b.type === 'tavern' && ph === 'evening' || b.type === 'bakery' && (ph === 'work' || ph === 'dawn'))) {
       b.smokeT -= dt;
-      if (b.smokeT < 0) { b.smokeT = rr(0.35, 0.7); b.g.localToWorld(_cw.copy(b.chimney)); emit(_cw.x, _cw.y, _cw.z, { n: 1, color: ['#e8e4ec', '#d4d0da', '#c3bfc9'], v: 0.08, vx: 0.15, vy: [0.35, 0.5], size: 0.11, life: [1.8, 2.6], grav: 0, grow: 2.2, spread: 0.03 }); }
+      if (b.smokeT < 0) { b.smokeT = rr(0.35, 0.7) * [1, 1.6, 1, 0.55][seasonNow()]; b.g.localToWorld(_cw.copy(b.chimney)); emit(_cw.x, _cw.y, _cw.z, { n: 1, color: ['#e8e4ec', '#d4d0da', '#c3bfc9'], v: 0.08, vx: 0.15, vy: [0.35, 0.5], size: 0.11, life: [1.8, 2.6], grav: 0, grow: 2.2, spread: 0.03 }); }
     }
     if (ph === 'night' && b.T.cap > 0 && b.occupants > 0) { b.zzzT -= dt; if (b.zzzT < 0) { b.zzzT = rr(5, 9); worldEmote(b.cx + rr(-.2, .2), (b.roofTop || 1) + 0.25, b.cz, 'zzz', 2.4, 0.4); } }
     if (b.type === 'field' && Math.floor(b.grow * 40) !== b.growQ) { b.growQ = Math.floor(b.grow * 40); updCrops(b); }
@@ -3568,7 +3651,7 @@ function setupTown() {
     const m = makeMeeple({ x: FIRE.x + Math.cos(ang) * 1.4, z: FIRE.z + Math.sin(ang) * 1.4, role: r, home, color: C.meeple[k] });
     home.residents.push(m);
   });
-  updPile(); computeReach(); spawnDucks();
+  updPile(); computeReach(); spawnDucks(); plantLilies();
   logEvent('Four meeples lit a fire and founded <b>Meepleton</b>.');
 }
 
@@ -3652,7 +3735,7 @@ function fastForward(sec) {
 setupTown(); resize(); updSky(0); setSpeed(1);
 { const warm = hookNum(window.__MEEPLE_WARMUP, 3600); for (let k = 0; k < warm * 20; k++) simStep(0.05, performance.now()); }
 requestAnimationFrame(frame);
-if (window.__MEEPLE_FAST) window.__mt = { renderer, scene, setClock: (d, t) => { dayN = d; clock = (d - 1) * DAY + t * DAY; }, buildHall: () => { const b = createBuilding('hall', HALF + 4, HALF + 3, 0, { i: HALF + 4, j: HALF }, 'Yet-gil', true); b.done = true; }, critters, ground, step: fastForward, planBridge, bridge, road, reach, computeReach, weather: (w) => { wx_.want = w; wx_.t = 999; }, wx: wx_, season: (n) => { dayN = n * SEASON_DAYS + 1; startSeason(seasonNow()); }, camera, select, THREE, nextShot: () => { camTimer = 0; }, astar, accessTile, passable, PILE, quarryTiles, rocks, meeples, buildings, stock, plannedRoads, logLines, trees, phase, dayT, snowmen, leafPiles, forage, eggs, view: (x, z, h, a) => { manualT = 1e9; focusGoal.set(x, 0.3, z); camFocus.copy(focusGoal); halfGoal = camHalf = h; if (a !== undefined) az = a; }, get wedding() { return wedding; }, get tonight() { return tonight; }, get day() { return dayN; } };
+if (window.__MEEPLE_FAST) window.__mt = { renderer, scene, setClock: (d, t) => { dayN = d; clock = (d - 1) * DAY + t * DAY; }, buildHall: () => { const b = createBuilding('hall', HALF + 4, HALF + 3, 0, { i: HALF + 4, j: HALF }, 'Yet-gil', true); b.done = true; }, critters, ground, step: fastForward, planBridge, bridge, road, reach, computeReach, weather: (w) => { wx_.want = w; wx_.t = 999; }, wx: wx_, season: (n) => { dayN = n * SEASON_DAYS + 1; startSeason(seasonNow()); }, camera, select, THREE, nextShot: () => { camTimer = 0; }, astar, accessTile, passable, PILE, quarryTiles, rocks, meeples, buildings, stock, plannedRoads, logLines, trees, phase, dayT, snowmen, leafPiles, forage, eggs, view: (x, z, h, a) => { manualT = 1e9; follow = null; focusGoal.set(x, 0.3, z); camFocus.copy(focusGoal); halfGoal = camHalf = h; if (a !== undefined) az = a; }, get wedding() { return wedding; }, get tonight() { return tonight; }, get day() { return dayN; } };
 })();
 </script>
 

@@ -1605,12 +1605,13 @@ function* rMine(m, r) {
 function* rHaul(m, b, res) {
   m.doing = `Hauling ${res} to the ${b.T.label}`;
   let resHeld = true, pendHeld = true, carrying = false;
+  m.haul = { b, res, reserved: true };
   try {
     yield* goOut(m);
     if (!(yield* walkNear(m, PILE.i, PILE.j))) return;
     faceTo(m, PILE.x, PILE.z); yield* wait(0.3);
     if (stock[res] <= 0) return;
-    stock[res]--; reserved[res]--; resHeld = false; carrying = true; updPile();
+    stock[res]--; reserved[res]--; resHeld = false; m.haul.reserved = false; carrying = true; updPile();
     setCarry(m, res === 'wood' ? 'log' : 'stone'); m.busy = 'work';
     if (b.done || !(yield* walkNear(m, b.i0, b.j0, b.size))) return;
     faceTo(m, b.cx, b.cz); yield* wait(0.3);
@@ -1620,11 +1621,26 @@ function* rHaul(m, b, res) {
     if (resHeld) reserved[res]--;
     if (pendHeld) b.pending[res]--;
     if (carrying) { stock[res]++; updPile(); }
-    setCarry(m, null);
+    setCarry(m, null); m.haul = null;
   }
 }
+function blockerOf(b) {
+  for (const t of b.trees) {
+    if (t.state !== 'standing' || nearReach(t.i, t.j)) continue;
+    for (const [dx, dz] of DIR8) { const k = id(t.i + dx, t.j + dz), o = inb(t.i + dx, t.j + dz) && occ[k] === O_TREE ? occRef[k] : null; if (o && o.state === 'standing' && !o.res && nearReach(o.i, o.j)) return o; }
+  }
+  return null;
+}
+function auditLedger() {
+  const live = meeples.filter(m => m.haul && m.co);
+  for (const res of ['wood', 'stone']) {
+    reserved[res] = live.filter(m => m.haul.res === res && m.haul.reserved).length;
+    for (const b of buildings) if (!b.done) b.pending[res] = live.filter(m => m.haul.b === b && m.haul.res === res).length;
+  }
+  for (const b of buildings) if (!b.done) b.builders = meeples.filter(m => m.co && m.building === b).length;
+}
 function* rBuild(m, b) {
-  m.doing = `Building the ${b.T.label} on ${b.street}`;
+  m.doing = `Building the ${b.T.label} on ${b.street}`; m.building = b;
   try {
     yield* goOut(m);
     if (!(yield* walkNear(m, b.i0, b.j0, b.size))) return;
@@ -1641,7 +1657,7 @@ function* rBuild(m, b) {
       }
       if (b.prog >= 1 && !b.done) { m.tally.build++; finishBuilding(b); emote(m, 'star', 2); m.hop = 0.3; for (const o of meeples) if (o !== m && !o.inside && Math.hypot(o.x - b.cx, o.z - b.cz) < 4) { o.hop = 0.3; if (chance(0.5)) emote(o, pick(['heart', 'smile', 'exclaim'])); } }
     }
-  } finally { m.act = null; b.builders--; setTool(m, null); }
+  } finally { m.act = null; b.builders--; m.building = null; setTool(m, null); }
 }
 function* rPave(m, k) {
   const i = k % N, j = Math.floor(k / N), isBridge = bridge[k] === 1;
@@ -2616,7 +2632,7 @@ function findWork(m) {
       const need = b.T.cost[res] - b.delivered[res] - b.pending[res];
       if (need > 0 && stock[res] - reserved[res] > 0) c.push({ s: 10 + rb('builder') * 0.5 - D(b.cx, b.cz) * 0.05, go: () => { reserved[res]++; b.pending[res]++; return rHaul(m, b, res); } });
     }
-    const t = b.trees.find(t => t.state === 'standing' && !t.res && nearReach(t.i, t.j));
+    const t = b.trees.find(t => t.state === 'standing' && !t.res && nearReach(t.i, t.j)) || blockerOf(b);
     if (t) c.push({ s: 12 + rb('woodcutter') - D(t.x, t.z) * 0.08, go: () => { t.res = m.id; return rChop(m, t); } });
   }
   let bestP = -1, bd = 1e9, bestRT = null, rtd = 1e9;
@@ -3026,6 +3042,7 @@ const countB = t => buildings.filter(b => b.type === t).length;
 function homeCap() { let c = 0; for (const b of buildings) c += b.T.cap; return c; }
 function chooseType() {
   const pop = meeples.length, cap = homeCap();
+  if (stock.food < pop && countB('field') < Math.ceil(pop / 4) + 1 && !buildings.some(b => b.type === 'field' && !b.done)) return 'field';
   if (cap < MAXPOP && (cap < pop + 2 || chance(0.4))) return pop >= 8 && chance(0.45) ? 'house' : 'cottage';
   const o = [];
   if (countB('field') < Math.ceil(pop / 5)) o.push('field');
@@ -3052,6 +3069,13 @@ function scrapSite(b) {
   computeReach();
 }
 function planTick() {
+  auditLedger();
+  for (const b of buildings) {
+    if (b.done) continue;
+    const sig = b.delivered.wood + b.delivered.stone * 100 + Math.round(b.prog * 1000) * 10000 + b.trees.filter(t => t.state === 'standing').length;
+    if (sig !== b.sig || b.builders || b.pending.wood + b.pending.stone) { b.sig = sig; b.stallT = 0; }
+    else if ((b.stallT = (b.stallT || 0) + 3.5) > DAY * 1.2) { scrapSite(b); break; }
+  }
   for (const b of buildings) if (!b.done) { if (nearReach(b.i0, b.j0, b.size)) b.lostT = 0; else if ((b.lostT = (b.lostT || 0) + 3.5) > 30 && b.builders === 0 && b.pending.wood + b.pending.stone === 0) { scrapSite(b); break; } }
   const active = buildings.filter(b => !b.done).length;
   if (plannedRoads.size === 0 && chance(0.2)) planRoad();
@@ -3557,6 +3581,7 @@ function updFestival(dt) {
   if (lanterns.visible) for (const s of lanternGlows) s.material.opacity = nightF * (0.55 + Math.sin(clock * 3 + s.position.x * 5) * 0.08);
   if (on && festivalAnnounced !== dayN) {
     festivalAnnounced = dayN; const name = FESTIVALS[seasonNow()];
+    if (stock.food > meeples.length * 3) { const eat = Math.floor(meeples.length / 2); stock.food -= eat; updPile(); logEvent(`The ${name} feast goes through ${eat} baskets from the overflowing pantry.`); }
     logEvent(`Bunting goes up around the Hearth for the <b>${name}</b>!`); toast(`Day ${dayN} · ${SEASON_NAMES[seasonNow()]}`, `The ${name} begins!`);
   }
   flash.intensity = Math.max(0, flash.intensity - dt * 4);

@@ -136,6 +136,27 @@ nowhere. Projects that live elsewhere (another domain, another repo) are the `pr
 in `public/res_primaryLanguage.json`. Do not list a page from this repo there; give it a
 `sites.json` row instead.
 
+## Analytics
+
+Page views are self-hosted: a Cloudflare Worker in `workers/analytics/` with one SQLite-backed
+Durable Object (`Counter`) that keeps a views-per-path-per-day table and a referrer-host table.
+No cookies, no IPs, no visitor IDs are stored.
+
+- **Counting.** When `ANALYTICS_URL` is set at build time, the `analytics` plugin
+  (`analytics.ts`) adds a one-line `navigator.sendBeacon` to the `<head>` of every HTML file in
+  `dist/`, static `public/` pages included. Unset, nothing is injected, which is why local builds
+  and the e2e suite never call out. `deploy.yml` reads it from the `ANALYTICS_URL` repository
+  variable.
+- **Filtering.** `POST /hit` only counts requests whose `Origin` is `https://<SITE_HOST>` and
+  whose user agent does not look automated (`workers/analytics/src/hit.ts`).
+- **Reading.** `GET /` on the worker is a dashboard; it calls `GET /stats?days=N` with
+  `Authorization: Bearer <STATS_TOKEN>`.
+- **Deploying.** `analytics.yml` deploys the worker on pushes that touch `workers/analytics/`,
+  using the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets. `npm run analytics:dev`
+  runs it locally; put `STATS_TOKEN=...` in `workers/analytics/.dev.vars` (gitignored).
+- The worker has its own `tsconfig.json` for the Workers runtime types; `npm run typecheck`
+  checks both. It still uses the one root `package.json`.
+
 ## Landmines
 
 - **Never commit a `CNAME` outside `public/`.** Only root `public/CNAME` may exist. An apex

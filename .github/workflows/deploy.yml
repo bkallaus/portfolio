@@ -37,6 +37,8 @@ jobs:
 
       - name: Build all apps
         run: npm run build
+        env:
+          ANALYTICS_URL: ${{ vars.ANALYTICS_URL }}
 
       # enablement: true switches the repo's Pages source off the old gh-pages
       # branch to GitHub Actions. Idempotent once set.

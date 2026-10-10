@@ -17,7 +17,7 @@ export default defineConfig({
       {
         test: {
           name: 'repo',
-          include: ['*.test.ts'],
+          include: ['*.test.ts', 'workers/*/src/**/*.test.ts'],
           environment: 'node',
         },
       },

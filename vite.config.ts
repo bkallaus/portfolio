@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite';
 import { existsSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { HUB_SLUG } from './sites.ts';
+import { analytics } from './analytics.ts';
 
 const here = import.meta.dirname;
 const appsDir = path.join(here, 'apps');
@@ -77,7 +78,7 @@ function urlsMatchProduction(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), tailwindcss(), htmlAtUrlSegment(), urlsMatchProduction()],
+  plugins: [react(), tailwindcss(), htmlAtUrlSegment(), urlsMatchProduction(), analytics(process.env.ANALYTICS_URL)],
   build: {
     outDir: 'dist',
     emptyOutDir: true,

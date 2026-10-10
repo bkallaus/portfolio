@@ -38,3 +38,6 @@ packages/nav/dist
 /test-results
 /playwright-report
 /walkthrough
+
+.dev.vars
+.wrangler

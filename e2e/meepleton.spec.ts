@@ -278,6 +278,8 @@ test.describe('meepleton controls', () => {
     const card = page.locator('#card');
     await expect(card).toBeVisible();
     await expect(card).toContainText(name);
+    await expect(card).not.toHaveAttribute('aria-live');
+    await expect(page.locator('#sr')).toContainText(name);
     await page.keyboard.press('Escape');
     await expect(card).toBeHidden();
   });

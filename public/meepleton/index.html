@@ -18,6 +18,7 @@ html,body{height:100%}
 body{margin:0;overflow:hidden;background:var(--night);color:var(--ink);font-family:var(--f-ui)}
 #sky{position:fixed;inset:0;background:linear-gradient(#5aa0e0,#cfe9f7)}
 #stars{position:fixed;inset:0;width:100%;height:100%;image-rendering:pixelated;opacity:0;pointer-events:none}
+#moon{position:fixed;left:0;top:0;width:48px;height:48px;image-rendering:pixelated;opacity:0;pointer-events:none;will-change:transform}
 #view{position:fixed;inset:0;width:100%;height:100%;image-rendering:pixelated;display:block;touch-action:none;cursor:grab}
 #view.dragging{cursor:grabbing}
 .board{position:fixed;background:var(--board);border:3px solid var(--ink);box-shadow:inset 0 0 0 2px var(--board-edge),4px 4px 0 rgba(20,14,30,.55);padding:8px 10px;pointer-events:none}
@@ -89,6 +90,7 @@ body{margin:0;overflow:hidden;background:var(--night);color:var(--ink);font-fami
 
 <div id="sky"></div>
 <canvas id="stars"></canvas>
+<canvas id="moon" width="16" height="16"></canvas>
 <canvas id="view" role="img" aria-label="Meepleton, a pixel-art Korean village building itself"></canvas>
 <div class="board" id="fallback" hidden><h1>Meepleton</h1><p id="fallbackWhy"></p><p>The meeples will wait for you.</p></div>
 <div class="board" id="sign"><h1>Meepleton <span id="rank">Camp</span></h1><div id="clock">Day 1 · 06:00</div><div id="seedRow"><a id="seedLink" title="Permalink to this island">Island #</a><button type="button" id="newTown" title="Found a new island">New island</button></div><div id="stats"></div><div id="ctl" role="group" aria-label="Simulation speed"><button type="button" data-speed="0" aria-label="Pause" title="Pause (Space)">II</button><button type="button" data-speed="1" title="Normal speed (1)">1x</button><button type="button" data-speed="2" title="Double speed (2)">2x</button><button type="button" data-speed="4" title="Fast (3)">4x</button><button type="button" id="helpBtn" title="Controls (?)" aria-label="Show controls" aria-expanded="false" aria-controls="help">?</button><button type="button" id="postcard" title="Save a postcard (P)" aria-label="Save a postcard">Postcard</button></div></div>
@@ -419,7 +421,7 @@ function iconCanvas(name, scale = 2) {
 }
 
 const gcv = document.createElement('canvas'); gcv.width = gcv.height = N * TPX;
-const gx = gcv.getContext('2d');
+const gx = gcv.getContext('2d', { willReadFrequently: true });
 const gtex = new THREE.CanvasTexture(gcv); gtex.magFilter = THREE.NearestFilter; gtex.minFilter = THREE.NearestFilter; gtex.generateMipmaps = false;
 let waterPhase = 0, groundSeason = 0;
 const GP = [
@@ -639,12 +641,12 @@ function paintTree(t, se) {
   TI.b.setColorAt(t.slot, _col.set(hi)); TI.d.setColorAt(t.slot, _col.set(hi));
   for (const k in TI) TI[k].instanceColor.needsUpdate = true;
 }
-const _q2 = new THREE.Quaternion(), _q3 = new THREE.Quaternion(), _ax = new V3(), _up = new V3(0, 1, 0);
+const _q2 = new THREE.Quaternion(), _q3 = new THREE.Quaternion(), _ax = new V3(), _up = new V3(0, 1, 0), _eul = new THREE.Euler();
 function treeMatrix(t) {
   const zero = () => _m4.makeScale(0, 0, 0);
   const s = t.sc * (t.state === 'sapling' ? t.grow : 1);
   _q.setFromAxisAngle(_up, t.rot);
-  if (t.shake > 0) { _q2.setFromEuler(new THREE.Euler(Math.sin(t.shake * 60) * t.shake * 0.25, 0, Math.cos(t.shake * 53) * t.shake * 0.25)); _q.premultiply(_q2); }
+  if (t.shake > 0) { _q2.setFromEuler(_eul.set(Math.sin(t.shake * 60) * t.shake * 0.25, 0, Math.cos(t.shake * 53) * t.shake * 0.25)); _q.premultiply(_q2); }
   if (t.fall > 0) { _ax.set(t.fdz, 0, -t.fdx).normalize(); _q3.setFromAxisAngle(_ax, t.fall * Math.PI / 2 * 0.98); _q.premultiply(_q3); }
   const pos = _v.set(t.x, 0, t.z);
   if (t.state === 'gone') { zero(); for (const k in TI) TI[k].setMatrixAt(t.slot, _m4); }
@@ -693,7 +695,7 @@ function addRock(i, j) {
 }
 function rockMatrix(r) {
   if (r.gone) _m4.makeScale(0, 0, 0);
-  else { const s = r.sc * (0.55 + r.amt * 0.15), jx = r.shake > 0 ? Math.sin(r.shake * 70) * 0.03 : 0; _m4.compose(_v.set(r.x + jx, 0.12 * s, r.z), _q.setFromEuler(new THREE.Euler(0.3, r.rot, 0.2)), _s3.set(s, s * 0.7, s)); }
+  else { const s = r.sc * (0.55 + r.amt * 0.15), jx = r.shake > 0 ? Math.sin(r.shake * 70) * 0.03 : 0; _m4.compose(_v.set(r.x + jx, 0.12 * s, r.z), _q.setFromEuler(_eul.set(0.3, r.rot, 0.2)), _s3.set(s, s * 0.7, s)); }
   rockMesh.setMatrixAt(r.slot, _m4); rockMesh.instanceMatrix.needsUpdate = true;
 }
 function buildQuarry() {
@@ -1340,17 +1342,26 @@ function setCarry(m, c) {
   if (c) { const g = new THREE.Group(); CARRY[c](g); if (c === 'log' || c === 'wheat' || c === 'bindle') g.position.x = c === 'bindle' ? -0.15 : -0.19; m.carryG.add(g); }
 }
 function placeMeeple(m) { m.g.position.set(m.x, 0, m.z); }
+const spritePool = [], CHATTER = new Set(['chat', 'music', 'smile', 'question', 'sun', 'leaf', 'wave', 'drop', 'mug']);
+let liveEmotes = 0;
+function takeSprite(name) {
+  const s = spritePool.pop() || new THREE.Sprite(new THREE.SpriteMaterial({ depthTest: false, transparent: true }));
+  s.material.map = emoteTexture(name); s.renderOrder = 10; s.scale.set(0.001, 0.001, 1); liveEmotes++;
+  return s;
+}
+function dropSprite(s) { if (s.parent) s.parent.remove(s); liveEmotes--; if (spritePool.length < 80) spritePool.push(s); else s.material.dispose(); }
+const crowded = name => CHATTER.has(name) && liveEmotes > 10 + meeples.length * 0.25;
 function emote(m, name, dur = 1.8) {
   if (m.inside) return worldEmote(m.inside.cx, (m.inside.roofTop || 1) + 0.3, m.inside.cz, name, dur);
-  for (const e of m.emotes) { m.g.remove(e.s); e.s.material.dispose(); } m.emotes.length = 0;
-  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: emoteTexture(name), depthTest: false, transparent: true }));
-  s.renderOrder = 10; s.position.y = 0.95; s.scale.set(0.001, 0.001, 1); m.g.add(s);
+  if (crowded(name)) return;
+  for (const e of m.emotes) dropSprite(e.s); m.emotes.length = 0;
+  const s = takeSprite(name); s.position.set(0, 0.95, 0); m.g.add(s);
   m.emotes.push({ s, t: 0, dur });
 }
 const worldEmotes = [];
 function worldEmote(x, y, z, name, dur = 2.2, rise = 0.25) {
-  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: emoteTexture(name), depthTest: false, transparent: true }));
-  s.renderOrder = 10; s.position.set(x, y, z); s.scale.set(0.001, 0.001, 1); scene.add(s);
+  if (crowded(name)) return;
+  const s = takeSprite(name); s.position.set(x, y, z); scene.add(s);
   worldEmotes.push({ s, t: 0, dur, y0: y, rise });
 }
 function updEmoteSprite(e, dt, sz = 0.36) {
@@ -1418,7 +1429,7 @@ function animMeeple(m, dt) {
   if (!m.act || m.act === 'chat' || m.act === 'dance') { m.toolPiv.rotation.x *= 0.8; }
   m.blinkT -= dt; const bl = m.blinkT < 0.12 ? 0.15 : 1; if (m.blinkT < 0) m.blinkT = rr(2, 5);
   m.eyes[0].scale.y = m.eyes[1].scale.y = bl;
-  for (let k = m.emotes.length - 1; k >= 0; k--) { const e = m.emotes[k]; e.s.position.y = 0.95 * grown + 0.1; if (!updEmoteSprite(e, dt)) { m.g.remove(e.s); e.s.material.dispose(); m.emotes.splice(k, 1); } }
+  for (let k = m.emotes.length - 1; k >= 0; k--) { const e = m.emotes[k]; e.s.position.y = 0.95 * grown + 0.1; if (!updEmoteSprite(e, dt)) { dropSprite(e.s); m.emotes.splice(k, 1); } }
 }
 
 const DAY = 160, SEASON_DAYS = 3; let clock = DAY * 0.3, dayN = 1;
@@ -2747,7 +2758,7 @@ function scrapSite(b) {
   stock.wood += b.delivered.wood; stock.stone += b.delivered.stone; updPile();
   for (let a = 0; a < b.size; a++) for (let c = 0; c < b.size; c++) { const k = id(b.i0 + a, b.j0 + c); occ[k] = O_NONE; occRef[k] = null; }
   for (const t of b.trees) if (t.state === 'standing' || t.state === 'sapling') { occ[id(t.i, t.j)] = O_TREE; occRef[id(t.i, t.j)] = t; t.marked = false; if (t.markSprite) { scene.remove(t.markSprite); t.markSprite = null; } }
-  for (const o of [b.icon, b.barBg, b.barFg]) if (o) scene.remove(o);
+  for (const o of [b.icon, b.barBg, b.barFg]) if (o) { scene.remove(o); o.material.dispose(); }
   scene.remove(b.g); buildings.splice(buildings.indexOf(b), 1); b.done = true; b.scrapped = true;
   logEvent(`Plans for the ${b.T.label} on <b>${b.street}</b> were scrapped.`);
   computeReach();
@@ -2868,14 +2879,49 @@ function updSky(dt) {
   dayLight = sun.intensity; nightF = clamp((0.72 - sun.intensity) / 0.38, 0, 1);
   const gloom = wx_.wet * (wx_.kind === 'snow' ? 0.25 : 0.4);
   sun.intensity *= 1 - gloom; hemi.intensity *= 1 - gloom * 0.4; dayLight = sun.intensity;
-  skyT -= dt; if (skyT <= 0) { skyT = 0.25; const grey = wx_.kind === 'snow' ? '#c9cfd8' : '#7d8794'; skyEl.style.background = `linear-gradient(${mix(mix(A[1], B[1], f), grey, gloom * 1.4 * (1 - nightF))}, ${mix(mix(A[2], B[2], f), grey, gloom * 1.4 * (1 - nightF))})`; starsEl.style.opacity = (nightF * 0.9 * (1 - wx_.wet * 0.8)).toFixed(2); }
+  skyT -= dt; if (skyT <= 0) { skyT = 0.25; const grey = wx_.kind === 'snow' ? '#c9cfd8' : '#7d8794'; skyEl.style.background = `linear-gradient(${mix(mix(A[1], B[1], f), grey, gloom * 1.4 * (1 - nightF))}, ${mix(mix(A[2], B[2], f), grey, gloom * 1.4 * (1 - nightF))})`; starsEl.style.opacity = (nightF * 0.9 * (1 - wx_.wet * 0.8)).toFixed(2); updMoon(); if (nightF > 0.3) twinkle(); }
   const a = (t - 0.25) * Math.PI * 2, el = Math.sin(a), s = el >= -0.05 ? a : a + Math.PI;
   sun.position.set(Math.cos(s) * 40, Math.max(18, Math.abs(Math.sin(s)) * 50), 16);
 }
+const STAR_TONES = ['#ffffff', '#fff4c8', '#cfe0ff'], starList = [];
 function drawStars() {
   starsEl.width = Math.ceil(innerWidth / 3); starsEl.height = Math.ceil(innerHeight / 3);
-  const x = starsEl.getContext('2d'); x.clearRect(0, 0, starsEl.width, starsEl.height);
-  for (let k = 0; k < starsEl.width * starsEl.height / 180; k++) { x.fillStyle = pick(['#ffffff', '#fff4c8', '#cfe0ff']); const X = Math.floor(rnd() * starsEl.width), Y = Math.floor(rnd() * starsEl.height * 0.8); x.fillRect(X, Y, 1, 1); if (chance(0.06)) { x.fillRect(X - 1, Y, 3, 1); x.fillRect(X, Y - 1, 1, 3); } }
+  const x = starsEl.getContext('2d'); x.clearRect(0, 0, starsEl.width, starsEl.height); starList.length = 0;
+  for (let k = 0; k < starsEl.width * starsEl.height / 180; k++) {
+    const c = STAR_TONES[Math.floor(Math.random() * 3)], X = Math.floor(Math.random() * starsEl.width), Y = Math.floor(Math.random() * starsEl.height * 0.8);
+    x.fillStyle = c; x.fillRect(X, Y, 1, 1);
+    if (Math.random() < 0.06) { x.fillRect(X - 1, Y, 3, 1); x.fillRect(X, Y - 1, 1, 3); } else starList.push([X, Y, c]);
+  }
+}
+function twinkle() {
+  if (REDUCED || !starList.length) return;
+  const x = starsEl.getContext('2d');
+  for (let k = 0; k < 6; k++) { const s = starList[Math.floor(Math.random() * starList.length)]; x.fillStyle = Math.random() < 0.4 ? '#5d6390' : s[2]; x.fillRect(s[0], s[1], 1, 1); }
+}
+const moonEl = document.getElementById('moon'), moonCtx = moonEl.getContext('2d');
+let moonPhase = -1;
+function drawMoon(ph) {
+  moonPhase = ph; const x = moonCtx; x.clearRect(0, 0, 16, 16);
+  x.globalCompositeOperation = 'source-over';
+  for (let j = 0; j < 16; j++) for (let i = 0; i < 16; i++) { const d = Math.hypot(i - 7.5, j - 7.5); if (d < 6.6) { x.fillStyle = d > 5.6 ? '#e6dcb4' : '#f8f2d6'; x.fillRect(i, j, 1, 1); } }
+  x.fillStyle = '#ddd2a8'; for (const [i, j, w] of [[5, 5, 2], [9, 8, 3], [6, 10, 1], [10, 4, 1]]) x.fillRect(i, j, w, w);
+  if (ph === 4) return;
+  const off = ph < 4 ? ph * 3.3 : -(8 - ph) * 3.3;
+  x.globalCompositeOperation = 'destination-out'; x.fillStyle = '#000';
+  for (let j = 0; j < 16; j++) for (let i = 0; i < 16; i++) if (Math.hypot(i - 7.5 + off, j - 7.5) < 6.9) x.fillRect(i, j, 1, 1);
+  x.globalCompositeOperation = 'source-over';
+}
+const harvestMoon = () => seasonNow() === 2 && festivalDay();
+let moonPos = { x: 0, y: 0 };
+function updMoon() {
+  const ph = harvestMoon() ? 4 : (dayN + 3) % 8;
+  if (ph !== moonPhase) drawMoon(ph);
+  const t = ((dayT() - 0.78 + 1) % 1) / 0.52, vis = t >= 0 && t <= 1 ? nightF * (1 - wx_.wet * 0.9) : 0;
+  moonEl.style.opacity = vis.toFixed(2);
+  if (vis <= 0) return;
+  const big = harvestMoon() ? 1.6 : 1;
+  moonPos = { x: innerWidth * (0.92 - t * 0.6), y: innerHeight * (0.24 - Math.sin(t * Math.PI) * 0.14), s: big };
+  moonEl.style.transform = `translate(${(moonPos.x - 24).toFixed(0)}px, ${(moonPos.y - 24).toFixed(0)}px) scale(${big})`;
 }
 const PRECIP = 900;
 const rainPos = new Float32Array(PRECIP * 6), rainGeo = new THREE.BufferGeometry();
@@ -3189,7 +3235,7 @@ function updBuildings(dt, now) {
     if (ph === 'night' && b.T.cap > 0 && b.occupants > 0) { b.zzzT -= dt; if (b.zzzT < 0) { b.zzzT = rr(5, 9); worldEmote(b.cx + rr(-.2, .2), (b.roofTop || 1) + 0.25, b.cz, 'zzz', 2.4, 0.4); } }
     if (b.type === 'field' && Math.floor(b.grow * 40) !== b.growQ) { b.growQ = Math.floor(b.grow * 40); updCrops(b); }
   }
-  for (let k = worldEmotes.length - 1; k >= 0; k--) { const e = worldEmotes[k]; e.s.position.y = e.y0 + e.t * e.rise; if (!updEmoteSprite(e, dt)) { scene.remove(e.s); e.s.material.dispose(); worldEmotes.splice(k, 1); } }
+  for (let k = worldEmotes.length - 1; k >= 0; k--) { const e = worldEmotes[k]; e.s.position.y = e.y0 + e.t * e.rise; if (!updEmoteSprite(e, dt)) { dropSprite(e.s); worldEmotes.splice(k, 1); } }
   const fl = 0.85 + Math.sin(now / 90) * 0.1 + Math.sin(now / 37) * 0.06;
   flame1.scale.set(fl, fl * (1 + nightF * 0.2), fl); flame2.scale.set(2 - fl, fl * 1.1, 2 - fl); flame1.rotation.y += dt * 2;
   fireLight.intensity = (nightF * 1.6 + (ph === 'evening' ? 0.5 : 0)) * fl;
@@ -3407,9 +3453,18 @@ function logEvent(html) {
 const RANKS = [[0, 'Camp'], [6, 'Hamlet'], [14, 'Village'], [30, 'Town'], [50, 'Market Town']];
 let rankIdx = 0, toastTimer = 0, fullLogged = false;
 const rankEl = document.getElementById('rank'), toastEl = document.getElementById('toast');
-function toast(kicker, text) {
+const toastQ = [];
+function toast(kicker, text, urgent) {
+  if (urgent || (!toastEl.classList.contains('on') && !toastQ.length)) showToast(kicker, text);
+  else if (toastQ.length < 4 && !toastQ.some(q => q[1] === text)) toastQ.push([kicker, text]);
+}
+function showToast(kicker, text) {
   toastEl.innerHTML = `<small>${esc(kicker)}</small>${esc(text)}`; toastEl.classList.add('on');
-  clearTimeout(toastTimer); toastTimer = setTimeout(() => toastEl.classList.remove('on'), 4500);
+  clearTimeout(toastTimer); toastTimer = setTimeout(hideToast, 4500);
+}
+function hideToast() {
+  toastEl.classList.remove('on');
+  if (toastQ.length) toastTimer = setTimeout(() => showToast(...toastQ.shift()), 700);
 }
 function celebrate() {
   for (let k = 0; k < 4; k++) emit(FIRE.x + rr(-1.5, 1.5), 2 + k * 0.4, FIRE.z + rr(-1.5, 1.5), { n: 35, color: ['#e34b4b', '#f2c230', '#3f7fd9', '#49a84f', '#ffffff', '#ef7fb0'], v: 2, vy: [1.5, 3.5], size: 0.07, life: [1.2, 2], grav: 3, glow: true, drag: 1.2 });
@@ -3439,7 +3494,7 @@ function drawPostcard() {
   x.fillStyle = '#f4e6c4'; x.fillRect(0, 0, c.width, c.height);
   const grad = x.createLinearGradient(0, pad, 0, pad + h), stops = (skyEl.style.background.match(/rgb\([^)]+\)|#[0-9a-f]{6}/gi) || ['#5aa0e0', '#cfe9f7']);
   grad.addColorStop(0, stops[0]); grad.addColorStop(1, stops[stops.length - 1]); x.fillStyle = grad; x.fillRect(pad, pad, w, h);
-  if (nightF > 0.05) { x.globalAlpha = nightF * 0.9; x.imageSmoothingEnabled = false; x.drawImage(starsEl, pad, pad, w, h); x.globalAlpha = 1; }
+  if (nightF > 0.05) { x.globalAlpha = nightF * 0.9; x.imageSmoothingEnabled = false; x.drawImage(starsEl, pad, pad, w, h); x.globalAlpha = Number(moonEl.style.opacity) || 0; const ms = 48 * (moonPos.s || 1) * w / innerWidth; x.drawImage(moonEl, pad + moonPos.x * w / innerWidth - ms / 2, pad + moonPos.y * h / innerHeight - ms / 2, ms, ms); x.globalAlpha = 1; }
   x.imageSmoothingEnabled = false; x.drawImage(src, pad, pad, w, h);
   x.strokeStyle = '#1b1426'; x.lineWidth = Math.max(3, scale * 2); x.strokeRect(pad, pad, w, h);
   const fs = Math.round(foot * 0.42);
@@ -3448,7 +3503,7 @@ function drawPostcard() {
   x.font = `${Math.round(fs * 0.55)}px "Silkscreen", monospace`; x.fillStyle = '#6d5a48'; x.textAlign = 'right';
   x.fillText(`Day ${dayN} · ${SEASON_NAMES[seasonNow()]} · ${RANKS[rankIdx][1]} of ${meeples.length} · Island #${SEED}`, pad + w, pad * 1.5 + h + foot / 2);
   c.toBlob(b => { postcardBusy = false; if (!b) return; const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `meepleton-${SEED}-day-${dayN}.png`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }, 'image/png');
-  toast('Postcard saved', `Greetings from day ${dayN}!`);
+  toast('Postcard saved', `Greetings from day ${dayN}!`, true);
 }
 document.getElementById('postcard').addEventListener('click', savePostcard);
 const helpEl = document.getElementById('help'), helpBtn = document.getElementById('helpBtn'), logBox = document.getElementById('log'), logToggle = document.getElementById('logToggle');
@@ -3570,8 +3625,8 @@ function simStep(dt, now) {
   for (const r of rocks) if (r.shake > 0) { r.shake -= dt; rockMatrix(r); }
 }
 let last = performance.now(), contextLost = false;
-canvasEl.addEventListener('webglcontextlost', e => { e.preventDefault(); contextLost = true; toast('Graphics paused', 'The browser took the canvas away. The village carries on.'); });
-canvasEl.addEventListener('webglcontextrestored', () => { contextLost = false; gtex.needsUpdate = true; resize(); toast('Graphics back', 'The island is drawn again.'); });
+canvasEl.addEventListener('webglcontextlost', e => { e.preventDefault(); contextLost = true; toast('Graphics paused', 'The browser took the canvas away. The village carries on.', true); });
+canvasEl.addEventListener('webglcontextrestored', () => { contextLost = false; gtex.needsUpdate = true; resize(); toast('Graphics back', 'The island is drawn again.', true); });
 function frame(now) {
   requestAnimationFrame(frame);
   try { tick(now); } catch (e) { report('a frame', e); }
@@ -3580,16 +3635,24 @@ function tick(now) {
   const raw = clamp((now - last) / 1000, 0, 0.05); last = now;
   const dt = raw * SPEED * simSpeed, steps = Math.max(1, Math.ceil(dt / 0.05)), sdt = dt / steps;
   for (let s = 0; s < steps; s++) simStep(sdt, now);
+  animateWorld(dt, raw, now);
+  if (!contextLost) renderer.render(scene, camera);
+}
+function animateWorld(dt, raw, now) {
   for (const m of meeples) animMeeple(m, dt);
   updSeasonSweep(); updPrecip(dt); updCritters(dt, now); updFestival(dt); updParticles(dt); updSky(dt); updBuildings(dt, now); updAmbient(dt, now); updCamera(raw); updSelection(raw);
   waterT -= raw; if (waterT <= 0) { waterT = 0.45; waterPhase = (waterPhase + 1) % 8; for (const [i, j] of waterTiles) drawTile(i, j); gtex.needsUpdate = true; }
   hudT -= raw; if (hudT <= 0) { hudT = 0.5; updHUD(); }
-  if (!contextLost) renderer.render(scene, camera);
+}
+function fastForward(sec) {
+  const t0 = performance.now();
+  for (let k = 1; k <= sec * 20; k++) { simStep(0.05, t0 + k * 50); if (k % 5 === 0) animateWorld(0.25, 0.25, t0 + k * 50); }
+  updHUD();
 }
 setupTown(); resize(); updSky(0); setSpeed(1);
 { const warm = hookNum(window.__MEEPLE_WARMUP, 3600); for (let k = 0; k < warm * 20; k++) simStep(0.05, performance.now()); }
 requestAnimationFrame(frame);
-if (window.__MEEPLE_FAST) window.__mt = { renderer, scene, setClock: (d, t) => { dayN = d; clock = (d - 1) * DAY + t * DAY; }, buildHall: () => { const b = createBuilding('hall', HALF + 4, HALF + 3, 0, { i: HALF + 4, j: HALF }, 'Yet-gil', true); b.done = true; }, critters, ground, step: (sec) => { for (let k = 0; k < sec * 20; k++) simStep(0.05, performance.now()); }, planBridge, bridge, road, reach, computeReach, weather: (w) => { wx_.want = w; wx_.t = 999; }, wx: wx_, season: (n) => { dayN = n * SEASON_DAYS + 1; startSeason(seasonNow()); }, camera, select, THREE, nextShot: () => { camTimer = 0; }, astar, accessTile, passable, PILE, quarryTiles, rocks, meeples, buildings, stock, plannedRoads, logLines, trees, phase, dayT, snowmen, leafPiles, forage, eggs, view: (x, z, h, a) => { manualT = 1e9; focusGoal.set(x, 0.3, z); camFocus.copy(focusGoal); halfGoal = camHalf = h; if (a !== undefined) az = a; }, get wedding() { return wedding; }, get tonight() { return tonight; }, get day() { return dayN; } };
+if (window.__MEEPLE_FAST) window.__mt = { renderer, scene, setClock: (d, t) => { dayN = d; clock = (d - 1) * DAY + t * DAY; }, buildHall: () => { const b = createBuilding('hall', HALF + 4, HALF + 3, 0, { i: HALF + 4, j: HALF }, 'Yet-gil', true); b.done = true; }, critters, ground, step: fastForward, planBridge, bridge, road, reach, computeReach, weather: (w) => { wx_.want = w; wx_.t = 999; }, wx: wx_, season: (n) => { dayN = n * SEASON_DAYS + 1; startSeason(seasonNow()); }, camera, select, THREE, nextShot: () => { camTimer = 0; }, astar, accessTile, passable, PILE, quarryTiles, rocks, meeples, buildings, stock, plannedRoads, logLines, trees, phase, dayT, snowmen, leafPiles, forage, eggs, view: (x, z, h, a) => { manualT = 1e9; focusGoal.set(x, 0.3, z); camFocus.copy(focusGoal); halfGoal = camHalf = h; if (a !== undefined) az = a; }, get wedding() { return wedding; }, get tonight() { return tonight; }, get day() { return dayN; } };
 })();
 </script>
 

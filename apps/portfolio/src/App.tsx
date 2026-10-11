@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Analytics } from "@vercel/analytics/react";
 import Navbar from "./components/Navbar";
 import Hero from "./components/Hero";
 import Seniority from "./components/Seniority";
@@ -68,6 +69,7 @@ export const App = () => {
         />
       </main>
       <Footer sharedBasicInfo={sharedData.basic_info} />
+      <Analytics />
     </div>
   );
 }

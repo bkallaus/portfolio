@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite';
 import { existsSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { HUB_SLUG } from './sites.ts';
+import { cloudflareWebAnalytics } from './cloudflare-analytics.ts';
 
 const here = import.meta.dirname;
 const appsDir = path.join(here, 'apps');
@@ -77,7 +78,13 @@ function urlsMatchProduction(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), tailwindcss(), htmlAtUrlSegment(), urlsMatchProduction()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    htmlAtUrlSegment(),
+    urlsMatchProduction(),
+    cloudflareWebAnalytics(process.env.CF_WEB_ANALYTICS_TOKEN),
+  ],
   build: {
     outDir: 'dist',
     emptyOutDir: true,

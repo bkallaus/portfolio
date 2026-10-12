@@ -9,6 +9,9 @@ import {
   milVP, score,
 } from "./engine.ts";
 import type { Age, Card, Cost, GameState, ScoreBreakdown } from "./engine.ts";
+import { ageTint as tintFor, CardArt, Capital, Crest, Icon, Laurel, LobbyScene, PLAYER, Pawn, TokenDisc, WonderArt, describeCard } from "./art.tsx";
+import { diffEvents } from "./fx.ts";
+import type { Fx } from "./fx.ts";
 import { loadPeer, quickHost, quickJoin, manualHost, manualJoin, unpack } from "./net.ts";
 import type { Handlers, Link, PeerInstance, Role } from "./net.ts";
 
@@ -85,14 +88,14 @@ const Shield = ({ n }: { n: number }) => (
   </span>
 );
 
-const VP = ({ n }: { n: number }) => (
+const VP = ({ n, size = 17 }: { n: number; size?: number }) => (
   <span title={`${n} victory points`} style={{
-    width: 17, height: 17, borderRadius: 3,
+    width: size, height: size, borderRadius: "50%",
     background: `linear-gradient(180deg, ${shade(CARDCOL.blue, 10)}, ${shade(CARDCOL.blue, -12)})`,
     boxShadow: `0 0 0 1px ${shade(CARDCOL.blue, -26)}, 0 1px 1px rgba(0,0,0,.4)`,
     color: "#fff", textShadow: "0 1px 1px rgba(0,0,0,.4)",
-    fontSize: 11, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center",
-    flex: "0 0 auto",
+    fontSize: size * 0.64, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center",
+    flex: "0 0 auto", outline: `1.5px dotted ${shade(CARDCOL.blue, 30)}`, outlineOffset: -4,
   }}>{n}</span>
 );
 
@@ -109,8 +112,8 @@ function CostRow({ cost, size = 12 }: { cost: Cost; size?: number }) {
 /* ============================================================
    CARD FACES
    ============================================================ */
-/* Card banner height. Fixed, because the cost badge is positioned under it. */
-const HEAD = 24;
+const ROMAN = ["", "I", "II", "III"];
+const coinsText = (n: number): string => `${n} coin${Math.abs(n) === 1 ? "" : "s"}`;
 
 interface CardFaceProps {
   card: Card;
@@ -119,353 +122,316 @@ interface CardFaceProps {
   dim?: boolean;
   onClick?: () => void;
   cost?: { total: number; chained: boolean; affordable: boolean } | null;
+  delay?: number;
 }
 
-function CardIllustration({ card, size = 22 }: { card: Card; size?: number }) {
-  const col = CARDCOL[card.color];
-  const stroke = shade(col, -35);
-  const fill = shade(col, 18);
-
-  let content = null;
-  switch (card.id) {
-    case "lumber_yard":
-    case "logging_camp":
-    case "sawmill":
-      content = (
-        <g stroke={stroke} strokeWidth="1.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M4 18h16M4 14h16M4 10h16" />
-          <path d="M6 8l2-4h8l2 4" />
-          <circle cx="6" cy="18" r="1.5" fill={fill} />
-          <circle cx="18" cy="18" r="1.5" fill={fill} />
-          <circle cx="6" cy="14" r="1.5" fill={fill} />
-          <circle cx="18" cy="14" r="1.5" fill={fill} />
-        </g>
-      );
-      break;
-    case "clay_pool":
-    case "clay_pit":
-    case "brickyard":
-      content = (
-        <g stroke={stroke} strokeWidth="1.2" fill={fill} strokeLinecap="round" strokeLinejoin="round">
-          <rect x="3" y="5" width="8" height="5" rx="1" />
-          <rect x="13" y="5" width="8" height="5" rx="1" />
-          <rect x="8" y="11" width="8" height="5" rx="1" />
-          <rect x="3" y="17" width="8" height="5" rx="1" />
-          <rect x="13" y="17" width="8" height="5" rx="1" />
-        </g>
-      );
-      break;
-    case "quarry":
-    case "stone_pit":
-    case "shelf_quarry":
-      content = (
-        <g stroke={stroke} strokeWidth="1.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M3 19l5-10 4 4 4-7 5 13H3z" fill={fill} />
-          <path d="M14 6l3 3m-10 1l-2 2" />
-        </g>
-      );
-      break;
-    case "glassworks":
-    case "glassblower":
-      content = (
-        <g stroke={stroke} strokeWidth="1.2" fill={fill} strokeLinecap="round" strokeLinejoin="round">
-          <path d="M8 4h8l-3 7v5l3 2v2H8v-2l3-2v-5L8 4z" />
-          <path d="M9 7h6" />
-        </g>
-      );
-      break;
-    case "press":
-    case "drying_room":
-      content = (
-        <g stroke={stroke} strokeWidth="1.2" fill={fill} strokeLinecap="round" strokeLinejoin="round">
-          <path d="M6 19c0 1.5 1.5 2 3 2h9c1.5 0 2-.8 2-2V5c0-1.5-.5-2-2-2H9C7.5 3 6 4 6 5.5V19z" />
-          <path d="M6 19c0-1.5 1.5-2 3-2h11" />
-          <path d="M10 7h6M10 11h6M10 15h4" />
-        </g>
-      );
-      break;
-    case "guard_tower":
-    case "garrison":
-    case "palisade":
-    case "fort":
-    case "fortifications":
-    case "walls":
-    case "barracks":
-    case "arsenal":
-      content = (
-        <g stroke={stroke} strokeWidth="1.2" fill={fill} strokeLinecap="round" strokeLinejoin="round">
-          <path d="M5 20V9l3-2 4 2 4-2 3 2v11H5z" />
-          <path d="M5 9h14M9 13h6v7H9v-7z" />
-          <path d="M7 5v2M12 5v2M17 5v2" />
-        </g>
-      );
-      break;
-    case "stable":
-    case "horse_breeders":
-    case "archery_range":
-    case "siege_workshop":
-    case "circus":
-      content = (
-        <g stroke={stroke} strokeWidth="1.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M5 5l14 14M19 5L5 19" />
-          <path d="M5 9V5h4M19 15v4h-4M15 5h4v4M9 19H5v-4" />
-        </g>
-      );
-      break;
-    case "altar":
-    case "baths":
-    case "theater":
-    case "aqueduct":
-    case "temple":
-    case "statue":
-    case "rostrum":
-    case "courthouse":
-    case "pantheon":
-    case "gardens":
-    case "senate":
-    case "town_hall":
-    case "obelisk":
-    case "palace":
-    case "sanctuary":
-      content = (
-        <g stroke={stroke} strokeWidth="1.2" fill={fill} strokeLinecap="round" strokeLinejoin="round">
-          <path d="M3 20h18M4 17h16M12 3L3 8h18L12 3z" />
-          <path d="M6 8v9M10 8v9M14 8v9M18 8v9" />
-        </g>
-      );
-      break;
-    case "apothecary":
-    case "workshop":
-    case "scriptorium":
-    case "pharmacist":
-    case "dispensary":
-    case "laboratory":
-    case "library":
-    case "school":
-    case "academy":
-    case "study":
-    case "university":
-    case "observatory":
-      content = (
-        <g stroke={stroke} strokeWidth="1.2" fill={fill} strokeLinecap="round" strokeLinejoin="round">
-          <path d="M10 3h4v4l4 8a2 2 0 0 1-2 3H8a2 2 0 0 1-2-3l4-8V3z" />
-          <path d="M9 3h6M8 12h8" />
-          <circle cx="11" cy="15" r="1" />
-        </g>
-      );
-      break;
-    case "tavern":
-    case "brewery":
-      content = (
-        <g stroke={stroke} strokeWidth="1.2" fill={fill} strokeLinecap="round" strokeLinejoin="round">
-          <path d="M7 8h8v11a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V8z" />
-          <path d="M15 11h3a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-3" />
-          <path d="M6 5c1 0 1-1 2-1s1 1 2 1 1-1 2-1 1 1 2 1" />
-        </g>
-      );
-      break;
-    case "lighthouse":
-    case "port":
-      content = (
-        <g stroke={stroke} strokeWidth="1.2" fill={fill} strokeLinecap="round" strokeLinejoin="round">
-          <path d="M9 21l2-13h2l2 13H9z" />
-          <path d="M8 8h8M10 4h4l1 4H9l1-4z" />
-          <path d="M12 2v2M4 6l3 2M20 6l-3 2" />
-        </g>
-      );
-      break;
-    case "arena":
-    case "chamber_of_commerce":
-    case "forum":
-    case "caravansery":
-    case "customs_house":
-    case "stone_reserve":
-    case "clay_reserve":
-    case "wood_reserve":
-      content = (
-        <g stroke={stroke} strokeWidth="1.2" fill={fill} strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="8" />
-          <path d="M12 7v10M9 9.5c0-1 1-1.5 3-1.5s3 .5 3 2-2 2.5-3 3-3 1-3 2.5 1 1.5 3 1.5 3-.5 3-1.5" />
-        </g>
-      );
-      break;
-    default:
-      content = (
-        <g stroke={stroke} strokeWidth="1.2" fill={fill} strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 3l3 6 6 1-4.5 4.5 1 6.5-5.5-3-5.5 3 1-6.5L3 10l6-1 3-6z" />
-        </g>
-      );
-      break;
-  }
-
+function CardEffects({ card, scale = 1 }: { card: Card; scale?: number }) {
+  const s = (n: number) => Math.round(n * scale * 10) / 10;
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" style={{ flex: "0 0 auto", opacity: 0.85 }}>
-      {content}
-    </svg>
+    <>
+      {card.prod && entries(card.prod).flatMap(([r, n]) =>
+        Array.from({ length: n }, (_, k) => <Pip key={r + k} r={r} size={s(14)} />))}
+      {card.prodChoice && (
+        <span style={{ display: "flex", gap: 1, alignItems: "center" }}>
+          {card.prodChoice.map((r, k) => (
+            <React.Fragment key={r}>{k > 0 && <span style={{ fontSize: s(8), color: "#6a5c40" }}>/</span>}<Pip r={r} size={s(11)} /></React.Fragment>
+          ))}
+        </span>
+      )}
+      {card.sci && <SciMark k={card.sci} size={s(17)} />}
+      {card.shields > 0 && <Shield n={card.shields} />}
+      {card.vp > 0 && <VP n={card.vp} size={s(17)} />}
+      {card.gainCoins && <Coin n={card.gainCoins} size={s(16)} />}
+      {card.fixTrade && (
+        <span style={{ display: "flex", gap: 1, alignItems: "center" }}>
+          {card.fixTrade.map((r) => <Pip key={r} r={r} size={s(10)} />)}
+          <span style={{ fontSize: s(8), color: "#6a5c40", margin: "0 1px" }}>=</span>
+          <Coin n={1} size={s(11)} />
+        </span>
+      )}
+      {card.coinsPer && (
+        <span style={{ display: "flex", gap: 2, alignItems: "center" }}>
+          <Coin n={card.coinsPer.n} size={s(13)} />
+          <span style={{ fontSize: s(8), color: "#6a5c40" }}>/</span>
+          {card.coinsPer.colors.map((c) => <ColorTab key={c} c={c} size={s(9)} />)}
+        </span>
+      )}
+      {card.coinsPerWonder && (
+        <span style={{ display: "flex", gap: 2, alignItems: "center" }}>
+          <Coin n={card.coinsPerWonder} size={s(13)} />
+          <span style={{ fontSize: s(8), color: "#6a5c40" }}>/</span>
+          <Icon name="pyramid" size={s(11)} color="#a87f31" />
+        </span>
+      )}
+      {card.guild && (
+        <span style={{ display: "flex", gap: 2, alignItems: "center", fontSize: s(8), color: "#4a3d26", fontWeight: 700 }}>
+          {card.guild.treasury
+            ? <><VP n={1} size={s(14)} />/<Coin n={3} size={s(12)} /></>
+            : card.guild.wonders
+              ? <><VP n={2} size={s(14)} />/<Icon name="pyramid" size={s(11)} color="#a87f31" /></>
+              : <><Coin n={1} size={s(11)} /><VP n={1} size={s(14)} />/{(card.guild.colors ?? []).map((c) => <ColorTab key={c} c={c} size={s(9)} />)}</>}
+        </span>
+      )}
+    </>
   );
 }
 
-function CardFace({ card, w = 74, selected, dim, onClick, cost }: CardFaceProps) {
+const ColorTab = ({ c, size = 9 }: { c: CardColor; size?: number }) => (
+  <span style={{
+    width: size, height: size * 1.3, borderRadius: 2, flex: "0 0 auto", display: "inline-block",
+    background: `linear-gradient(180deg, ${shade(CARDCOL[c], 12)}, ${shade(CARDCOL[c], -14)})`,
+    boxShadow: "0 0 0 .5px rgba(0,0,0,.5)",
+  }} />
+);
+
+function CardFace({ card, w = 84, selected, dim, onClick, cost, delay }: CardFaceProps) {
   const col = CARDCOL[card.color];
+  const h = Math.round(w * 1.42);
+  const head = Math.round(w * 0.24);
+  const art = Math.round(w * 0.5);
+  const k = w / 84;
+  const tip = [card.name, ...describeCard(card), card.chainFrom ? `Free if you own ${CARD[card.chainFrom].name}` : ""].filter(Boolean).join("\n");
   return (
     <button
       onClick={onClick}
-      title={card.name}
-      className={`duel-card${onClick ? " is-live" : ""}${selected ? " is-sel" : ""}`}
+      title={tip}
+      aria-label={card.name}
+      className={`duel-card duel-flip${onClick ? " is-live" : ""}${selected ? " is-sel" : ""}${cost && !cost.affordable ? " is-poor" : ""}`}
       style={{
-        width: w, height: w * 1.36, borderRadius: 7, padding: 0, cursor: onClick ? "pointer" : "default",
-        background: G.card, border: `1px solid ${selected ? C.gold : "rgba(0,0,0,.5)"}`,
+        width: w, height: h, borderRadius: 8 * k, padding: 0, cursor: onClick ? "pointer" : "default",
+        border: `1px solid ${selected ? C.gold : "rgba(0,0,0,.55)"}`,
         boxShadow: selected
-          ? `0 0 0 3px ${C.gold}66, 0 0 18px -2px ${C.gold}55, ${SHADOW.cardUp}`
+          ? `0 0 0 3px ${C.gold}88, 0 0 26px 2px ${C.gold}66, ${SHADOW.cardUp}`
           : SHADOW.card,
-        opacity: dim ? 0.55 : 1, filter: dim ? "saturate(.55) brightness(.62)" : "none",
+        opacity: dim ? 0.6 : 1, filter: dim ? "saturate(.5) brightness(.6)" : "none",
         position: "relative", overflow: "hidden",
         display: "flex", flexDirection: "column", textAlign: "left",
-        backgroundImage: `linear-gradient(180deg, ${col}22 0%, ${col}00 38%), ${G.card}`,
+        background: `linear-gradient(180deg, ${col}26 0%, ${col}00 40%), ${G.card}`,
+        animationDelay: delay ? `${delay}ms` : undefined,
       }}
     >
       <div style={{
-        background: `linear-gradient(180deg, ${shade(col, 9)} 0%, ${col} 62%, ${shade(col, -12)} 100%)`,
-        padding: "3px 4px", height: HEAD, boxSizing: "border-box", flex: "0 0 auto",
-        display: "flex", alignItems: "center",
-        borderBottom: "1px solid rgba(0,0,0,.28)",
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,.22)",
+        background: `linear-gradient(180deg, ${shade(col, 14)} 0%, ${col} 58%, ${shade(col, -16)} 100%)`,
+        padding: `0 ${4 * k}px`, height: head, boxSizing: "border-box", flex: "0 0 auto",
+        display: "flex", alignItems: "center", gap: 3 * k,
+        borderBottom: "1px solid rgba(0,0,0,.35)",
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,.28)",
       }}>
         <div style={{
-          fontSize: 8.5, fontWeight: 700, color: "#fff", lineHeight: 1.12, letterSpacing: .2,
-          textShadow: "0 1px 1px rgba(0,0,0,.45)",
+          flex: 1, minWidth: 0,
+          fontSize: 8.6 * k, fontWeight: 700, color: "#fff", lineHeight: 1.08, letterSpacing: .2,
+          fontFamily: FONT.display, textShadow: "0 1px 1px rgba(0,0,0,.55)",
           display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
         }}>
           {card.name}
         </div>
-      </div>
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 3, flexWrap: "wrap", padding: 2 }}>
-        <CardIllustration card={card} size={22} />
-        {card.prod && entries(card.prod).flatMap(([r, n]) =>
-          Array.from({ length: n }, (_, k) => <Pip key={r + k} r={r} size={14} />))}
-        {card.prodChoice && (
-          <span style={{ display: "flex", gap: 1, alignItems: "center" }}>
-            {card.prodChoice.map((r, k) => (
-              <React.Fragment key={r}>{k > 0 && <span style={{ fontSize: 8, color: "#666" }}>/</span>}<Pip r={r} size={11} /></React.Fragment>
-            ))}
-          </span>
-        )}
-        {card.sci && <SciMark k={card.sci} size={17} />}
-        {card.shields > 0 && <Shield n={card.shields} />}
-        {card.vp > 0 && <VP n={card.vp} />}
-        {card.gainCoins && <Coin n={card.gainCoins} size={16} />}
-        {card.fixTrade && (
-          <span style={{ display: "flex", gap: 1, alignItems: "center", fontSize: 8, color: "#444" }}>
-            {card.fixTrade.map((r) => <Pip key={r} r={r} size={10} />)}<Coin n={1} size={11} />
-          </span>
-        )}
-        {card.coinsPer && <span style={{ fontSize: 8, color: "#444" }}>{card.coinsPer.n}c / {card.coinsPer.colors.join("+")}</span>}
-        {card.coinsPerWonder && <span style={{ fontSize: 8, color: "#444" }}>{card.coinsPerWonder}c / wonder</span>}
-        {card.guild && <span style={{ fontSize: 7.5, color: "#444", textAlign: "center", padding: "0 2px" }}>
-          {card.guild.treasury ? "1 VP / 3 coins" : card.guild.wonders ? "2 VP / wonder" : `1 VP / ${(card.guild.colors ?? []).join("+")}`}
-        </span>}
+        <span style={{
+          fontSize: 6.6 * k, fontWeight: 800, color: "rgba(255,255,255,.75)", fontFamily: FONT.display,
+          letterSpacing: .4, flex: "0 0 auto",
+        }}>{card.age ? ROMAN[card.age] : "G"}</span>
       </div>
       <div style={{
-        padding: "2px 3px", minHeight: 18, display: "flex", alignItems: "center", justifyContent: "space-between",
-        borderTop: "1px solid rgba(120,104,66,.28)", background: "rgba(120,104,66,.09)",
+        height: art, flex: "0 0 auto", position: "relative", overflow: "hidden",
+        margin: `${2 * k}px ${3 * k}px 0`, borderRadius: 4 * k,
+        boxShadow: `inset 0 0 0 1px ${shade(col, -30)}55, 0 1px 0 rgba(255,255,255,.6)`,
       }}>
-        <CostRow cost={card.cost} size={11} />
+        <CardArt card={card} w={w - 6 * k} h={art} />
+        <div style={{ position: "absolute", inset: 0, borderRadius: 4 * k, boxShadow: `inset 0 0 0 1px ${C.gold}55` }} />
+      </div>
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 3 * k, flexWrap: "wrap", padding: `${1 * k}px ${2 * k}px` }}>
+        <CardEffects card={card} scale={k} />
+      </div>
+      <div style={{
+        padding: `${2 * k}px ${4 * k}px`, minHeight: 17 * k, display: "flex", alignItems: "center", justifyContent: "space-between",
+        borderTop: "1px solid rgba(120,104,66,.3)", background: "rgba(120,104,66,.12)",
+      }}>
+        <CostRow cost={card.cost} size={10 * k} />
         {card.chainFrom && (
           <span title={`Free if you own ${CARD[card.chainFrom].name}`}
-            style={{ fontSize: 12, color: "#4f7f40", lineHeight: 1, flex: "0 0 auto" }}>⛓</span>
+            style={{ display: "flex", alignItems: "center", gap: 2, flex: "0 0 auto" }}>
+            <Icon name="chain" size={11 * k} color="#4f7f40" />
+          </span>
         )}
       </div>
       {cost && (
-        <div style={{
-          position: "absolute", top: HEAD, right: 0,
+        <div className="duel-price" style={{
+          position: "absolute", top: head + 3 * k, right: 4 * k,
+          minWidth: 20 * k, height: 20 * k, borderRadius: 20 * k, padding: `0 ${4 * k}px`, boxSizing: "border-box",
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 2,
           background: cost.chained
-            ? "linear-gradient(180deg, #5aa06b, #3f7a4e)"
-            : cost.affordable ? G.gold : `linear-gradient(180deg, ${shade(C.blood, 8)}, ${shade(C.blood, -12)})`,
+            ? "radial-gradient(circle at 35% 28%, #8fd0a0, #4d8c5c 60%, #2f5f3c)"
+            : cost.affordable
+              ? "radial-gradient(circle at 34% 26%, #f6dc9c 0%, #dcb15c 45%, #b98c39 100%)"
+              : `radial-gradient(circle at 34% 26%, #e8867f, ${C.blood} 60%, #6e221d)`,
+          border: `1.5px solid ${cost.chained ? "#2f5f3c" : cost.affordable ? "#8f6a26" : "#5a1914"}`,
           color: cost.chained || !cost.affordable ? "#fff" : "#2a2109",
-          textShadow: cost.chained || !cost.affordable ? "0 1px 1px rgba(0,0,0,.4)" : "none",
-          fontSize: 10, fontWeight: 800, padding: "1px 5px", borderRadius: "0 0 0 5px",
-          boxShadow: "0 1px 3px rgba(0,0,0,.45)",
-        }}>{cost.chained ? "free" : cost.total}</div>
+          textShadow: cost.chained || !cost.affordable ? "0 1px 1px rgba(0,0,0,.5)" : "0 1px 0 rgba(255,255,255,.3)",
+          fontSize: 10.5 * k, fontWeight: 800,
+          boxShadow: "0 2px 4px rgba(0,0,0,.5)",
+        }}>
+          {cost.chained ? <Icon name="chain" size={12 * k} color="#fff" /> : !cost.affordable ? <><Icon name="lock" size={9 * k} color="#fff" />{cost.total}</> : cost.total}
+        </div>
       )}
     </button>
   );
 }
 
-/* The face-down back. A medallion rather than hatching, so a covered card
-   reads as a card at a glance instead of as a texture swatch. */
-const CardBack = ({ w = 74 }: { w?: number }) => (
-  <div style={{
-    width: w, height: w * 1.36, borderRadius: 7, position: "relative", overflow: "hidden",
-    background: `linear-gradient(160deg, #35555e 0%, #294249 55%, #1f333a 100%)`,
-    border: "1px solid rgba(0,0,0,.5)", boxShadow: SHADOW.card,
-  }}>
-    <div style={{
-      position: "absolute", inset: 4, borderRadius: 4,
-      border: `1px solid ${C.gold}30`,
-      background: `repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(255,255,255,.028) 6px, rgba(255,255,255,.028) 12px)`,
-    }} />
-    <svg viewBox="0 0 40 40" width="52%" style={{
-      position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", opacity: .5,
+const CardBack = ({ w = 84, age = 1, delay }: { w?: number; age?: number; delay?: number }) => {
+  const t = tintFor(age);
+  const h = Math.round(w * 1.42);
+  return (
+    <div className="duel-back" style={{
+      width: w, height: h, borderRadius: 8, position: "relative", overflow: "hidden", flex: "0 0 auto",
+      background: `radial-gradient(120% 80% at 50% 30%, ${shade(t.a, 8)} 0%, ${t.a} 40%, ${t.b} 100%)`,
+      border: "1px solid rgba(0,0,0,.55)", boxShadow: SHADOW.card,
+      animationDelay: delay ? `${delay}ms` : undefined,
     }}>
-      <circle cx="20" cy="20" r="15" fill="none" stroke={C.gold} strokeWidth="1.1" />
-      <circle cx="20" cy="20" r="10.5" fill="none" stroke={C.gold} strokeWidth=".7" opacity=".7" />
-      <path d="M20 7 L26 20 L20 33 L14 20 Z" fill={C.gold} opacity=".55" />
-      <circle cx="20" cy="20" r="2.6" fill={C.gold} opacity=".85" />
-    </svg>
-  </div>
-);
+      <div style={{
+        position: "absolute", inset: 4, borderRadius: 5,
+        border: `1px solid ${t.rim}55`,
+        background: `repeating-linear-gradient(45deg, transparent 0 5px, rgba(255,255,255,.035) 5px 10px), repeating-linear-gradient(-45deg, transparent 0 5px, rgba(0,0,0,.06) 5px 10px)`,
+      }} />
+      <div style={{ position: "absolute", inset: 7, borderRadius: 3, border: `1px dashed ${t.rim}30` }} />
+      <svg viewBox="0 0 40 40" width="62%" style={{
+        position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", opacity: .7,
+      }}>
+        <circle cx="20" cy="20" r="16" fill="rgba(0,0,0,.18)" stroke={t.rim} strokeWidth="1.1" />
+        <circle cx="20" cy="20" r="12" fill="none" stroke={t.rim} strokeWidth=".6" opacity=".7" strokeDasharray="1.4 1.4" />
+        {Array.from({ length: 12 }, (_, k) => {
+          const a = (k / 12) * Math.PI * 2;
+          return <circle key={k} cx={20 + Math.cos(a) * 14} cy={20 + Math.sin(a) * 14} r=".7" fill={t.rim} />;
+        })}
+        <text x="20" y="24.6" textAnchor="middle" fontSize={t.label.length > 2 ? 11 : 13} fontWeight="700"
+          fontFamily="Cinzel, Georgia, serif" fill={t.rim}>{t.label}</text>
+      </svg>
+      <div style={{
+        position: "absolute", left: 0, right: 0, top: 0, height: "45%",
+        background: "linear-gradient(180deg, rgba(255,255,255,.1), transparent)",
+      }} />
+    </div>
+  );
+};
 
 /* ============================================================
    BOARD PIECES
    ============================================================ */
+function LootPile({ n, seat }: { n: number; seat: number }) {
+  return (
+    <span title={`Crossing here costs ${seat === 0 ? "the left" : "the right"} city ${n} coins`} style={{
+      position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 0,
+    }}>
+      <svg width="20" height="14" viewBox="0 0 20 14" aria-hidden="true" style={{ display: "block", filter: "drop-shadow(0 1px 1px rgba(0,0,0,.6))" }}>
+        {Array.from({ length: n === 5 ? 3 : 2 }, (_, k) => (
+          <g key={k}>
+            <ellipse cx="10" cy={11 - k * 2.6} rx="7" ry="2.6" fill="#8f6a26" />
+            <ellipse cx="10" cy={10.2 - k * 2.6} rx="7" ry="2.4" fill="#e6bc63" />
+          </g>
+        ))}
+      </svg>
+      <b style={{ fontSize: 8.5, color: "#ffe2b0", lineHeight: 1, textShadow: "0 1px 1px #000" }}>−{n}</b>
+    </span>
+  );
+}
+
 function MilitaryTrack({ st }: { st: GameState }) {
   const cells: React.ReactElement[] = [];
   for (let v = -9; v <= 9; v++) {
     const abs = Math.abs(v);
-    const zone = abs === 9 ? "cap" : abs === 0 ? "mid" : abs <= 2 ? 2 : abs <= 5 ? 5 : 10;
-    const here = st.conflict === v;
+    const side = v < 0 ? 0 : 1;
+    const tint = v === 0 ? null : PLAYER[side];
+    const depth = abs === 9 ? 0 : abs <= 2 ? .12 : abs <= 5 ? .22 : .36;
     const lootHere =
       (v === 3 && st.loot.p1_2) || (v === 6 && st.loot.p1_5) ||
       (v === -3 && st.loot.p0_2) || (v === -6 && st.loot.p0_5);
+    const zoneEdge = abs === 3 || abs === 6;
     cells.push(
       <div key={v} style={{
-        flex: 1, minWidth: 0, height: 26, position: "relative",
-        background: zone === "cap"
-          ? `linear-gradient(180deg, ${shade(C.blood, 6)}, ${shade(C.blood, -16)})`
-          : zone === "mid"
-            ? `linear-gradient(180deg, ${C.panel2}, ${shade(C.panel2, -6)})`
-            : `linear-gradient(180deg, rgba(184,69,60,${abs <= 2 ? .14 : abs <= 5 ? .28 : .46}), rgba(184,69,60,${abs <= 2 ? .07 : abs <= 5 ? .16 : .3}))`,
-        borderRight: v < 9 ? `1px solid rgba(0,0,0,.32)` : "none",
+        flex: abs === 9 ? 1.6 : 1, minWidth: 0, height: 40, position: "relative",
+        background: abs === 9
+          ? "transparent"
+          : v === 0
+            ? "radial-gradient(circle at 50% 50%, #3d5a61 0%, #2a4249 70%)"
+            : `linear-gradient(180deg, rgba(184,69,60,${depth + .06}), rgba(110,34,29,${depth}))`,
+        borderLeft: zoneEdge && v > 0 ? "2px solid rgba(224,180,94,.35)" : undefined,
+        borderRight: (zoneEdge && v < 0) ? "2px solid rgba(224,180,94,.35)" : v < 8 && v !== -9 ? "1px solid rgba(0,0,0,.28)" : "none",
         display: "flex", alignItems: "center", justifyContent: "center",
+        boxShadow: tint && abs < 9 ? `inset 0 -3px 0 ${tint.main}${abs <= 2 ? "33" : abs <= 5 ? "55" : "88"}` : undefined,
       }}>
-        {lootHere && (
-          <span title={`Crossing here costs the loser ${abs === 3 ? 2 : 5} coins`} style={{
-            fontSize: 9, color: "#2f2409", fontWeight: 800, padding: "1px 4px", borderRadius: 8,
-            background: G.gold, boxShadow: "0 1px 2px rgba(0,0,0,.5)",
-          }}>−{abs === 3 ? 2 : 5}</span>
+        {abs === 9 && <Capital seat={side} size={30} />}
+        {v === 0 && (
+          <svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true" style={{ opacity: .55 }}>
+            <path d="M4 4l12 12M16 4L4 16" stroke={C.gold} strokeWidth="1.6" strokeLinecap="round" />
+          </svg>
         )}
-        {here && <div className="duel-pawn" style={{
-          position: "absolute", width: 17, height: 17, borderRadius: "50%",
-          background: "radial-gradient(circle at 34% 28%, #ffffff 0%, #ece7d8 45%, #b9b3a2 100%)",
-          border: `2px solid rgba(0,0,0,.55)`,
-          boxShadow: `0 2px 5px rgba(0,0,0,.7), 0 0 12px ${C.ink}55`,
-        }} />}
+        {lootHere && <LootPile n={abs === 3 ? 2 : 5} seat={side} />}
       </div>
     );
   }
   const lead = st.conflict === 0 ? null : st.conflict > 0 ? 0 : 1;
+  const unit = 100 / (17 + 1.6 * 2);
+  const centre = (v: number) => {
+    const abs = Math.abs(v);
+    if (abs === 9) return v < 0 ? unit * 0.8 : 100 - unit * 0.8;
+    return unit * 1.6 + (v + 8 + 0.5) * unit;
+  };
+  const zones = [
+    { from: -8, to: -6, vp: 10 }, { from: -5, to: -3, vp: 5 }, { from: -2, to: -1, vp: 2 },
+    { from: 1, to: 2, vp: 2 }, { from: 3, to: 5, vp: 5 }, { from: 6, to: 8, vp: 10 },
+  ];
   return (
     <div>
       <div style={{
-        display: "flex", borderRadius: 6, overflow: "hidden",
-        border: `1px solid rgba(0,0,0,.5)`, boxShadow: SHADOW.sunk,
-      }}>{cells}</div>
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: C.muted, marginTop: 4 }}>
-        <span style={{ letterSpacing: .3 }}>{st.names[0]}</span>
-        <span style={{ color: lead === null ? C.muted : C.gold, fontWeight: lead === null ? 400 : 600 }}>
-          {lead === null ? "even" : `${st.names[lead]} +${milVP(Math.abs(st.conflict))} VP`}
+        position: "relative", borderRadius: 10, padding: 3,
+        background: "linear-gradient(180deg, #4a3a22, #2c2214)",
+        border: "1px solid rgba(0,0,0,.6)",
+        boxShadow: `inset 0 1px 0 rgba(255,255,255,.12), 0 6px 18px -8px rgba(0,0,0,.8)`,
+      }}>
+        <div style={{
+          display: "flex", borderRadius: 7, overflow: "hidden", position: "relative",
+          background: "linear-gradient(180deg, #1f3036, #172429)",
+          boxShadow: SHADOW.sunk,
+        }}>{cells}</div>
+        <div className="duel-pawn" style={{
+          position: "absolute", top: "50%", left: `calc(3px + (100% - 6px) * ${centre(st.conflict) / 100})`,
+          transform: "translate(-50%, -58%)", transition: "left .7s cubic-bezier(.3,1.4,.5,1)", zIndex: 2,
+        }}>
+          <Pawn size={22} />
+        </div>
+      </div>
+      <div style={{ position: "relative", height: 16, marginTop: 3 }}>
+        {zones.map((z) => {
+          const owner = z.from < 0 ? 1 : 0;
+          const left = (centre(z.from) + centre(z.to)) / 2;
+          const at = st.conflict;
+          const on = lead === owner && at >= Math.min(z.from, z.to) && at <= Math.max(z.from, z.to);
+          return (
+            <span key={z.from} title={`${st.names[owner]} scores ${z.vp} VP with the pawn here`} style={{
+              position: "absolute", left: `${left}%`, transform: "translateX(-50%)",
+              fontSize: 9.5, fontWeight: 700, letterSpacing: .3,
+              color: on ? C.gold : "rgba(142,166,171,.7)",
+              textShadow: on ? `0 0 8px ${C.gold}` : "none",
+              display: "flex", alignItems: "center", gap: 2,
+            }}>
+              <svg width="9" height="9" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 0l1.4 3.2L10 3.6 7.3 6l.8 3.6L5 7.8 1.9 9.6 2.7 6 0 3.6l3.6-.4z" fill="currentColor" /></svg>
+              {z.vp}
+            </span>
+          );
+        })}
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, color: C.muted, marginTop: 2 }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 5, color: PLAYER[0].light, fontWeight: 600 }}>
+          <Crest seat={0} size={13} />{st.names[0]}
         </span>
-        <span style={{ letterSpacing: .3 }}>{st.names[1]}</span>
+        <span style={{
+          color: lead === null ? C.muted : C.gold, fontWeight: lead === null ? 500 : 700,
+          display: "flex", alignItems: "center", gap: 5, fontSize: 11.5,
+        }}>
+          <Icon name="sword" size={13} color={lead === null ? C.muted : C.gold} />
+          {lead === null ? "Armies stand even" : `${st.names[lead]} leads · +${milVP(Math.abs(st.conflict))} VP`}
+        </span>
+        <span style={{ display: "flex", alignItems: "center", gap: 5, color: PLAYER[1].light, fontWeight: 600 }}>
+          {st.names[1]}<Crest seat={1} size={13} />
+        </span>
       </div>
     </div>
   );
@@ -474,129 +440,278 @@ function MilitaryTrack({ st }: { st: GameState }) {
 function TokenChip({ id, onClick, small }: { id: string; onClick?: () => void; small?: boolean }) {
   const t = TOK[id];
   return (
-    <button onClick={onClick} title={t.text} className={onClick ? "duel-chip is-live" : "duel-chip"} style={{
+    <button onClick={onClick} title={`${t.name}: ${t.text}`} className={onClick ? "duel-chip is-live" : "duel-chip"} style={{
       background: "linear-gradient(180deg, #477056 0%, #375c46 100%)",
       border: `1px solid #5c8a6d`, color: "#e6f2e8",
-      borderRadius: 999, padding: small ? "2px 8px" : "4px 11px", fontSize: small ? 9.5 : 11,
-      fontWeight: 500, letterSpacing: .2,
+      borderRadius: 999, padding: small ? "1px 9px 1px 1px" : "2px 12px 2px 2px", fontSize: small ? 9.5 : 11,
+      fontWeight: 600, letterSpacing: .2,
       boxShadow: "inset 0 1px 0 rgba(255,255,255,.13), 0 1px 3px rgba(0,0,0,.4)",
-      cursor: onClick ? "pointer" : "default", display: "flex", alignItems: "center", gap: 4,
+      cursor: onClick ? "pointer" : "default", display: "flex", alignItems: "center", gap: 5,
     }}>
-      {t.sci && <SciMark k={t.sci} size={11} />}
+      <TokenDisc id={id} size={small ? 18 : 24} />
       {t.name}
     </button>
   );
 }
 
-function City({ st, i, me, compact }: { st: GameState; i: number; me?: boolean; compact?: boolean }) {
-  const v = view(st, i);
-  const groups: CardColor[] = ["brown", "grey", "blue", "green", "yellow", "red", "purple"];
-  const sc = score(st, i);
-  const active = st.turn === i && st.phase === "play";
+function TokenMedal({ id }: { id: string }) {
+  const t = TOK[id];
   return (
-    <div style={{
-      background: G.panel, borderRadius: 10, padding: 12,
-      border: `1px solid ${active ? `${C.gold}55` : C.line}`,
-      boxShadow: active ? `${SHADOW.panel}, 0 0 0 1px ${C.gold}22` : SHADOW.panel,
-      transition: "border-color .2s, box-shadow .2s",
+    <div title={`${t.name}: ${t.text}`} className="duel-medal" style={{
+      display: "flex", flexDirection: "column", alignItems: "center", gap: 3, width: 62,
     }}>
+      <TokenDisc id={id} size={38} />
+      <span style={{ fontSize: 9.5, color: "#bfe0c8", fontWeight: 600, letterSpacing: .2, textAlign: "center", lineHeight: 1.1 }}>{t.name}</span>
+    </div>
+  );
+}
+
+interface FloatItem { key: string; text: string; color: string }
+
+function fxToFloats(fx: Fx[], seat: number): FloatItem[] {
+  return fx.flatMap((f, k): FloatItem[] => {
+    if (f.player !== seat) return [];
+    const key = `${f.kind}${k}`;
+    if (f.kind === "coins") return [{ key, text: `${f.n > 0 ? "+" : ""}${coinsText(f.n)}`, color: f.n > 0 ? "#f2cd7c" : "#e8867f" }];
+    if (f.kind === "shields") return [{ key, text: `+${f.n} shield${f.n > 1 ? "s" : ""}`, color: "#ff9c8f" }];
+    if (f.kind === "card") return [{ key, text: CARD[f.id].name, color: shade(CARDCOL[CARD[f.id].color], 30) }];
+    if (f.kind === "destroyed") return [{ key, text: `${CARD[f.id].name} destroyed`, color: "#e8867f" }];
+    if (f.kind === "wonder") return [{ key, text: `${WON[f.id].name} rises!`, color: "#ffe08a" }];
+    if (f.kind === "token") return [{ key, text: TOK[f.id].name, color: "#9fe0b4" }];
+    return [];
+  });
+}
+
+const SCI_ORDER: ScienceSymbol[] = ["wheel", "tablet", "mortar", "plumb", "sundial", "astrolabe", "law"];
+
+function WonderTile({ id, built, w }: { id: string; built: boolean; w?: number }) {
+  const wd = WON[id];
+  return (
+    <div title={`${wd.name}: ${wd.text}`} className={built ? "duel-wonder is-built" : "duel-wonder"} style={{
+      width: w ?? "100%", borderRadius: 7, overflow: "hidden", position: "relative", flex: "0 0 auto",
+      border: `1px solid ${built ? C.gold : "rgba(0,0,0,.5)"}`,
+      boxShadow: built ? `0 0 0 1px ${C.gold}44, 0 0 16px -4px ${C.gold}aa` : SHADOW.card,
+      background: "#1a272b",
+    }}>
+      <div style={{ aspectRatio: "120 / 64" }}><WonderArt id={id} w="100%" h="100%" dim={!built} /></div>
       <div style={{
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        marginBottom: 10, paddingBottom: 8, borderBottom: `1px solid ${C.line}88`,
+        position: "absolute", left: 0, right: 0, bottom: 0, padding: "10px 5px 3px",
+        background: "linear-gradient(180deg, transparent, rgba(10,14,16,.86))",
+        display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 4,
       }}>
         <span style={{
-          fontFamily: FONT.display, fontWeight: 600, fontSize: 15, letterSpacing: .4,
-          color: active ? C.gold : C.ink, display: "flex", alignItems: "center", gap: 7,
-        }}>
-          {active && <span className="duel-pulse" style={{
-            width: 7, height: 7, borderRadius: "50%", background: C.gold,
-            boxShadow: `0 0 8px ${C.gold}`, flex: "0 0 auto",
-          }} />}
-          {st.names[i]}{me ? " (you)" : ""}
-        </span>
-        <span style={{ display: "flex", gap: 9, alignItems: "center", fontSize: 12, color: C.muted }}>
-          <Coin n={v.p.coins} size={17} />
-          {v.shields > 0 && <Shield n={v.shields} />}
-          <span style={{ color: C.ink, fontWeight: 600 }}>
-            {sc.total} <span style={{ color: C.muted, fontWeight: 400 }}>VP</span>
+          fontSize: 8.6, fontWeight: 700, fontFamily: FONT.display, letterSpacing: .2, lineHeight: 1.1,
+          color: built ? "#ffe9b8" : "#c9d3d5", textShadow: "0 1px 2px #000",
+        }}>{wd.name.replace(/^The /, "")}</span>
+        {built
+          ? <Laurel n={wd.vp} size={20} />
+          : <span style={{ opacity: .95 }}><CostRow cost={wd.cost} size={8} /></span>}
+      </div>
+    </div>
+  );
+}
+
+function City({ st, i, me, floats }: { st: GameState; i: number; me?: boolean; floats?: FloatItem[] }) {
+  const v = view(st, i);
+  const groups: CardColor[] = ["brown", "grey", "yellow", "red", "blue", "green", "purple"];
+  const sc = score(st, i);
+  const active = st.turn === i && st.phase === "play";
+  const pc = PLAYER[i];
+  const distinct = Object.keys(v.sci).length;
+  return (
+    <div className={active ? "duel-city is-active" : "duel-city"} style={{
+      position: "relative",
+      background: `linear-gradient(180deg, ${pc.dark}38 0%, rgba(0,0,0,0) 90px), ${G.panel}`,
+      borderRadius: 12, padding: 12,
+      borderStyle: "solid", borderWidth: "3px 1px 1px",
+      borderColor: `${pc.main} ${active ? `${C.gold}77` : C.line} ${active ? `${C.gold}77` : C.line}`,
+      boxShadow: active ? `${SHADOW.panel}, 0 0 0 1px ${C.gold}33, 0 0 30px -10px ${C.gold}88` : SHADOW.panel,
+      transition: "border-color .3s, box-shadow .3s",
+    }}>
+      <div style={{ position: "absolute", top: -6, right: 12, left: 12, pointerEvents: "none", zIndex: 5 }}>
+        {(floats ?? []).map((f, k) => (
+          <div key={f.key} className="duel-float" style={{
+            position: "absolute", right: 0, top: -14 - k * 26, whiteSpace: "nowrap",
+            fontSize: 12.5, fontWeight: 800, color: f.color, fontFamily: FONT.display, letterSpacing: .4,
+            textShadow: "0 1px 2px rgba(0,0,0,.9)",
+            background: "rgba(10,16,18,.88)", border: `1px solid ${f.color}88`, borderRadius: 999, padding: "3px 11px",
+            boxShadow: `0 6px 18px -6px rgba(0,0,0,.9), 0 0 14px -4px ${f.color}`,
+            animationDelay: `${k * 140}ms`,
+          }}>{f.text}</div>
+        ))}
+      </div>
+
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        marginBottom: 10, paddingBottom: 9, borderBottom: `1px solid ${C.line}88`, gap: 8,
+      }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
+          <Crest seat={i} size={26} />
+          <span style={{ minWidth: 0 }}>
+            <span style={{
+              fontFamily: FONT.display, fontWeight: 700, fontSize: 16, letterSpacing: .4,
+              color: active ? C.gold : C.ink, display: "flex", alignItems: "center", gap: 7,
+            }}>
+              {st.names[i]}
+              {me && <span style={{ fontSize: 9, fontFamily: FONT.body, color: pc.light, border: `1px solid ${pc.main}88`, borderRadius: 999, padding: "1px 6px", letterSpacing: .5 }}>YOU</span>}
+            </span>
+            <span style={{ fontSize: 10, color: active ? C.gold : C.muted, letterSpacing: .6, textTransform: "uppercase", display: "flex", alignItems: "center", gap: 5 }}>
+              {active && <span className="duel-pulse" style={{ width: 6, height: 6, borderRadius: "50%", background: C.gold, boxShadow: `0 0 8px ${C.gold}` }} />}
+              {active ? "Taking a turn" : `${v.p.built.length} buildings`}
+            </span>
           </span>
+        </span>
+        <span style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <span title={coinsText(v.p.coins)} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <CoinStack n={v.p.coins} />
+          </span>
+          <span title={`${v.shields} shields`} style={{ display: "flex", alignItems: "center", gap: 3, opacity: v.shields ? 1 : .45 }}>
+            <Shield n={1} /><b style={{ fontSize: 13, color: "#ff9c8f" }}>{v.shields}</b>
+          </span>
+          <span title={`${sc.total} victory points so far`}><Laurel n={sc.total} size={34} /></span>
         </span>
       </div>
 
-      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 8 }}>
+      <SectionLabel>Storehouse</SectionLabel>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 9, alignItems: "center" }}>
         {RES.map((r) => {
           const n = v.prod[r] || 0;
-          if (!n) return null;
-          return <span key={r} style={{ display: "flex", alignItems: "center", gap: 2 }}><Pip r={r} size={13} /><b style={{ fontSize: 11, color: C.ink }}>{n}</b></span>;
+          return (
+            <span key={r} title={`${n} ${r}`} style={{
+              display: "flex", alignItems: "center", gap: 3, opacity: n ? 1 : .32,
+              background: n ? "rgba(0,0,0,.22)" : "transparent", borderRadius: 999, padding: "2px 7px 2px 2px",
+              border: `1px solid ${n ? `${RESCOL[r]}66` : "rgba(255,255,255,.06)"}`,
+            }}>
+              <Pip r={r} size={17} />
+              <b style={{ fontSize: 12, color: C.ink, minWidth: 6 }}>{n}</b>
+            </span>
+          );
         })}
         {v.choices.map((ch, k) => (
-          <span key={k} style={{ display: "flex", alignItems: "center", gap: 1, opacity: .85 }}>
-            {ch.map((r, m) => <React.Fragment key={r}>{m > 0 && <span style={{ fontSize: 8, color: C.muted }}>/</span>}<Pip r={r} size={11} /></React.Fragment>)}
+          <span key={k} title={`One of ${ch.join(" / ")} each turn`} style={{
+            display: "flex", alignItems: "center", gap: 1, borderRadius: 999, padding: "2px 6px",
+            background: "rgba(224,180,94,.1)", border: `1px dashed ${C.gold}66`,
+          }}>
+            {ch.map((r, m) => <React.Fragment key={r}>{m > 0 && <span style={{ fontSize: 8, color: C.muted }}>/</span>}<Pip r={r} size={13} /></React.Fragment>)}
           </span>
         ))}
-        {!Object.keys(v.prod).length && !v.choices.length && <span style={{ fontSize: 11, color: C.muted }}>no production</span>}
       </div>
 
-      {Object.keys(v.sci).length > 0 && (
-        <div style={{ display: "flex", gap: 4, marginBottom: 8, alignItems: "center" }}>
-          {entries(v.sci).map(([k, n]) => (
-            <span key={k} style={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <SciMark k={k} size={14} />{n > 1 && <b style={{ fontSize: 10, color: C.gold }}>×{n}</b>}
-            </span>
-          ))}
-          <span style={{ fontSize: 10, color: C.muted }}>{Object.keys(v.sci).length}/6</span>
-        </div>
-      )}
-
-      {v.p.tokens.length > 0 && (
-        <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 8 }}>
-          {v.p.tokens.map((t) => <TokenChip key={t} id={t} small />)}
-        </div>
-      )}
-
-      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 8 }}>
-        {v.p.wonders.map((w, k) => (
-          <div key={k} title={WON[w.id].text} style={{
-            fontSize: 9.5, padding: "3px 7px", borderRadius: 5,
-            background: w.built
-              ? "linear-gradient(180deg, #7b6842 0%, #5d4e2f 100%)"
-              : G.panel2,
-            border: `1px solid ${w.built ? `${C.gold}99` : C.line}`,
-            color: w.built ? "#f4ecd8" : C.muted,
-            boxShadow: w.built
-              ? `inset 0 1px 0 rgba(255,255,255,.14), 0 0 10px -3px ${C.gold}77`
-              : "inset 0 1px 0 rgba(255,255,255,.05)",
-            display: "flex", alignItems: "center", gap: 5,
-          }}>
-            {WON[w.id].name}
-            {!w.built && <span style={{ marginLeft: 4, opacity: .8 }}><CostRow cost={WON[w.id].cost} size={9} /></span>}
-          </div>
-        ))}
-      </div>
-
-      <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
-        {groups.map((g) => {
-          const list = v.p.built.filter((id) => CARD[id].color === g);
-          if (!list.length) return null;
+      <SectionLabel right={<span style={{ color: distinct >= 5 ? C.gold : C.muted }}>{distinct}/6 for supremacy</span>}>Science</SectionLabel>
+      <div style={{ display: "flex", gap: 5, marginBottom: 10, alignItems: "center" }}>
+        {SCI_ORDER.filter((k) => k !== "law" || v.sci.law).map((k) => {
+          const n = v.sci[k] || 0;
           return (
-            <span key={g} style={{
-              display: "flex", gap: 4, alignItems: "center", borderRadius: 5, padding: "2px 6px",
-              background: `linear-gradient(180deg, ${CARDCOL[g]}22, rgba(0,0,0,.26))`,
-              border: `1px solid ${CARDCOL[g]}3a`,
+            <span key={k} title={`${SCI[k].label}${n ? ` ×${n}` : " (missing)"}`} style={{
+              width: 26, height: 26, borderRadius: "50%", position: "relative",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              background: n ? "radial-gradient(circle at 40% 30%, #fffaf0, #e9dfc4)" : "rgba(0,0,0,.25)",
+              border: `1.5px ${n ? "solid" : "dashed"} ${n ? SCI[k].col : "rgba(255,255,255,.14)"}`,
+              boxShadow: n ? `0 0 10px -2px ${SCI[k].col}` : "none",
+              opacity: n ? 1 : .55,
             }}>
-              <span style={{
-                width: 8, height: 8, borderRadius: 2, flex: "0 0 auto",
-                background: `linear-gradient(180deg, ${shade(CARDCOL[g], 10)}, ${shade(CARDCOL[g], -12)})`,
-                boxShadow: `0 0 0 1px rgba(0,0,0,.35)`,
-              }} />
-              <span style={{ fontSize: 10, color: C.ink }}>{list.length}</span>
-              {!compact && <span style={{ fontSize: 9, color: C.muted, maxWidth: 150, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {list.map((id) => CARD[id].name).join(", ")}
-              </span>}
+              <span style={{ opacity: n ? 1 : .35, filter: n ? "none" : "grayscale(1)" }}><SciMark k={k} size={16} /></span>
+              {n > 1 && <b style={{
+                position: "absolute", right: -5, bottom: -4, fontSize: 9, color: "#2a2109",
+                background: G.gold, borderRadius: 999, padding: "0 3px", boxShadow: "0 1px 2px rgba(0,0,0,.6)",
+              }}>×{n}</b>}
             </span>
           );
         })}
       </div>
+
+      {v.p.wonders.length > 0 && (
+        <>
+          <SectionLabel right={<span>{v.p.wonders.filter((w) => w.built).length}/{v.p.wonders.length} raised</span>}>Wonders</SectionLabel>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(96px, 1fr))", gap: 6, marginBottom: 10 }}>
+            {v.p.wonders.map((w) => <WonderTile key={w.id} id={w.id} built={w.built} />)}
+          </div>
+        </>
+      )}
+
+      {v.p.tokens.length > 0 && (
+        <>
+          <SectionLabel>Progress</SectionLabel>
+          <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 10 }}>
+            {v.p.tokens.map((t) => <TokenChip key={t} id={t} small />)}
+          </div>
+        </>
+      )}
+
+      <SectionLabel>City</SectionLabel>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "flex-start", minHeight: 30 }}>
+        {groups.map((g) => {
+          const list = v.p.built.filter((id) => CARD[id].color === g);
+          if (!list.length) return null;
+          return (
+            <div key={g} style={{ display: "flex", flexDirection: "column", width: 92 }}>
+              {list.map((id, k) => (
+                <div key={id} title={[CARD[id].name, ...describeCard(CARD[id])].join("\n")} className="duel-mini" style={{
+                  height: 19, marginTop: k ? -2 : 0, borderRadius: 4, padding: "0 5px",
+                  display: "flex", alignItems: "center", gap: 4,
+                  background: `linear-gradient(180deg, ${shade(CARDCOL[g], 10)}, ${shade(CARDCOL[g], -14)})`,
+                  border: "1px solid rgba(0,0,0,.45)",
+                  boxShadow: "inset 0 1px 0 rgba(255,255,255,.22), 0 1px 2px rgba(0,0,0,.4)",
+                  position: "relative", zIndex: k,
+                }}>
+                  <span style={{
+                    flex: 1, minWidth: 0, fontSize: 8.6, fontWeight: 700, color: "#fff",
+                    textShadow: "0 1px 1px rgba(0,0,0,.5)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                  }}>{CARD[id].name}</span>
+                  <MiniEffect card={CARD[id]} />
+                </div>
+              ))}
+            </div>
+          );
+        })}
+        {!v.p.built.length && <span style={{ fontSize: 11, color: C.muted, fontStyle: "italic" }}>An empty plain, waiting for its first building.</span>}
+      </div>
+    </div>
+  );
+}
+
+function MiniEffect({ card }: { card: Card }) {
+  if (card.prod) {
+    const [r] = entries(card.prod)[0]!;
+    return <Pip r={r} size={10} />;
+  }
+  if (card.sci) return <SciMark k={card.sci} size={11} />;
+  if (card.shields) return <span style={{ display: "flex", alignItems: "center", gap: 1 }}><b style={{ fontSize: 8.6, color: "#ffe2dc" }}>{card.shields}</b><Icon name="shield" size={10} color="#ffe2dc" /></span>;
+  if (card.vp) return <VP n={card.vp} size={13} />;
+  return null;
+}
+
+function CoinStack({ n }: { n: number }) {
+  const layers = Math.min(3, Math.floor(n / 5));
+  return (
+    <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+      <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true" style={{ filter: "drop-shadow(0 1px 1px rgba(0,0,0,.6))" }}>
+        {Array.from({ length: layers }, (_, k) => (
+          <g key={k}>
+            <ellipse cx="12" cy={20 - k * 2.6} rx="8" ry="2.4" fill="#8f6a26" />
+            <ellipse cx="12" cy={19.2 - k * 2.6} rx="8" ry="2.2" fill="#dcb15c" />
+          </g>
+        ))}
+        <circle cx="9" cy={11 - layers * 1.4} r="7.4" fill="#b98c39" />
+        <circle cx="9" cy={10.4 - layers * 1.4} r="7" fill="#e6bc63" stroke="#8f6a26" strokeWidth=".8" />
+        <circle cx="9" cy={10.4 - layers * 1.4} r="4.6" fill="none" stroke="#b98c39" strokeWidth=".8" />
+        <path d={`M6.6 ${8 - layers * 1.4}a3 3 0 0 1 3-1.6`} stroke="#fff4c8" strokeWidth="1" fill="none" strokeLinecap="round" />
+      </svg>
+      <b style={{ fontSize: 14, color: "#f2cd7c", fontWeight: 800, textShadow: "0 1px 2px rgba(0,0,0,.6)" }}>{n}</b>
+    </span>
+  );
+}
+
+function SectionLabel({ children, right }: { children: React.ReactNode; right?: React.ReactNode }) {
+  return (
+    <div style={{
+      display: "flex", justifyContent: "space-between", alignItems: "center",
+      fontSize: 9, letterSpacing: 1.3, textTransform: "uppercase", color: C.muted, marginBottom: 5, opacity: .9,
+    }}>
+      <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <span style={{ width: 10, height: 1, background: `${C.gold}88` }} />{children}
+      </span>
+      {right && <span style={{ letterSpacing: .3, textTransform: "none", fontSize: 10 }}>{right}</span>}
     </div>
   );
 }
@@ -634,6 +749,23 @@ export default function DuelBoard() {
   }, []);
 
   useEffect(() => () => { if (peer.current) peer.current.close(); }, []);
+
+  const [fx, setFx] = useState<{ n: number; items: Fx[] }>({ n: 0, items: [] });
+  const prevSt = useRef<GameState | null>(null);
+  const rewinding = useRef(false);
+  useEffect(() => {
+    const prev = prevSt.current;
+    prevSt.current = st;
+    if (rewinding.current) { rewinding.current = false; return; }
+    if (!prev || !st) return;
+    const items = diffEvents(prev, st);
+    if (items.length) setFx((f) => ({ n: f.n + 1, items }));
+  }, [st]);
+  useEffect(() => {
+    if (!fx.n) return;
+    const t = setTimeout(() => setFx((f) => ({ ...f, items: [] })), 2600);
+    return () => clearTimeout(t);
+  }, [fx.n]);
 
   const push = (next: GameState) => {
     if (mode !== "direct") return;
@@ -675,6 +807,7 @@ export default function DuelBoard() {
     if (!hist.length) return;
     const prev = hist[hist.length - 1]!;
     setHist((h) => h.slice(0, -1));
+    rewinding.current = true;
     setSt(prev);
     setSel(null);
     push(prev);
@@ -753,65 +886,92 @@ export default function DuelBoard() {
   }
 
   const i = st.turn;
-  const _opp = 1 - i;
-  const _meView = view(st, i);
+  const ageFx = fx.items.find((f): f is Extract<Fx, { kind: "age" }> => f.kind === "age");
 
-  /* ---------- draft ---------- */
   if (st.phase === "draft") {
     const picker = (DRAFT[st.draftStep] + st.first) % 2;
     const yours = mode === "local" || picker === seat;
     return (
       <Shell status={status}>
-        <h2 style={{
-          margin: "0 0 4px", fontSize: 24, color: C.ink, fontWeight: 600,
-          fontFamily: FONT.display, letterSpacing: .5,
-        }}>Choose wonders</h2>
-        <p style={{ margin: "0 0 14px", fontSize: 13, color: C.muted }}>
-          {st.names[picker]} picks. One each, then two, then the last — and the order flips for the second set.
-        </p>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          {st.draftPool.map((id) => {
+        <div className="duel-fade" style={{ textAlign: "center", marginBottom: 16 }}>
+          <div style={{ fontSize: 10.5, letterSpacing: 3, color: C.gold, textTransform: "uppercase", marginBottom: 4 }}>Before Age I</div>
+          <h2 style={{
+            margin: "0 0 6px", fontSize: 30, color: C.ink, fontWeight: 700,
+            fontFamily: FONT.display, letterSpacing: 1.5, textShadow: `0 0 30px ${C.gold}44`,
+          }}>Claim your Wonders</h2>
+          <p style={{ margin: "0 auto 12px", fontSize: 13, color: C.muted, maxWidth: 520, lineHeight: 1.5 }}>
+            One each, then two, then the last — and the order flips for the second set of four.
+          </p>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "6px 14px", borderRadius: 999,
+            background: `${PLAYER[picker].dark}66`, border: `1px solid ${PLAYER[picker].main}88` }}>
+            <Crest seat={picker} size={18} />
+            <b style={{ fontFamily: FONT.display, fontSize: 14, color: PLAYER[picker].light, letterSpacing: .4 }}>{st.names[picker]} picks</b>
+            <span style={{ display: "flex", gap: 4, marginLeft: 6 }}>
+              {DRAFT.map((d, k) => {
+                const who = (d + st.first) % 2;
+                const done = k < st.draftStep, now = k === st.draftStep;
+                return (
+                  <span key={k} title={`Pick ${k + 1}: ${st.names[who]}`} className={now ? "duel-pulse" : undefined} style={{
+                    width: now ? 12 : 9, height: now ? 12 : 9, borderRadius: "50%",
+                    background: done ? PLAYER[who].main : now ? PLAYER[who].light : "transparent",
+                    border: `1.5px solid ${PLAYER[who].main}`, marginLeft: k === 4 ? 6 : 0,
+                    opacity: done ? .55 : 1,
+                  }} />
+                );
+              })}
+            </span>
+          </div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
+          {st.draftPool.map((id, k) => {
             const w = WON[id];
             return (
-              <button key={id} disabled={!yours} onClick={() => { const n = draftPick(clone(st), id); commit(n); }}
-                className={yours ? "duel-card is-live" : "duel-card"}
+              <button key={id} type="button" data-draft disabled={!yours} onClick={() => { const n = draftPick(clone(st), id); commit(n); }}
+                className={yours ? "duel-card duel-deal is-live" : "duel-card duel-deal"}
                 style={{
-                  width: 172, textAlign: "left", padding: 12, borderRadius: 10,
+                  textAlign: "left", padding: 0, borderRadius: 12, overflow: "hidden",
                   background: G.panel, color: C.ink,
-                  border: `1px solid ${C.line}`, borderTop: `2px solid ${C.gold}77`,
-                  boxShadow: SHADOW.panel,
-                  cursor: yours ? "pointer" : "default", opacity: yours ? 1 : .45,
-                  /* A button centres its content in the box; these sit in a row of
-                     equal-height cards, so the text has to start at the top. */
+                  border: `1px solid ${C.gold}55`,
+                  boxShadow: `${SHADOW.panel}, 0 0 0 1px rgba(0,0,0,.4)`,
+                  cursor: yours ? "pointer" : "default", opacity: yours ? 1 : .5,
                   display: "flex", flexDirection: "column", alignItems: "stretch",
+                  animationDelay: `${k * 90}ms`,
                 }}>
-                <div style={{
-                  fontFamily: FONT.display, fontWeight: 600, fontSize: 13.5, marginBottom: 8,
-                  letterSpacing: .3, lineHeight: 1.25, color: C.ink,
-                }}>{w.name}</div>
-                <div style={{
-                  display: "flex", alignItems: "center", gap: 7, marginBottom: 8,
-                  paddingBottom: 8, borderBottom: `1px solid ${C.line}66`,
-                }}>
-                  <CostRow cost={w.cost} />
-                  {w.vp > 0 && <span style={{ marginLeft: "auto" }}><VP n={w.vp} /></span>}
+                <div style={{ position: "relative", aspectRatio: "120 / 64" }}>
+                  <WonderArt id={id} w="100%" h="100%" />
+                  {w.vp > 0 && <span style={{ position: "absolute", top: 6, right: 6 }}><Laurel n={w.vp} size={34} /></span>}
                 </div>
-                <div style={{ fontSize: 10.5, color: C.muted, lineHeight: 1.45 }}>{w.text}</div>
+                <div style={{ padding: "10px 12px 12px", display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
+                  <div style={{ fontFamily: FONT.display, fontWeight: 700, fontSize: 15, letterSpacing: .3, lineHeight: 1.2 }}>{w.name}</div>
+                  <WonderPerks id={id} />
+                  <div style={{ fontSize: 11, color: C.muted, lineHeight: 1.45, flex: 1 }}>{w.text}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, paddingTop: 8, borderTop: `1px solid ${C.line}88` }}>
+                    <span style={{ fontSize: 9, letterSpacing: 1, color: C.muted, textTransform: "uppercase" }}>Cost</span>
+                    <CostRow cost={w.cost} size={14} />
+                  </div>
+                </div>
               </button>
             );
           })}
         </div>
-        <div style={{ display: "flex", gap: 12, marginTop: 18 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 12, marginTop: 18 }}>
           {[0, 1].map((j) => (
             <div key={j} style={{
-              flex: 1, background: G.panel, borderRadius: 10, padding: 12,
-              border: `1px solid ${C.line}`, boxShadow: SHADOW.panel,
+              background: `linear-gradient(180deg, ${PLAYER[j].dark}40, transparent 70px), ${G.panel}`, borderRadius: 12, padding: 12,
+              border: `1px solid ${C.line}`, borderTop: `3px solid ${PLAYER[j].main}`, boxShadow: SHADOW.panel,
             }}>
-              <b style={{
-                fontFamily: FONT.display, fontSize: 13, color: C.ink, letterSpacing: .3,
-              }}>{st.names[j]}</b>
-              <div style={{ fontSize: 11, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
-                {st.players[j].wonders.map((w) => WON[w.id].name).join(" · ") || "—"}
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                <Crest seat={j} size={20} />
+                <b style={{ fontFamily: FONT.display, fontSize: 14, color: C.ink, letterSpacing: .3 }}>{st.names[j]}</b>
+                <span style={{ fontSize: 10.5, color: C.muted, marginLeft: "auto" }}>{st.players[j].wonders.length}/4</span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
+                {Array.from({ length: 4 }, (_, k) => {
+                  const w = st.players[j].wonders[k];
+                  return w
+                    ? <div key={w.id} className="duel-deal"><WonderTile id={w.id} built /></div>
+                    : <div key={`empty${k}`} style={{ aspectRatio: "120 / 64", borderRadius: 7, border: `1px dashed ${C.line}`, background: "rgba(0,0,0,.15)" }} />;
+                })}
               </div>
             </div>
           ))}
@@ -820,151 +980,126 @@ export default function DuelBoard() {
     );
   }
 
-  /* ---------- pending choice ---------- */
-  if (st.pending) {
-    const pd = st.pending;
-    const yours = mode === "local" || pd.player === seat;
-    let title = "", options = null;
-
-    if (pd.type === "progress" || pd.type === "library") {
-      title = pd.type === "library" ? "Choose a token from the archive" : "You completed a pair — take a token";
-      const list = pd.type === "library" ? pd.options : st.board;
-      options = (
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {list.map((t) => (
-            <button key={t} disabled={!yours} onClick={() => commit(resolve(st, t))} style={optBtn(yours)}>
-              <b style={{ fontSize: 12.5 }}>{TOK[t].name}</b>
-              <div style={{ fontSize: 10.5, color: C.muted, marginTop: 4, lineHeight: 1.35 }}>{TOK[t].text}</div>
-            </button>
-          ))}
-        </div>
-      );
-    }
-    if (pd.type === "destroy") {
-      title = `Destroy one of ${st.names[1 - pd.player]}'s ${pd.color} cards`;
-      options = (
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {st.players[1 - pd.player].built.filter((id) => CARD[id].color === pd.color).map((id, k) => (
-            <div key={k} onClick={() => yours && commit(resolve(st, id))} style={{ cursor: yours ? "pointer" : "default" }}>
-              <CardFace card={CARD[id]} w={74} dim={!yours} />
-            </div>
-          ))}
-        </div>
-      );
-    }
-    if (pd.type === "mausoleum") {
-      title = "Raise a card from the discard pile";
-      options = (
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", maxHeight: 340, overflowY: "auto" }}>
-          {st.discard.map((id, k) => (
-            <div key={k} onClick={() => yours && commit(resolve(st, id))} style={{ cursor: yours ? "pointer" : "default" }}>
-              <CardFace card={CARD[id]} w={74} dim={!yours} />
-            </div>
-          ))}
-        </div>
-      );
-    }
-    if (pd.type === "first") {
-      title = `${st.names[pd.player]} has the weaker military — choose who starts Age ${["", "I", "II", "III"][pd.next]}`;
-      options = (
-        <div style={{ display: "flex", gap: 8 }}>
-          {[0, 1].map((j) => (
-            <button key={j} disabled={!yours} onClick={() => commit(resolve(st, j))} style={optBtn(yours)}>
-              <b style={{ fontSize: 12.5 }}>{st.names[j]} starts</b>
-            </button>
-          ))}
-        </div>
-      );
-    }
-
-    return (
-      <Shell status={status}>
-        <h2 style={{
-          margin: "0 0 12px", fontSize: 21, color: C.ink, fontWeight: 600,
-          fontFamily: FONT.display, letterSpacing: .4,
-        }}>{title}</h2>
-        {!yours && <p style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>Waiting for {st.names[pd.player]}…</p>}
-        {options}
-      </Shell>
-    );
-  }
-
-  /* ---------- game over ---------- */
   if (st.phase === "over") {
     const a = score(st, 0), b = score(st, 1);
     const w = st.winner!;
     const rows: (keyof ScoreBreakdown)[] = ["military", "blue", "green", "yellow", "guild", "wonders", "tokens", "coins"];
     const label: Record<string, string> = { military: "Military", blue: "Civilian", green: "Science", yellow: "Commercial", guild: "Guilds", wonders: "Wonders", tokens: "Progress", coins: "Treasury" };
+    const tint: Record<string, string> = { military: CARDCOL.red, blue: CARDCOL.blue, green: CARDCOL.green, yellow: CARDCOL.yellow, guild: CARDCOL.purple, wonders: C.gold, tokens: "#5c8a6d", coins: "#c9a24a" };
+    const top = Math.max(1, ...rows.map((r) => Math.max(a[r], b[r])));
+    const champ = w.p ?? 0;
     return (
       <Shell status={status}>
-        <h2 className="duel-fade" style={{
-          margin: "0 0 6px", fontSize: 38, color: C.gold, fontWeight: 700,
-          fontFamily: FONT.display, letterSpacing: 1,
-          textShadow: `0 0 34px ${C.gold}55`,
+        <Confetti colors={w.p === null ? [PLAYER[0].main, PLAYER[1].main, C.gold] : [PLAYER[champ].main, PLAYER[champ].light, C.gold, "#fff4c8"]} />
+        <div className="duel-fade" style={{ textAlign: "center", padding: "10px 0 18px" }}>
+          <div className="duel-crown" style={{ display: "flex", justifyContent: "center", alignItems: "flex-end", gap: 14, marginBottom: 8 }}>
+            {w.p === null
+              ? <><Crest seat={0} size={52} /><Crest seat={1} size={52} /></>
+              : <span style={{ position: "relative" }}>
+                  <span style={{ position: "absolute", left: "50%", top: -26, transform: "translateX(-50%)" }}><Icon name="crown" size={34} color={C.gold} /></span>
+                  <Crest seat={champ} size={68} />
+                </span>}
+          </div>
+          <div style={{ fontSize: 11, letterSpacing: 4, color: C.gold, textTransform: "uppercase" }}>
+            {w.by === "military" ? "Military supremacy" : w.by === "science" ? "Scientific supremacy" : w.by === "tiebreak" ? "Victory on civilian buildings" : w.by === "draw" ? "Honours even" : "Victory on points"}
+          </div>
+          <h2 style={{
+            margin: "4px 0 6px", fontSize: 44, color: C.gold, fontWeight: 700,
+            fontFamily: FONT.display, letterSpacing: 1.5,
+            textShadow: `0 0 40px ${C.gold}77, 0 2px 0 #6e5320`,
+          }}>
+            {w.p === null ? "A shared victory" : `${st.names[w.p]} triumphs`}
+          </h2>
+          <p style={{ margin: 0, fontSize: 13, color: C.muted }}>
+            {w.by === "military" ? "The pawn reached the enemy capital." : w.by === "science" ? "Six different scientific symbols — the age belongs to the scholars." :
+              w.by === "tiebreak" ? "Level on points, decided on civilian buildings." : `${a.total} to ${b.total} after three ages.`}
+          </p>
+        </div>
+        <div style={{
+          maxWidth: 620, margin: "0 auto", background: G.panel, border: `1px solid ${C.gold}55`, borderRadius: 14,
+          boxShadow: `${SHADOW.panel}, 0 0 50px -24px ${C.gold}`, padding: "14px 16px",
         }}>
-          {w.p === null ? "A shared victory" : `${st.names[w.p]} wins`}
-        </h2>
-        <p style={{ margin: "0 0 18px", fontSize: 13, color: C.muted }}>
-          {w.by === "military" ? "Military supremacy." : w.by === "science" ? "Scientific supremacy — six symbols." :
-            w.by === "tiebreak" ? "Level on points, decided on civilian buildings." : "Decided on points."}
-        </p>
-        <table style={{
-          borderCollapse: "collapse", fontSize: 13, color: C.ink, minWidth: 320,
-          background: G.panel, border: `1px solid ${C.line}`, borderRadius: 10,
-          boxShadow: SHADOW.panel, overflow: "hidden",
-        }}>
-          <thead><tr>
-            <th style={th}></th><th style={th}>{st.names[0]}</th><th style={th}>{st.names[1]}</th>
-          </tr></thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r}>
-                <td style={{ ...td, color: C.muted }}>{label[r]}</td>
-                <td style={td}>{a[r]}</td><td style={td}>{b[r]}</td>
-              </tr>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 110px 1fr", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            {[0, 1].map((j) => (
+              <div key={j} style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: j ? "flex-start" : "flex-end", order: j ? 3 : 1 }}>
+                {j === 0 && <b style={{ fontFamily: FONT.display, fontSize: 15, color: PLAYER[0].light }}>{st.names[0]}</b>}
+                <Crest seat={j} size={22} />
+                {j === 1 && <b style={{ fontFamily: FONT.display, fontSize: 15, color: PLAYER[1].light }}>{st.names[1]}</b>}
+              </div>
             ))}
-            <tr><td style={{ ...td, fontWeight: 700, borderTop: `1px solid ${C.line}` }}>Total</td>
-              <td style={{ ...td, fontWeight: 700, borderTop: `1px solid ${C.line}` }}>{a.total}</td>
-              <td style={{ ...td, fontWeight: 700, borderTop: `1px solid ${C.line}` }}>{b.total}</td></tr>
-          </tbody>
-        </table>
-        <button onClick={() => { setSt(null); setHist([]); setMode(null); }} style={{ ...btn, marginTop: 20 }}>New game</button>
+            <span style={{ order: 2 }} />
+          </div>
+          {rows.map((r, k) => (
+            <div key={r} className="duel-deal" style={{ display: "grid", gridTemplateColumns: "1fr 110px 1fr", alignItems: "center", gap: 8, marginBottom: 5, animationDelay: `${300 + k * 80}ms` }}>
+              <ScoreBar n={a[r]} max={top} color={PLAYER[0].main} flip />
+              <span style={{ textAlign: "center", fontSize: 11, color: C.muted, display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+                <span style={{ width: 8, height: 8, borderRadius: 2, background: tint[r] }} />{label[r]}
+              </span>
+              <ScoreBar n={b[r]} max={top} color={PLAYER[1].main} />
+            </div>
+          ))}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 110px 1fr", alignItems: "center", gap: 8, marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.line}` }}>
+            <span style={{ display: "flex", justifyContent: "flex-end" }}><Laurel n={a.total} size={48} color={w.p === 0 ? C.gold : C.muted} /></span>
+            <span style={{ textAlign: "center", fontFamily: FONT.display, fontSize: 13, color: C.ink, letterSpacing: 1 }}>TOTAL</span>
+            <span><Laurel n={b.total} size={48} color={w.p === 1 ? C.gold : C.muted} /></span>
+          </div>
+        </div>
+        <div style={{ textAlign: "center" }}>
+          <button type="button" onClick={() => { setSt(null); setHist([]); setMode(null); }} style={{ ...btn, marginTop: 20, padding: "11px 26px", fontSize: 14 }}>Play again</button>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 12, marginTop: 22 }}>
+          <City st={st} i={0} />
+          <City st={st} i={1} />
+        </div>
       </Shell>
     );
   }
 
-  /* ---------- main board ---------- */
+  const pd = st.pending;
+  const decider = pd ? pd.player : i;
+  const canAct = !pd && myTurn;
   const selSlot = sel !== null ? st.slots.find((s) => s.id === sel) : null;
-  const selCard = selSlot?.card ? CARD[selSlot.card] : null;
+  const selCard = selSlot?.card && selSlot.card !== "?" ? CARD[selSlot.card] : null;
   const selCost = selCard ? cardCost(st, i, selCard) : null;
   const yellowN = st.players[i].built.filter((id) => CARD[id].color === "yellow").length;
   const rows = LAYOUTS[st.age].rows;
   const maxRow = Math.max(...rows);
+  const leftSeat = mode === "direct" ? seat : 0;
+  const ageTint = tintFor(st.age);
+  const taken = 20 - st.remaining;
+  let dealIndex = 0;
 
   return (
     <Shell status={status}>
+      {ageFx && <AgeBanner key={fx.n} age={ageFx.age} starter={st.names[st.turn]} />}
+
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        marginBottom: 10, gap: 10, flexWrap: "wrap",
-        background: G.panel, border: `1px solid ${C.line}`, borderRadius: 10,
+        marginBottom: 12, gap: 10, flexWrap: "wrap",
+        background: `linear-gradient(90deg, ${ageTint.b}aa, transparent 40%), ${G.panel}`, border: `1px solid ${C.line}`, borderRadius: 12,
         padding: "8px 12px", boxShadow: SHADOW.panel,
       }}>
-        <span style={{ fontSize: 13, color: C.muted, display: "flex", alignItems: "center", gap: 9 }}>
-          <b style={{
-            fontFamily: FONT.display, fontSize: 15, fontWeight: 700, color: C.gold, letterSpacing: 1,
-          }}>AGE {["", "I", "II", "III"][st.age]}</b>
-          <span style={{ width: 1, height: 13, background: C.line }} />
-          {st.remaining} cards left
+        <span style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <AgeMedal age={st.age} />
+          <span style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <b style={{ fontFamily: FONT.display, fontSize: 15, fontWeight: 700, color: C.gold, letterSpacing: 1.2 }}>AGE {ROMAN[st.age]}</b>
+            <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: C.muted }}>
+              <Icon name="deck" size={13} color={C.muted} />
+              <span>{st.remaining} cards left</span>
+              <span style={{ width: 70, height: 4, borderRadius: 4, background: "rgba(0,0,0,.35)", overflow: "hidden" }}>
+                <span style={{ display: "block", height: "100%", width: `${(taken / 20) * 100}%`, background: `linear-gradient(90deg, ${ageTint.rim}, ${C.gold})`, transition: "width .5s" }} />
+              </span>
+            </span>
+          </span>
         </span>
-        <span style={{
-          fontSize: 13, color: myTurn ? C.gold : C.muted, fontWeight: 600,
-          display: "flex", alignItems: "center", gap: 7,
+        <span key={`${st.turn}-${st.age}-${pd?.type ?? ""}`} className="duel-turn" style={{
+          fontSize: 14, color: myTurn ? C.gold : C.muted, fontWeight: 700, fontFamily: FONT.display, letterSpacing: .5,
+          display: "flex", alignItems: "center", gap: 8, padding: "5px 14px 5px 6px", borderRadius: 999,
+          background: `${PLAYER[decider].dark}55`, border: `1px solid ${PLAYER[decider].main}77`,
         }}>
-          {myTurn && <span className="duel-pulse" style={{
-            width: 7, height: 7, borderRadius: "50%", background: C.gold,
-            boxShadow: `0 0 8px ${C.gold}`, flex: "0 0 auto",
-          }} />}
-          {myTurn ? `${st.names[i]} to play` : `Waiting for ${st.names[i]}`}
+          <Crest seat={decider} size={20} />
+          {pd ? `${st.names[decider]} must choose` : myTurn ? `${st.names[i]} to play` : `Waiting for ${st.names[i]}`}
+          {myTurn && !pd && <span className="duel-pulse" style={{ width: 7, height: 7, borderRadius: "50%", background: C.gold, boxShadow: `0 0 8px ${C.gold}` }} />}
         </span>
         <span style={{ display: "flex", gap: 6 }}>
           {mode === "direct" && (
@@ -983,108 +1118,413 @@ export default function DuelBoard() {
               {linked() ? "connected" : "disconnected"}
             </span>
           )}
-          <button onClick={undo} disabled={!hist.length} style={{ ...btnSm, opacity: hist.length ? 1 : .4 }}>Undo</button>
+          <button type="button" onClick={undo} disabled={!hist.length} style={{ ...btnSm, opacity: hist.length ? 1 : .4, display: "flex", alignItems: "center", gap: 5 }}>
+            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M4 2L1 5l3 3M1.4 5H8a3 3 0 0 1 0 6H5" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            Undo
+          </button>
         </span>
       </div>
 
-      <div style={{ marginBottom: 10 }}><MilitaryTrack st={st} /></div>
+      <div style={{ marginBottom: 12 }}><MilitaryTrack st={st} /></div>
 
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14, alignItems: "center" }}>
-        <span style={{
-          fontSize: 9.5, letterSpacing: 1.1, textTransform: "uppercase",
-          color: C.muted, opacity: .8, marginRight: 2,
-        }}>Progress</span>
-        {st.board.map((t) => <TokenChip key={t} id={t} small />)}
-        {!st.board.length && <span style={{ fontSize: 11, color: C.muted }}>all progress tokens claimed</span>}
+      <div style={{
+        display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12, alignItems: "center", justifyContent: "center",
+        padding: "8px 12px", borderRadius: 12,
+        background: "linear-gradient(180deg, rgba(61,107,76,.22), rgba(42,77,54,.12))",
+        border: "1px solid rgba(92,138,109,.35)",
+      }}>
+        <span style={{ fontSize: 9.5, letterSpacing: 1.4, textTransform: "uppercase", color: "#9fd0ad", marginRight: 4, display: "flex", alignItems: "center", gap: 6 }}>
+          <Icon name="flask" size={14} color="#9fd0ad" />Progress
+        </span>
+        {st.board.map((t) => <TokenMedal key={t} id={t} />)}
+        {!st.board.length && <span style={{ fontSize: 11, color: C.muted }}>All progress tokens claimed</span>}
       </div>
 
-      {/* structure */}
-      <div style={{ overflowX: "auto", padding: "4px 0 12px" }}>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, minWidth: maxRow * 80 }}>
-          {rows.map((_len, r) => {
-            const rowSlots = st.slots.filter((s) => s.row === r);
-            const pinch = st.age === 3 && r === 3;
-            return (
-              <div key={r} style={{ display: "flex", gap: pinch ? 90 : 6, marginTop: r ? -22 : 0 }}>
-                {rowSlots.map((s) => {
-                  if (s.card === null) return <div key={s.id} style={{ width: 74, height: 74 * 1.36 }} />;
-                  if (!s.up || s.card === "?") return <CardBack key={s.id} />;
-                  const card = CARD[s.card];
-                  const open = isOpen(st.slots, s);
-                  const cst = open ? cardCost(st, i, card) : null;
-                  return (
-                    <CardFace
-                      key={s.id}
-                      card={card}
-                      selected={sel === s.id}
-                      dim={!open}
-                      onClick={open && myTurn ? () => setSel(sel === s.id ? null : s.id) : undefined}
-                      cost={cst ? { ...cst, affordable: cst.total <= st.players[i].coins } : null}
-                    />
-                  );
-                })}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* action bar */}
-      {selCard && selCost && sel !== null && myTurn && (
-        <div className="duel-fade" style={{
-          background: G.panel, border: `1px solid ${C.gold}66`, borderRadius: 10,
-          padding: 14, marginBottom: 12,
-          boxShadow: `${SHADOW.panel}, 0 0 24px -12px ${C.gold}`,
+      <FitBox natural={maxRow * 90 + (st.age === 3 ? 100 : 0) + 40}>
+        <div key={st.age} className="duel-mat" style={{
+          position: "relative", padding: "18px 20px 22px", borderRadius: 18,
+          background: `radial-gradient(90% 70% at 50% 30%, ${shade(ageTint.b, 6)}55, transparent 70%), linear-gradient(180deg, #1c2d32, #142126)`,
+          border: `1px solid ${ageTint.rim}33`,
+          boxShadow: `inset 0 0 0 6px rgba(0,0,0,.18), inset 0 0 0 7px ${ageTint.rim}22, inset 0 20px 60px -30px rgba(0,0,0,.8), 0 10px 30px -18px rgba(0,0,0,.9)`,
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 11, flexWrap: "wrap" }}>
-            <span style={{
-              width: 9, height: 9, borderRadius: 2, flex: "0 0 auto",
-              background: `linear-gradient(180deg, ${shade(CARDCOL[selCard.color], 10)}, ${shade(CARDCOL[selCard.color], -12)})`,
-              boxShadow: "0 0 0 1px rgba(0,0,0,.4)",
-            }} />
-            <b style={{ fontFamily: FONT.display, fontSize: 15, fontWeight: 600, color: C.ink, letterSpacing: .3 }}>
-              {selCard.name}
-            </b>
-            <span style={{ fontSize: 12, color: C.muted }}>
-              {selCost.chained ? "free by chain" : selCost.total === 0 ? "free" : `${selCost.total} coins`}
-              {selCost.trade > 0 && ` (${selCost.trade} on trade)`}
-            </span>
-          </div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button
-              disabled={selCost.total > st.players[i].coins}
-              onClick={() => commit(actBuild(st, sel))}
-              style={{ ...btn, opacity: selCost.total > st.players[i].coins ? .4 : 1 }}
-            >Build</button>
-            <button onClick={() => commit(actDiscard(st, sel))} style={btn}>
-              Discard for {2 + yellowN}c
-            </button>
-            {st.players[i].wonders.filter((w) => !w.built).map((w) => {
-              const wc = wonderCost(st, i, WON[w.id]);
-              const ok = wc.total <= st.players[i].coins;
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+            {rows.map((_len, r) => {
+              const rowSlots = st.slots.filter((s) => s.row === r);
+              const pinch = st.age === 3 && r === 3;
               return (
-                <button key={w.id} disabled={!ok} onClick={() => commit(actWonder(st, sel, w.id))}
-                  style={{ ...btn, background: C.panel2, opacity: ok ? 1 : .4 }}>
-                  {WON[w.id].name} · {wc.total ? `${wc.total}c` : "free"}
-                </button>
+                <div key={r} style={{ display: "flex", gap: pinch ? 100 : 6, marginTop: r ? -32 : 0, position: "relative", zIndex: r }}>
+                  {rowSlots.map((s) => {
+                    const delay = (dealIndex++) * 38;
+                    if (s.card === null) return <div key={s.id} style={{ width: 84, height: 119 }} />;
+                    if (!s.up || s.card === "?") {
+                      return <div key={s.id} className="duel-deal" style={{ animationDelay: `${delay}ms` }}><CardBack age={st.age} /></div>;
+                    }
+                    const card = CARD[s.card];
+                    const open = isOpen(st.slots, s);
+                    const cst = open ? cardCost(st, i, card) : null;
+                    return (
+                      <div key={s.id} className="duel-deal" style={{ animationDelay: `${delay}ms` }}>
+                        <CardFace
+                          card={card}
+                          selected={sel === s.id}
+                          dim={!open}
+                          delay={delay + 120}
+                          onClick={open && canAct ? () => setSel(sel === s.id ? null : s.id) : undefined}
+                          cost={cst ? { ...cst, affordable: cst.total <= st.players[i].coins } : null}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
               );
             })}
           </div>
         </div>
+      </FitBox>
+
+      {canAct && selCard && selCost && sel !== null && (
+        <ActionDock
+          key={sel}
+          card={selCard}
+          cost={selCost}
+          coins={st.players[i].coins}
+          discardFor={2 + yellowN}
+          wonders={st.players[i].wonders.filter((w) => !w.built).map((w) => ({ id: w.id, cost: wonderCost(st, i, WON[w.id]).total }))}
+          closed={st.wondersBuilt >= 7}
+          onBuild={() => commit(actBuild(st, sel))}
+          onDiscard={() => commit(actDiscard(st, sel))}
+          onWonder={(id) => commit(actWonder(st, sel, id))}
+          onClose={() => setSel(null)}
+        />
+      )}
+      {canAct && sel === null && (
+        <div style={{ textAlign: "center", fontSize: 11.5, color: C.muted, margin: "2px 0 12px", letterSpacing: .3 }}>
+          Pick any uncovered card — then build it, sell it, or bury it under a Wonder.
+        </div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 10 }}>
-        <City st={st} i={mode === "direct" ? seat : 0} me={mode === "direct"} />
-        <City st={st} i={mode === "direct" ? 1 - seat : 1} />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 12 }}>
+        <City st={st} i={leftSeat} me={mode === "direct"} floats={fxToFloats(fx.items, leftSeat)} />
+        <City st={st} i={1 - leftSeat} floats={fxToFloats(fx.items, 1 - leftSeat)} />
       </div>
 
-      <details style={{ marginTop: 12 }}>
-        <summary style={{ fontSize: 12, color: C.muted, cursor: "pointer" }}>Move log · discard ({st.discard.length})</summary>
-        <div style={{ fontSize: 11.5, color: C.muted, marginTop: 8, lineHeight: 1.7, maxHeight: 160, overflowY: "auto" }}>
-          {[...st.log].reverse().map((l, k) => <div key={k}>{l}</div>)}
-        </div>
-      </details>
+      <Chronicle st={st} />
+
+      {pd && <Decision st={st} yours={mode === "local" || pd.player === seat} onPick={(c) => commit(resolve(st, c))} />}
     </Shell>
+  );
+}
+
+function WonderPerks({ id }: { id: string }) {
+  const w = WON[id];
+  const chip = (key: string, body: React.ReactNode, tip: string) => (
+    <span key={key} title={tip} style={{
+      display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 600, color: C.ink,
+      background: "rgba(0,0,0,.25)", border: `1px solid ${C.line}`, borderRadius: 999, padding: "2px 8px 2px 3px",
+    }}>{body}</span>
+  );
+  const out: React.ReactNode[] = [];
+  if (w.gainCoins) out.push(chip("c", <><Coin n={w.gainCoins} size={16} />coins</>, `+${w.gainCoins} coins`));
+  if (w.oppLoses) out.push(chip("o", <><span style={{ color: "#e8867f", fontWeight: 800, paddingLeft: 4 }}>−{w.oppLoses}</span>to rival</>, `Opponent loses ${w.oppLoses} coins`));
+  if (w.shields) out.push(chip("s", <><Shield n={1} />{w.shields}</>, `${w.shields} shields`));
+  if (w.again) out.push(chip("a", <><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M11 4A5 5 0 1 0 12 8" stroke={C.gold} strokeWidth="1.6" fill="none" strokeLinecap="round" /><path d="M8.6 3.6L11.4 1.4l.4 3.4z" fill={C.gold} /></svg>Play again</>, "Take another turn"));
+  if (w.destroy) out.push(chip("d", <><ColorTab c={w.destroy} size={10} />destroy</>, `Destroy a ${w.destroy} card`));
+  if (w.library) out.push(chip("l", <><TokenDisc id="philosophy" size={16} />archive</>, "Pick from 3 unused progress tokens"));
+  if (w.mausoleum) out.push(chip("m", <><Icon name="scroll" size={13} color={C.gold} />raise discard</>, "Build a discarded card for free"));
+  if (w.prodChoice) out.push(chip("p", w.prodChoice.map((r) => <Pip key={r} r={r} size={13} />), `Produces one of ${w.prodChoice.join(" / ")}`));
+  return <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>{out}</div>;
+}
+
+function ScoreBar({ n, max, color, flip }: { n: number; max: number; color: string; flip?: boolean }) {
+  return (
+    <span style={{ display: "flex", alignItems: "center", gap: 6, flexDirection: flip ? "row-reverse" : "row" }}>
+      <span style={{ flex: 1, height: 12, borderRadius: 6, background: "rgba(0,0,0,.3)", overflow: "hidden", display: "flex", justifyContent: flip ? "flex-end" : "flex-start" }}>
+        <span className="duel-bar" style={{
+          width: `${(n / max) * 100}%`, height: "100%", borderRadius: 6,
+          background: `linear-gradient(180deg, ${shade(color, 18)}, ${shade(color, -14)})`,
+          boxShadow: `0 0 10px -2px ${color}`,
+        }} />
+      </span>
+      <b style={{ width: 22, textAlign: "center", fontSize: 13, color: n ? C.ink : C.muted }}>{n}</b>
+    </span>
+  );
+}
+
+function Confetti({ colors }: { colors: string[] }) {
+  return (
+    <div aria-hidden="true" style={{ position: "fixed", inset: 0, pointerEvents: "none", overflow: "hidden", zIndex: 70 }}>
+      {Array.from({ length: 70 }, (_, k) => {
+        const left = (k * 37.3) % 100;
+        const delay = (k * 113) % 2400;
+        const dur = 2600 + ((k * 211) % 1800);
+        const size = 5 + (k % 4) * 2;
+        return (
+          <span key={k} className="duel-confetti" style={{
+            position: "absolute", top: -20, left: `${left}%`, width: size, height: size * (k % 3 ? .45 : 1),
+            background: colors[k % colors.length], borderRadius: k % 5 === 0 ? "50%" : 1,
+            animationDelay: `${delay}ms`, animationDuration: `${dur}ms`,
+          }} />
+        );
+      })}
+    </div>
+  );
+}
+
+function AgeMedal({ age }: { age: number }) {
+  const t = tintFor(age);
+  return (
+    <span style={{
+      width: 40, height: 40, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
+      background: `radial-gradient(circle at 35% 30%, ${shade(t.a, 20)}, ${t.a} 55%, ${t.b})`,
+      border: `2px solid ${t.rim}`, boxShadow: `0 0 0 2px rgba(0,0,0,.4), 0 0 16px -4px ${t.rim}`,
+      fontFamily: FONT.display, fontWeight: 700, fontSize: t.label.length > 2 ? 13 : 16, color: "#fff4dc",
+      textShadow: "0 1px 2px rgba(0,0,0,.6)", flex: "0 0 auto",
+    }}>{t.label}</span>
+  );
+}
+
+function AgeBanner({ age, starter }: { age: number; starter: string }) {
+  const t = tintFor(age);
+  const lines = ["", "The first structure is dealt.", "The middle age. The cards grow costlier.", "The final age. The guilds wait in the dark."];
+  return (
+    <div className="duel-age" aria-live="polite" style={{
+      position: "fixed", inset: 0, zIndex: 95, pointerEvents: "none",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      background: `radial-gradient(60% 40% at 50% 50%, ${t.b}ee, rgba(8,14,16,.6) 70%, transparent)`,
+    }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
+          <span style={{
+            width: 96, height: 96, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
+            background: `radial-gradient(circle at 35% 30%, ${shade(t.a, 24)}, ${t.a} 55%, ${t.b})`,
+            border: `3px solid ${t.rim}`, boxShadow: `0 0 0 4px rgba(0,0,0,.35), 0 0 60px -6px ${t.rim}`,
+            fontFamily: FONT.display, fontWeight: 700, fontSize: 40, color: "#fff4dc", textShadow: "0 2px 4px rgba(0,0,0,.6)",
+          }}>{t.label}</span>
+        </div>
+        <div style={{ fontFamily: FONT.display, fontSize: 44, fontWeight: 700, letterSpacing: 8, color: "#fff4dc", textShadow: `0 0 30px ${t.rim}` }}>AGE {ROMAN[age]}</div>
+        <div style={{ width: 160, height: 1, margin: "8px auto", background: `linear-gradient(90deg, transparent, ${t.rim}, transparent)` }} />
+        <div style={{ fontSize: 13, color: "#e6dcc4", letterSpacing: .4 }}>{lines[age]}</div>
+        <div style={{ fontSize: 12, color: C.gold, marginTop: 6, letterSpacing: .4 }}>{starter} plays first</div>
+      </div>
+    </div>
+  );
+}
+
+function FitBox({ natural, children }: { natural: number; children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [width, setWidth] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver((list) => setWidth(list[0]?.contentRect.width ?? 0));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const zoom = width ? Math.min(1, width / natural) : 1;
+  return (
+    <div ref={ref} style={{ marginBottom: 12 }}>
+      <div style={{ zoom }}>{children}</div>
+    </div>
+  );
+}
+
+interface ActionDockProps {
+  card: Card;
+  cost: { total: number; trade: number; chained: boolean };
+  coins: number;
+  discardFor: number;
+  wonders: { id: string; cost: number }[];
+  closed: boolean;
+  onBuild: () => void;
+  onDiscard: () => void;
+  onWonder: (id: string) => void;
+  onClose: () => void;
+}
+
+function ActionDock({ card, cost, coins, discardFor, wonders, closed, onBuild, onDiscard, onWonder, onClose }: ActionDockProps) {
+  const canBuild = cost.total <= coins;
+  const ref = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    ref.current?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+  }, []);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  const tile = (on: boolean): React.CSSProperties => ({
+    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4,
+    minWidth: 96, padding: "9px 10px", borderRadius: 10, cursor: on ? "pointer" : "not-allowed",
+    border: `1px solid ${on ? "#a87f31" : C.line}`, opacity: on ? 1 : .45,
+    color: on ? "#2a2109" : C.muted, fontWeight: 700, fontSize: 12,
+    background: on ? G.gold : G.panel2,
+    boxShadow: on ? "inset 0 1px 0 rgba(255,255,255,.35), 0 4px 10px -4px rgba(0,0,0,.7)" : "none",
+  });
+  return (
+    <div ref={ref} className="duel-dock" role="dialog" aria-label={`${card.name} actions`} style={{
+      position: "relative", zIndex: 5, marginBottom: 12, scrollMarginBottom: 16,
+      background: `linear-gradient(180deg, rgba(40,62,68,.97), rgba(26,40,45,.98))`,
+      border: `1px solid ${C.gold}77`, borderRadius: 14, padding: "12px 30px 12px 12px",
+      boxShadow: `0 -10px 40px -10px rgba(0,0,0,.85), 0 0 30px -14px ${C.gold}`,
+      display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap",
+      backdropFilter: "blur(6px)",
+    }}>
+      <CardFace card={card} w={104} />
+      <div style={{ flex: "1 1 200px", minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+          <ColorTab c={card.color} size={10} />
+          <b style={{ fontFamily: FONT.display, fontSize: 18, fontWeight: 700, color: C.ink, letterSpacing: .4 }}>{card.name}</b>
+        </div>
+        <ul style={{ margin: "0 0 8px", padding: 0, listStyle: "none", fontSize: 12, color: "#cfdadc", lineHeight: 1.6 }}>
+          {describeCard(card).map((d) => (
+            <li key={d} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ width: 4, height: 4, borderRadius: "50%", background: C.gold }} />{d}
+            </li>
+          ))}
+        </ul>
+        <div style={{ fontSize: 11.5, color: C.muted, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+          {cost.chained
+            ? <><Icon name="chain" size={13} color="#8fd0a0" /><span style={{ color: "#8fd0a0" }}>Free by chain{card.chainFrom ? ` from ${CARD[card.chainFrom].name}` : ""}</span></>
+            : <>Costs you <Coin n={cost.total} size={16} />{cost.trade > 0 && <span>({cost.trade} on trade)</span>} · you hold <Coin n={coins} size={16} /></>}
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "stretch", flex: "100 1 320px", justifyContent: "flex-end" }}>
+        <button type="button" disabled={!canBuild} onClick={onBuild} style={tile(canBuild)}>
+          <Icon name="hammer" size={20} color={canBuild ? "#2a2109" : C.muted} />
+          Build
+          <span style={{ fontSize: 10, fontWeight: 600, opacity: .8 }}>{cost.chained || !cost.total ? "free" : coinsText(cost.total)}</span>
+        </button>
+        <button type="button" onClick={onDiscard} style={{ ...tile(true), background: "linear-gradient(180deg, #4b6b72, #33525a)", color: C.ink, border: `1px solid ${C.line}` }}>
+          <Icon name="coins" size={20} color="#f2cd7c" />
+          Sell
+          <span style={{ fontSize: 10, fontWeight: 600, color: "#f2cd7c" }}>+{coinsText(discardFor)}</span>
+        </button>
+        {!closed && wonders.map((w) => {
+          const ok = w.cost <= coins;
+          return (
+            <button key={w.id} type="button" disabled={!ok} onClick={() => onWonder(w.id)} title={WON[w.id].text} style={{
+              ...tile(ok), padding: 0, overflow: "hidden", minWidth: 0, width: 112, flex: "1 1 96px", maxWidth: 132, gap: 0,
+              background: ok ? "linear-gradient(180deg, #7b6842, #4e4129)" : G.panel2, color: ok ? "#fff4dc" : C.muted,
+            }}>
+              <div style={{ width: "100%", aspectRatio: "120 / 50", overflow: "hidden" }}><WonderArt id={w.id} w="100%" h="100%" dim={!ok} /></div>
+              <span style={{ fontSize: 10.5, padding: "4px 6px 0", fontFamily: FONT.display, lineHeight: 1.1 }}>{WON[w.id].name.replace(/^The /, "")}</span>
+              <span style={{ fontSize: 9.5, fontWeight: 600, padding: "1px 0 5px", opacity: .85 }}>{w.cost ? coinsText(w.cost) : "free"}</span>
+            </button>
+          );
+        })}
+      </div>
+      <button type="button" onClick={onClose} aria-label="Put the card back" style={{
+        position: "absolute", top: 6, right: 8, background: "transparent", border: "none", color: C.muted, fontSize: 16, cursor: "pointer", lineHeight: 1,
+      }}>×</button>
+    </div>
+  );
+}
+
+function logIcon(line: string): React.ReactNode {
+  if (/^Age /.test(line)) return <Icon name="crown" size={13} color={C.gold} />;
+  if (/destroyed/.test(line)) return <Icon name="sword" size={13} color="#e8867f" />;
+  if (/discarded/.test(line)) return <Icon name="coins" size={13} color="#f2cd7c" />;
+  if (/took/.test(line)) return <Icon name="flask" size={13} color="#9fd0ad" />;
+  if (/raised/.test(line)) return <Icon name="scroll" size={13} color={C.gold} />;
+  if (WONDERS.some((w) => line.includes(w.name))) return <Icon name="pyramid" size={13} color={C.gold} />;
+  return <Icon name="hammer" size={13} color={C.muted} />;
+}
+
+function Chronicle({ st }: { st: GameState }) {
+  return (
+    <details style={{ marginTop: 14, background: G.panel, border: `1px solid ${C.line}`, borderRadius: 12, padding: "8px 12px", boxShadow: SHADOW.panel }}>
+      <summary style={{ fontSize: 12.5, color: C.ink, cursor: "pointer", fontFamily: FONT.display, letterSpacing: .4, display: "flex", alignItems: "center", gap: 8 }}>
+        <Icon name="book" size={15} color={C.gold} />Chronicle
+        <span style={{ fontFamily: FONT.body, fontSize: 11, color: C.muted }}>· {st.log.length} entries · discard pile {st.discard.length}</span>
+      </summary>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 14, marginTop: 10 }}>
+        <div style={{ fontSize: 11.5, color: "#cfdadc", lineHeight: 1.5, maxHeight: 220, overflowY: "auto" }}>
+          {[...st.log].reverse().map((l, k) => (
+            <div key={`${st.log.length - k}`} style={{ display: "flex", gap: 7, alignItems: "center", padding: "3px 0", borderBottom: "1px solid rgba(255,255,255,.04)" }}>
+              {logIcon(l)}<span>{l}</span>
+            </div>
+          ))}
+        </div>
+        <div>
+          <div style={{ fontSize: 9, letterSpacing: 1.3, textTransform: "uppercase", color: C.muted, marginBottom: 8 }}>Discard pile</div>
+          {st.discard.length ? (
+            <div style={{ display: "flex", flexWrap: "wrap", paddingLeft: 18 }}>
+              {st.discard.map((id, k) => (
+                <div key={`${id}${k}`} style={{ marginLeft: -18, transform: `rotate(${((k * 7) % 9) - 4}deg)` }}>
+                  <CardFace card={CARD[id]} w={56} />
+                </div>
+              ))}
+            </div>
+          ) : <span style={{ fontSize: 11, color: C.muted, fontStyle: "italic" }}>Nothing sold yet.</span>}
+        </div>
+      </div>
+    </details>
+  );
+}
+
+function Decision({ st, yours, onPick }: { st: GameState; yours: boolean; onPick: (c: string | number) => void }) {
+  const pd = st.pending!;
+  let title = "", sub = "", options: React.ReactNode = null;
+  if (pd.type === "progress" || pd.type === "library") {
+    title = pd.type === "library" ? "The Great Library opens its archive" : "A scientific pair — claim a progress token";
+    sub = pd.type === "library" ? "Three forgotten discoveries. Keep one." : "Matching symbols reward you with a lasting advantage.";
+    const list = pd.type === "library" ? pd.options : st.board;
+    options = list.map((t, k) => (
+      <button key={t} type="button" disabled={!yours} onClick={() => onPick(t)} className="duel-card duel-deal is-live" style={{ ...optBtn(yours), animationDelay: `${k * 80}ms`, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 6, width: 160 }}>
+        <TokenDisc id={t} size={58} glow />
+        <b style={{ fontSize: 13, fontFamily: FONT.display, letterSpacing: .3 }}>{TOK[t].name}</b>
+        <div style={{ fontSize: 10.5, color: C.muted, lineHeight: 1.4 }}>{TOK[t].text}</div>
+      </button>
+    ));
+  }
+  if (pd.type === "destroy") {
+    title = `Tear down one of ${st.names[1 - pd.player]}'s ${pd.color} buildings`;
+    sub = "Your Wonder's wrath falls on a single card.";
+    options = st.players[1 - pd.player].built.filter((id) => CARD[id].color === pd.color).map((id, k) => (
+      <div key={`${id}${k}`} className="duel-doom duel-deal" style={{ animationDelay: `${k * 80}ms` }}>
+        <CardFace card={CARD[id]} w={96} dim={!yours} onClick={yours ? () => onPick(id) : undefined} />
+      </div>
+    ));
+  }
+  if (pd.type === "mausoleum") {
+    title = "Raise a card from the discard pile";
+    sub = "The Mausoleum rebuilds what was lost, free of charge.";
+    options = st.discard.map((id, k) => (
+      <div key={`${id}${k}`} className="duel-deal" style={{ animationDelay: `${k * 40}ms` }}>
+        <CardFace card={CARD[id]} w={88} dim={!yours} onClick={yours ? () => onPick(id) : undefined} />
+      </div>
+    ));
+  }
+  if (pd.type === "first") {
+    title = `Age ${ROMAN[pd.next]} approaches`;
+    sub = `${st.names[pd.player]} has the weaker army and chooses who opens the next age.`;
+    options = [0, 1].map((j) => (
+      <button key={j} type="button" disabled={!yours} onClick={() => onPick(j)} className="duel-card is-live" style={{
+        ...optBtn(yours), width: 180, display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: 16,
+        borderTop: `3px solid ${PLAYER[j].main}`,
+      }}>
+        <Crest seat={j} size={44} />
+        <b style={{ fontSize: 14, fontFamily: FONT.display, color: PLAYER[j].light }}>{st.names[j]} starts</b>
+      </button>
+    ));
+  }
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 88, display: "flex", alignItems: "center", justifyContent: "center", padding: 14,
+      background: "radial-gradient(circle at 50% 45%, rgba(10,18,20,.55), rgba(5,9,10,.85))", backdropFilter: "blur(3px)",
+    }}>
+      <div className="duel-pop" role="dialog" aria-label={title} style={{
+        maxWidth: 760, width: "100%", maxHeight: "90vh", overflowY: "auto",
+        background: `linear-gradient(180deg, ${PLAYER[pd.player].dark}55, transparent 120px), ${G.panel}`,
+        border: `1px solid ${C.gold}88`, borderRadius: 16, padding: "20px 20px 22px",
+        boxShadow: `0 30px 80px -20px rgba(0,0,0,.95), 0 0 60px -30px ${C.gold}`, textAlign: "center",
+      }}>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}><Crest seat={pd.player} size={30} /></div>
+        <h2 style={{ margin: "0 0 4px", fontSize: 22, color: C.ink, fontWeight: 700, fontFamily: FONT.display, letterSpacing: .5 }}>{title}</h2>
+        <p style={{ margin: "0 0 16px", fontSize: 12.5, color: C.muted }}>{yours ? sub : `Waiting for ${st.names[pd.player]}…`}</p>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>{options}</div>
+      </div>
+    </div>
   );
 }
 
@@ -1237,13 +1677,20 @@ function RulesPanel({ onClose }: { onClose: () => void }) {
           Five are available each game; the other five sit in the archive, reachable only through
           the Great Library.
           <div style={{ marginTop: 8 }}>
-            {TOKENS.map((t) => <Row key={t.id} head={t.name}>{t.text}</Row>)}
+            {TOKENS.map((t) => (
+              <div key={t.id} style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 8 }}>
+                <TokenDisc id={t.id} size={30} />
+                <span><b style={{ color: C.ink, fontWeight: 500 }}>{t.name}</b><br />{t.text}</span>
+              </div>
+            ))}
           </div>
         </Sec>
 
         <Sec title="Wonders">
           {WONDERS.map((w) => (
-            <div key={w.id} style={{ marginBottom: 9 }}>
+            <div key={w.id} style={{ marginBottom: 12, display: "grid", gridTemplateColumns: "96px 1fr", gap: 10, alignItems: "center" }}>
+              <div style={{ borderRadius: 6, overflow: "hidden", border: `1px solid ${C.gold}44`, aspectRatio: "120 / 64" }}><WonderArt id={w.id} w="100%" h="100%" /></div>
+              <div>
               <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
                 <span style={{ color: C.ink, fontWeight: 500 }}>{w.name}</span>
                 <CostRow cost={w.cost} size={11} />
@@ -1251,6 +1698,7 @@ function RulesPanel({ onClose }: { onClose: () => void }) {
                 {(w.shields ?? 0) > 0 && <Shield n={w.shields!} />}
               </div>
               <div style={{ fontSize: 11.5 }}>{w.text}</div>
+              </div>
             </div>
           ))}
         </Sec>
@@ -1343,7 +1791,7 @@ const CSS = `
 }
 .duel-card.is-live:hover  { transform: translateY(-5px) scale(1.025); box-shadow: ${SHADOW.cardUp}; z-index: 3; }
 .duel-card.is-live:active { transform: translateY(-1px) scale(1.005); }
-.duel-card.is-sel         { animation: duel-rise .18s cubic-bezier(.2,.8,.3,1); z-index: 4; }
+.duel-card.is-sel         { z-index: 4; }
 @keyframes duel-rise { from { transform: translateY(0) } to { transform: translateY(-4px) } }
 .duel-card.is-sel { transform: translateY(-4px); }
 
@@ -1362,10 +1810,94 @@ button:focus-visible, summary:focus-visible, textarea:focus-visible, input:focus
 .duel-pulse { animation: duel-pulse 1.9s ease-in-out infinite; }
 @keyframes duel-pulse { 0%,100% { opacity: 1 } 50% { opacity: .35 } }
 
-.duel-pawn { animation: duel-drop .28s cubic-bezier(.2,.9,.3,1); }
-@keyframes duel-drop { from { transform: translateY(-7px); opacity: 0 } to { transform: none; opacity: 1 } }
+.duel-pawn > svg { animation: duel-bob 2.4s ease-in-out infinite; }
+@keyframes duel-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-2px) } }
 
 .duel-fade { animation: duel-fade .22s ease-out; }
+
+.duel-deal { animation: duel-deal .5s cubic-bezier(.2,.9,.3,1.1) backwards; }
+@keyframes duel-deal {
+  from { opacity: 0; transform: translateY(-46px) rotate(-7deg) scale(.86); }
+  to { opacity: 1; transform: none; }
+}
+.duel-flip { animation: duel-flip .45s cubic-bezier(.3,.8,.4,1) backwards; transform-style: preserve-3d; }
+@keyframes duel-flip {
+  from { transform: perspective(500px) rotateY(88deg); filter: brightness(.6); }
+  to { transform: perspective(500px) rotateY(0); }
+}
+.duel-card.is-sel { animation: duel-rise .18s cubic-bezier(.2,.8,.3,1); }
+.duel-card.is-live .duel-price { transition: transform .16s; }
+.duel-card.is-live:hover .duel-price { transform: scale(1.12); }
+.duel-card.is-live::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
+  background: linear-gradient(115deg, transparent 35%, rgba(255,250,230,.38) 50%, transparent 65%);
+  background-size: 260% 100%; background-position: 130% 0; transition: background-position .6s ease;
+}
+.duel-card.is-live:hover::after { background-position: -30% 0; }
+.duel-card.is-live:not(.is-sel):not(:hover) { box-shadow: 0 0 0 1.5px ${C.gold}55, ${SHADOW.card} !important; }
+
+.duel-float { animation: duel-float 2.4s cubic-bezier(.2,.8,.3,1) forwards; opacity: 0; }
+@keyframes duel-float {
+  0% { opacity: 0; transform: translateY(14px) scale(.8); }
+  12% { opacity: 1; transform: translateY(0) scale(1.08); }
+  22% { transform: translateY(-2px) scale(1); }
+  75% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-26px); }
+}
+
+.duel-age { animation: duel-age 2.6s ease-in-out forwards; }
+@keyframes duel-age {
+  0% { opacity: 0; transform: scale(1.12); }
+  14% { opacity: 1; transform: scale(1); }
+  78% { opacity: 1; }
+  100% { opacity: 0; visibility: hidden; }
+}
+
+.duel-turn { animation: duel-turn .5s cubic-bezier(.2,.9,.3,1.2); }
+@keyframes duel-turn { from { opacity: 0; transform: translateY(-6px) scale(.92); } to { opacity: 1; transform: none; } }
+
+.duel-dock { animation: duel-dock .28s cubic-bezier(.2,.9,.3,1.1); }
+@keyframes duel-dock { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+
+.duel-pop { animation: duel-pop .32s cubic-bezier(.2,.9,.3,1.2); }
+@keyframes duel-pop { from { opacity: 0; transform: scale(.9) translateY(10px); } to { opacity: 1; transform: none; } }
+
+.duel-city.is-active { animation: duel-breathe 3s ease-in-out infinite; }
+@keyframes duel-breathe {
+  0%,100% { box-shadow: ${SHADOW.panel}, 0 0 0 1px ${C.gold}33, 0 0 30px -14px ${C.gold}88; }
+  50% { box-shadow: ${SHADOW.panel}, 0 0 0 1px ${C.gold}55, 0 0 36px -8px ${C.gold}aa; }
+}
+
+.duel-wonder { transition: transform .18s; }
+.duel-wonder:hover { transform: translateY(-2px); }
+.duel-wonder.is-built::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(110deg, transparent 40%, rgba(255,240,200,.32) 50%, transparent 60%);
+  background-size: 280% 100%; animation: duel-shine 5s ease-in-out infinite;
+}
+@keyframes duel-shine { 0%, 60% { background-position: 140% 0; } 100% { background-position: -40% 0; } }
+
+.duel-mini { transition: transform .14s; }
+.duel-mini:hover { transform: translateX(3px); z-index: 20 !important; }
+.duel-medal { transition: transform .16s; cursor: help; }
+.duel-medal:hover { transform: translateY(-3px) scale(1.06); }
+
+.duel-doom { position: relative; }
+.duel-doom::after {
+  content: "✕"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 54px; color: rgba(255,120,110,.0); pointer-events: none; transition: color .15s, background .15s; border-radius: 8px;
+}
+.duel-doom:hover::after { color: rgba(255,120,110,.9); background: rgba(120,20,15,.28); }
+
+.duel-confetti { animation-name: duel-confetti; animation-timing-function: linear; animation-iteration-count: 2; animation-fill-mode: both; }
+@keyframes duel-confetti {
+  0% { transform: translateY(0) rotate(0); opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: .8; }
+}
+.duel-bar { animation: duel-bar .9s cubic-bezier(.2,.8,.3,1) backwards; animation-delay: inherit; transform-origin: left; }
+@keyframes duel-bar { from { width: 0; } }
+.duel-crown { animation: duel-crown 1s cubic-bezier(.2,.9,.3,1.3); }
+@keyframes duel-crown { from { opacity: 0; transform: translateY(-30px) scale(.6); } to { opacity: 1; transform: none; } }
 @keyframes duel-fade { from { opacity: 0; transform: translateY(-4px) } to { opacity: 1; transform: none } }
 
 /* The dark surfaces make the default light scrollbars shout. */
@@ -1378,6 +1910,7 @@ button:focus-visible, summary:focus-visible, textarea:focus-visible, input:focus
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
   .duel-card.is-live:hover { transform: none; }
+  .duel-confetti, .duel-age { display: none; }
 }
 `;
 
@@ -1402,20 +1935,20 @@ const optBtn = (on: boolean): React.CSSProperties => ({
   boxShadow: SHADOW.panel,
   cursor: on ? "pointer" : "default", opacity: on ? 1 : .5,
 });
-const th: React.CSSProperties = {
-  textAlign: "right", padding: "9px 16px", fontSize: 10.5, color: C.muted, fontWeight: 700,
-  letterSpacing: .8, textTransform: "uppercase", borderBottom: `1px solid ${C.line}`,
-};
-const td: React.CSSProperties = { textAlign: "right", padding: "6px 16px" };
+
+const NOISE = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`;
+const MEANDER = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='12'%3E%3Cpath d='M0 11h10V3H4v4h3M12 1v10h10V3h-6v4h3' fill='none' stroke='%23d6a850' stroke-width='1.3' stroke-opacity='.4'/%3E%3C/svg%3E")`;
 
 function Shell({ children, status }: { children: React.ReactNode; status?: string }) {
   const [rules, setRules] = useState(false);
   return (
     <div style={{
-      background: G.board, backgroundAttachment: "fixed", minHeight: "100vh",
-      padding: 14, color: C.ink, fontFamily: FONT.body,
+      background: `${NOISE}, radial-gradient(70% 50% at 50% 0%, rgba(214,168,80,.08), transparent 70%), ${G.board}`,
+      backgroundAttachment: "fixed", minHeight: "100vh",
+      padding: "0 14px 14px", color: C.ink, fontFamily: FONT.body,
     }}>
       <BoardStyle />
+      <div aria-hidden="true" style={{ height: 12, margin: "0 -14px 14px", backgroundImage: MEANDER, backgroundRepeat: "repeat-x", backgroundPosition: "center", borderBottom: `1px solid ${C.gold}22`, opacity: .9 }} />
       <div style={{ maxWidth: 1080, margin: "0 auto", paddingBottom: 56 }}>
         {status && <div className="duel-fade" style={{
           background: "linear-gradient(180deg, #55411f 0%, #402f16 100%)",
@@ -1592,14 +2125,11 @@ function Lobby({ onLocal, onQuickHost, onQuickJoin, onManualHost, onManualJoin, 
 
   return (
     <Shell status={status}>
-      <div style={{ maxWidth: 440, margin: "40px auto" }}>
-        <div className="duel-fade" style={{ textAlign: "center", marginBottom: 30 }}>
-          <svg viewBox="0 0 64 64" width="54" height="54" style={{ opacity: .9, marginBottom: 6 }}>
-            <circle cx="32" cy="32" r="25" fill="none" stroke={C.gold} strokeWidth="1.6" opacity=".55" />
-            <circle cx="32" cy="32" r="18" fill="none" stroke={C.gold} strokeWidth="1" opacity=".38" />
-            <path d="M32 10 L42 32 L32 54 L22 32 Z" fill={C.gold} opacity=".5" />
-            <circle cx="32" cy="32" r="4.4" fill={C.gold} opacity=".92" />
-          </svg>
+      <div style={{ maxWidth: 520, margin: "10px auto 40px" }}>
+        <div className="duel-fade" style={{ textAlign: "center", marginBottom: 24 }}>
+          <div style={{ position: "relative", marginBottom: 14, borderRadius: 14, overflow: "hidden", border: `1px solid ${C.gold}44`, boxShadow: `0 20px 50px -20px rgba(0,0,0,.9), 0 0 40px -20px ${C.gold}` }}>
+            <LobbyScene width={560} />
+          </div>
           <h1 style={{
             fontFamily: FONT.display, fontSize: 46, margin: "0 0 8px", fontWeight: 700,
             letterSpacing: 8, textIndent: 8, color: C.ink,
@@ -1609,9 +2139,25 @@ function Lobby({ onLocal, onQuickHost, onQuickJoin, onManualHost, onManualJoin, 
             width: 78, height: 1, margin: "0 auto 14px",
             background: `linear-gradient(90deg, transparent, ${C.gold}, transparent)`,
           }} />
-          <p style={{ fontSize: 13.5, color: C.muted, margin: 0, lineHeight: 1.6 }}>
-            Three ages, two cities. Win by military, by science, or on points.
+          <p style={{ fontSize: 13.5, color: C.muted, margin: "0 0 14px", lineHeight: 1.6 }}>
+            Three ages, two cities, one table. Raise wonders, field armies, chase discoveries.
           </p>
+          <div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
+            {([["sword", "Military", "March on their capital", CARDCOL.red], ["flask", "Science", "Six different symbols", CARDCOL.green], ["crown", "Points", "Most glory after Age III", C.gold]] as const).map(([icon, name, text, col]) => (
+              <span key={name} style={{
+                display: "flex", alignItems: "center", gap: 8, padding: "6px 12px 6px 8px", borderRadius: 10,
+                background: `linear-gradient(180deg, ${col}22, rgba(0,0,0,.18))`, border: `1px solid ${col}55`, textAlign: "left",
+              }}>
+                <span style={{ width: 26, height: 26, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: `${col}33`, border: `1px solid ${col}88` }}>
+                  <Icon name={icon} size={15} color={shade(col, 25)} />
+                </span>
+                <span style={{ display: "flex", flexDirection: "column" }}>
+                  <b style={{ fontSize: 11.5, color: C.ink, fontFamily: FONT.display, letterSpacing: .4 }}>{name}</b>
+                  <span style={{ fontSize: 10, color: C.muted }}>{text}</span>
+                </span>
+              </span>
+            ))}
+          </div>
         </div>
 
         <div style={{
@@ -1621,7 +2167,8 @@ function Lobby({ onLocal, onQuickHost, onQuickJoin, onManualHost, onManualJoin, 
           <div style={{
             fontFamily: FONT.display, fontSize: 14, fontWeight: 600, marginBottom: 12,
             letterSpacing: .6, color: C.ink,
-          }}>Same screen</div>
+            display: "flex", alignItems: "center", gap: 8,
+          }}><span style={{ display: "flex" }}><Crest seat={0} size={16} /><span style={{ marginLeft: -4 }}><Crest seat={1} size={16} /></span></span>Same screen</div>
           <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
             <input value={a} onChange={(e) => setA(e.target.value)} style={inp} />
             <input value={b} onChange={(e) => setB(e.target.value)} style={inp} />
@@ -1636,7 +2183,11 @@ function Lobby({ onLocal, onQuickHost, onQuickJoin, onManualHost, onManualJoin, 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, gap: 8 }}>
             <span style={{
               fontFamily: FONT.display, fontSize: 14, fontWeight: 600, letterSpacing: .6, color: C.ink,
-            }}>Separate devices</span>
+              display: "flex", alignItems: "center", gap: 8,
+            }}>
+              <svg width="22" height="16" viewBox="0 0 22 16" aria-hidden="true"><rect x="1" y="2" width="8" height="12" rx="1.6" fill="none" stroke={PLAYER[0].main} strokeWidth="1.4" /><rect x="13" y="2" width="8" height="12" rx="1.6" fill="none" stroke={PLAYER[1].main} strokeWidth="1.4" /><path d="M9.6 8h2.8" stroke={C.gold} strokeWidth="1.2" strokeDasharray="1 1" /></svg>
+              Separate devices
+            </span>
             {quick === "ready" && (
               <span style={{ display: "flex", gap: 5 }}>
                 <button onClick={() => setTab("code")} style={tabBtn(tab === "code")}>Code</button>

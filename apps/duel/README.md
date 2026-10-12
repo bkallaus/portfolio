@@ -26,7 +26,9 @@ build step or test runner in the way.
 | `src/engine.ts` | All game logic, and the types the rest of the app shares. Pure, no React, no DOM. |
 | `src/theme.ts` | Palette, resource colours, science symbol glyphs, the domain unions, and the gradient/shadow tokens the board is skinned from. |
 | `src/net.ts` | Two connection transports behind one interface. |
-| `src/DuelBoard.tsx` | Every component. The only file that touches React. |
+| `src/art.tsx` | The illustrations: a painted scene for every card, wonder and progress token, plus crests, capitals, the pawn and laurels. Pure SVG, no state. |
+| `src/fx.ts` | `diffEvents(prev, next)` — what changed between two states (coins, shields, cards, wonders, a new age), so the board can animate it. Pure. |
+| `src/DuelBoard.tsx` | Every screen and board component. |
 | `test/` | Three suites, run by `test/run.ts`. |
 
 ## Invariants worth not breaking

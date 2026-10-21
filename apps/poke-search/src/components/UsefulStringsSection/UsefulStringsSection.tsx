@@ -5,6 +5,10 @@ const STRINGS = [
   {
     label: '90%+ IVs',
     value: '!#&!#,3attack&!#,4defense&!#,4hp&!#,4attack&!#,4attack,3attack&!#,4attack,4defense&!#,4attack,4hp&!#,3defense&!#,3defense,3attack&!#,3defense,4defense&!#,3defense,4hp&!#,4hp&!#,4hp,3attack&!#,4hp,4defense&!#,4hp&4attack,!#&4attack,!#,3attack&4attack,!#,4defense&4attack,!#,4hp&4attack,!#&4attack,3attack&4attack,4defense&4attack,4hp&4attack,3defense,!#&4attack,3defense,3attack&4attack,3defense,4defense&4attack,3defense,4hp&4attack,4hp,!#&4attack,4hp,3attack&4attack,4hp,4defense&4attack,4hp&4defense,!#&4defense,!#,3attack&4defense,!#&4defense,!#,4hp&4defense,4attack,!#&4defense,4attack,3attack&4defense,4attack&4defense,4attack,4hp&4defense,3defense,!#&4defense,3defense,3attack&4defense,3defense&4defense,3defense,4hp&4defense,4hp,!#&4defense,4hp,3attack&4defense,4hp&4defense,4hp&3hp,!#&3hp,!#,3attack&3hp,!#,4defense&3hp,!#,4hp&3hp,4attack,!#&3hp,4attack,3attack&3hp,4attack,4defense&3hp,4attack,4hp&3hp,3defense,!#&3hp,3defense,3attack&3hp,3defense,4defense&3hp,3defense,4hp&3hp,4hp,!#&3hp,4hp,3attack&3hp,4hp,4defense&3hp,4hp'
+  },
+  {
+    label: 'Safe Transfer / Clear Box',
+    value: '0*,1*,2*&!shiny&!legendary&!mythical&!ultra beast&!shadow&!costume'
   }
 ];
 
